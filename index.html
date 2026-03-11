@@ -204,6 +204,7 @@
             margin: 0 auto;
         }
 
+        input[type="email"],
         input[type="password"] {
             padding: 0.75rem;
             border: 1px solid #ccc;
@@ -226,6 +227,7 @@
         .btn-primary { background: var(--primary); }
         .btn-danger { background: var(--danger); }
         .btn-success { background: var(--success); }
+        .btn-secondary { background: #6b7280; }
 
         /* Toast Message */
         #toast {
@@ -303,11 +305,12 @@
         <h1>Admin Dashboard</h1>
         <div class="admin-panel">
             
-            <!-- Simple Login for Prototype -->
+            <!-- Supabase Login -->
             <div id="admin-login-ui" class="admin-login">
-                <p>Enter passcode to access controls.</p>
-                <input type="password" id="admin-pass" placeholder="Password (admin123)">
-                <button class="action-btn btn-primary" onclick="loginAdmin()">Login</button>
+                <p>Sign in to access controls.</p>
+                <input type="email" id="admin-email" placeholder="Admin Email">
+                <input type="password" id="admin-pass" placeholder="Password">
+                <button class="action-btn btn-primary" onclick="loginAdmin()">Sign In</button>
             </div>
 
             <!-- Controls -->
@@ -325,6 +328,12 @@
                     <h3 style="margin-bottom: 1rem;">Danger Zone</h3>
                     <button class="action-btn btn-danger" style="background: #000;" onclick="resetPoll()">
                         ⚠️ Reset Poll (Clear All Votes)
+                    </button>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">
+                        Log Out
                     </button>
                 </div>
             </div>
@@ -361,14 +370,21 @@
                 
                 if (session) {
                     currentUser = session.user;
+                    // If the user logged in with an email, they are an admin
+                    if (currentUser.email) {
+                        isAdmin = true;
+                    } else {
+                        isAdmin = false;
+                    }
                 } else {
-                    // Sign in anonymously
+                    // Sign in anonymously for voters
                     const { data, error } = await supabaseClient.auth.signInAnonymously();
                     if (error) throw error;
                     currentUser = data.user;
+                    isAdmin = false;
                 }
                 
-                console.log("Authenticated as:", currentUser.id);
+                console.log("Authenticated as:", currentUser.id, isAdmin ? "(Admin)" : "(Voter)");
                 fetchInitialData();
                 setupRealtimeSubscriptions();
 
@@ -403,6 +419,8 @@
                 
                 if (myVoteData) {
                     myVote = myVoteData.option_index;
+                } else {
+                    myVote = null;
                 }
             }
 
@@ -459,7 +477,7 @@
                     fetchAndUpdateAllVotes();
                     
                     // Update myVote status if my row was deleted (e.g. admin reset)
-                    if (payload.eventType === 'DELETE' && payload.old.user_id === currentUser.id) {
+                    if (payload.eventType === 'DELETE' && currentUser && payload.old.user_id === currentUser.id) {
                         myVote = null;
                         updateVoteUI();
                     }
@@ -515,6 +533,15 @@
                 lockBtn.className = 'action-btn btn-danger';
                 lockBtn.innerText = '🔒 Lock Voting';
             }
+
+            // Toggle admin panels based on auth state
+            if (isAdmin) {
+                document.getElementById('admin-login-ui').style.display = 'none';
+                document.getElementById('admin-controls-ui').style.display = 'flex';
+            } else {
+                document.getElementById('admin-login-ui').style.display = 'flex';
+                document.getElementById('admin-controls-ui').style.display = 'none';
+            }
         }
 
         // ==========================================
@@ -549,16 +576,54 @@
             });
         });
 
-        // Handle Admin Login (Prototype only)
-        window.loginAdmin = function() {
+        // Handle Admin Login (Supabase Auth)
+        window.loginAdmin = async function() {
+            const email = document.getElementById('admin-email').value;
             const pass = document.getElementById('admin-pass').value;
-            if (pass === 'admin123') {
+
+            if (!email || !pass) {
+                return showToast("Please enter an email and password.");
+            }
+
+            try {
+                // Sign in with Supabase
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: pass
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
                 isAdmin = true;
-                document.getElementById('admin-login-ui').style.display = 'none';
-                document.getElementById('admin-controls-ui').style.display = 'flex';
-                showToast("Admin logged in.");
-            } else {
-                showToast("Incorrect passcode.");
+                showToast("Admin logged in successfully.");
+                
+                // Re-fetch data associated with the new authenticated user
+                fetchInitialData();
+            } catch (error) {
+                console.error("Login Error:", error);
+                showToast("Login failed: " + error.message);
+            }
+        }
+
+        // Handle Admin Logout
+        window.logoutAdmin = async function() {
+            try {
+                await supabaseClient.auth.signOut();
+                
+                isAdmin = false;
+                currentUser = null;
+                
+                document.getElementById('admin-email').value = '';
+                document.getElementById('admin-pass').value = '';
+                
+                showToast("Admin logged out.");
+                
+                // Re-initialize to get a new anonymous session for voting
+                initAuth();
+            } catch (error) {
+                console.error("Logout error:", error);
+                showToast("Error logging out.");
             }
         }
 
