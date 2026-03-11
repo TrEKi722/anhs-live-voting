@@ -1,9 +1,8 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Polling System</title>
+    <title>Live Polling Wall</title>
     
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -252,13 +251,6 @@
 </head>
 <body>
 
-    <!-- Navigation -->
-    <!-- <nav>
-        <a href="#vote" id="nav-vote">📱 Vote</a>
-        <a href="#live" id="nav-live">📊 Projector</a>
-        <a href="#admin" id="nav-admin">⚙️ Admin</a>
-    </nav> -->
-
     <!-- 1. Voting Page -->
     <div id="view-vote" class="view">
         <div style="text-align: center;">
@@ -420,31 +412,6 @@
         // ==========================================
         // 4. UI Update Functions
         // ==========================================
-        function updateVoteUI() {
-            const badge = document.getElementById('vote-status-badge');
-            const buttons = document.querySelectorAll('.vote-btn');
-
-            if (pollIsLocked) {
-                badge.className = 'status-badge status-locked';
-                badge.innerText = '🔒 Voting is Locked';
-            } else {
-                badge.className = 'status-badge status-open';
-                badge.innerText = '🟢 Voting is Open';
-            }
-
-            buttons.forEach((btn, index) => {
-                btn.classList.remove('selected');
-                
-                if (myVote !== null) {
-                    btn.disabled = true;
-                    if (myVote === index) btn.classList.add('selected');
-                } else if (pollIsLocked) {
-                    btn.disabled = true;
-                } else {
-                    btn.disabled = false;
-                }
-            });
-        }
 
         function updateProjectorUI(counts, total) {
             document.getElementById('total-count').innerText = total;
@@ -454,26 +421,6 @@
                 document.getElementById(`bar-${index}`).style.width = `${percentage}%`;
                 document.getElementById(`pct-${index}`).innerText = `${percentage}% (${count})`;
             });
-        }
-
-        function updateAdminUI() {
-            const lockBtn = document.getElementById('toggle-lock-btn');
-            if (pollIsLocked) {
-                lockBtn.className = 'action-btn btn-success';
-                lockBtn.innerText = '🔓 Unlock Voting';
-            } else {
-                lockBtn.className = 'action-btn btn-danger';
-                lockBtn.innerText = '🔒 Lock Voting';
-            }
-
-            // Toggle admin panels based on auth state
-            if (isAdmin) {
-                document.getElementById('admin-login-ui').style.display = 'none';
-                document.getElementById('admin-controls-ui').style.display = 'flex';
-            } else {
-                document.getElementById('admin-login-ui').style.display = 'flex';
-                document.getElementById('admin-controls-ui').style.display = 'none';
-            }
         }
 
         // ==========================================
@@ -508,101 +455,6 @@
             });
         });
 
-        // Handle Admin Login (Supabase Auth)
-        window.loginAdmin = async function() {
-            const email = document.getElementById('admin-email').value;
-            const pass = document.getElementById('admin-pass').value;
-
-            if (!email || !pass) {
-                return showToast("Please enter an email and password.");
-            }
-
-            try {
-                // Sign in with Supabase
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: pass
-                });
-
-                if (error) throw error;
-
-                currentUser = data.user;
-                isAdmin = true;
-                showToast("Admin logged in successfully.");
-                
-                // Re-fetch data associated with the new authenticated user
-                fetchInitialData();
-            } catch (error) {
-                console.error("Login Error:", error);
-                showToast("Login failed: " + error.message);
-            }
-        }
-
-        // Handle Admin Logout
-        window.logoutAdmin = async function() {
-            try {
-                await supabaseClient.auth.signOut();
-                
-                isAdmin = false;
-                currentUser = null;
-                
-                document.getElementById('admin-email').value = '';
-                document.getElementById('admin-pass').value = '';
-                
-                showToast("Admin logged out.");
-                
-                // Re-initialize to get a new anonymous session for voting
-                initAuth();
-            } catch (error) {
-                console.error("Logout error:", error);
-                showToast("Error logging out.");
-            }
-        }
-
-        // Handle Admin Lock Toggle
-        window.toggleLock = async function() {
-            if (!isAdmin || !currentUser) return;
-            try {
-                const { error } = await supabaseClient
-                    .from('poll_config')
-                    .update({ is_locked: !pollIsLocked })
-                    .eq('id', 'main');
-                    
-                if (error) throw error;
-                // Toast will be triggered by realtime listener
-            } catch (error) {
-                console.error("Lock error:", error);
-                showToast("Error updating status. Check RLS policies.");
-            }
-        }
-
-        // Handle Admin Reset
-        window.resetPoll = async function() {
-            if (!isAdmin || !currentUser) return;
-            try {
-                // Delete all votes (Requires RLS policy allowing it)
-                const { error: deleteError } = await supabaseClient
-                    .from('votes')
-                    .delete()
-                    .neq('user_id', '00000000-0000-0000-0000-000000000000'); // Dummy condition to delete all rows
-                    
-                if (deleteError) throw deleteError;
-
-                // Ensure it's unlocked when reset
-                const { error: unlockError } = await supabaseClient
-                    .from('poll_config')
-                    .update({ is_locked: false })
-                    .eq('id', 'main');
-                    
-                if (unlockError) throw unlockError;
-
-                showToast("Poll reset successfully!");
-            } catch (error) {
-                console.error("Reset error:", error);
-                showToast("Error resetting poll. Check RLS policies.");
-            }
-        }
-
         // ==========================================
         // 6. Router & Utilities
         // ==========================================
@@ -612,26 +464,7 @@
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
-
-        function handleRoute() {
-            let hash = window.location.hash || '#vote';
-            
-            // Hide all views
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-            
-            // Show target view
-            const targetView = document.getElementById(`view-${hash.substring(1)}`);
-            const targetNav = document.getElementById(`nav-${hash.substring(1)}`);
-            
-            if (targetView) targetView.classList.add('active');
-            if (targetNav) targetNav.classList.add('active');
-        }
-
-        window.addEventListener('hashchange', handleRoute);
-        handleRoute(); // Call on load
         
-        // Start Auth Cycle
         initAuth();
 
     </script>

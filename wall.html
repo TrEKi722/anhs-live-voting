@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Polling Wall</title>
+    <title>Live Polling System</title>
     
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -251,46 +251,25 @@
     </style>
 </head>
 <body>
-
-    <!-- Navigation -->
-    <!-- <nav>
-        <a href="#vote" id="nav-vote">📱 Vote</a>
-        <a href="#live" id="nav-live">📊 Projector</a>
-        <a href="#admin" id="nav-admin">⚙️ Admin</a>
-    </nav> -->
-
-    <!-- 1. Voting Page -->
-    <!-- <div id="view-vote" class="view">
-        <div style="text-align: center;">
-            <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
-        </div>
-        <h1>What is your favorite programming language?</h1>
-        <div class="options-grid">
-            <button class="vote-btn" data-option="0">Python</button>
-            <button class="vote-btn" data-option="1">JavaScript</button>
-            <button class="vote-btn" data-option="2">C++</button>
-            <button class="vote-btn" data-option="3">Rust</button>
-        </div>
-    </div> -->
-
-    <!-- 2. Projector Page -->
+    
+    <!-- Projector Page -->
     <div id="view-live" class="view">
         <h1>Live Results</h1>
         <div class="chart-container">
             <div class="bar-group">
-                <div class="bar-label"><span>FRESHMEN</span> <span id="pct-0">0%</span></div>
+                <div class="bar-label"><span>Python</span> <span id="pct-0">0%</span></div>
                 <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
             </div>
             <div class="bar-group">
-                <div class="bar-label"><span>SOPHOMORES</span> <span id="pct-1">0%</span></div>
+                <div class="bar-label"><span>JavaScript</span> <span id="pct-1">0%</span></div>
                 <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
             </div>
             <div class="bar-group">
-                <div class="bar-label"><span>JUNIORS</span> <span id="pct-2">0%</span></div>
+                <div class="bar-label"><span>C++</span> <span id="pct-2">0%</span></div>
                 <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
             </div>
             <div class="bar-group">
-                <div class="bar-label"><span>SENIORS</span> <span id="pct-3">0%</span></div>
+                <div class="bar-label"><span>Rust</span> <span id="pct-3">0%</span></div>
                 <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
             </div>
             
@@ -300,101 +279,16 @@
         </div>
     </div>
 
-    <!-- 3. Admin Page -->
-    <!-- <div id="view-admin" class="view">
-        <h1>Admin Dashboard</h1>
-        <div class="admin-panel">
-            
-            <div id="admin-login-ui" class="admin-login">
-                <p>Sign in to access controls.</p>
-                <input type="email" id="admin-email" placeholder="Admin Email">
-                <input type="password" id="admin-pass" placeholder="Password">
-                <button class="action-btn btn-primary" onclick="loginAdmin()">Sign In</button>
-            </div>
-
-            <div id="admin-controls-ui" class="admin-controls">
-                <div style="margin-bottom: 2rem;">
-                    <h3 style="margin-bottom: 1rem;">Poll Status</h3>
-                    <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">
-                        🔒 Lock Voting
-                    </button>
-                </div>
-                
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
-                
-                <div>
-                    <h3 style="margin-bottom: 1rem;">Danger Zone</h3>
-                    <button class="action-btn btn-danger" style="background: #000;" onclick="resetPoll()">
-                        ⚠️ Reset Poll (Clear All Votes)
-                    </button>
-                </div>
-
-                <div style="margin-top: 2rem;">
-                    <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">
-                        Log Out
-                    </button>
-                </div>
-            </div>
-
-        </div>
-    </div> -->
-
     <!-- Custom Toast Message -->
     <div id="toast">Message goes here</div>
 
     <!-- Application Logic -->
     <script>
-        // ==========================================
-        // 1. Initialization & Config
-        // ==========================================
         const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // State Variables
-        let currentUser = null;
-        let pollIsLocked = false;
-        let myVote = null; 
-        let isAdmin = false;
-
-        // ==========================================
-        // 2. Authentication
-        // ==========================================
-        async function initAuth() {
-            try {
-                // Check for existing session
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                
-                if (session) {
-                    currentUser = session.user;
-                    // If the user logged in with an email, they are an admin
-                    if (currentUser.email) {
-                        isAdmin = true;
-                    } else {
-                        isAdmin = false;
-                    }
-                } else {
-                    // Sign in anonymously for voters
-                    const { data, error } = await supabaseClient.auth.signInAnonymously();
-                    if (error) throw error;
-                    currentUser = data.user;
-                    isAdmin = false;
-                }
-                
-                console.log("Authenticated as:", currentUser.id, isAdmin ? "(Admin)" : "(Voter)");
-                fetchInitialData();
-                setupRealtimeSubscriptions();
-
-            } catch (error) {
-                console.error("Auth error:", error);
-                showToast("Authentication failed. Check console.");
-            }
-        }
-
-        // ==========================================
-        // 3. Database Operations & Realtime
-        // ==========================================
         async function fetchInitialData() {
             // Fetch Poll Status
             const { data: configData } = await supabaseClient
@@ -421,9 +315,6 @@
                     myVote = null;
                 }
             }
-
-            updateVoteUI();
-            updateAdminUI();
             fetchAndUpdateAllVotes();
         }
 
@@ -483,35 +374,6 @@
                 .subscribe();
         }
 
-        // ==========================================
-        // 4. UI Update Functions
-        // ==========================================
-        function updateVoteUI() {
-            const badge = document.getElementById('vote-status-badge');
-            const buttons = document.querySelectorAll('.vote-btn');
-
-            if (pollIsLocked) {
-                badge.className = 'status-badge status-locked';
-                badge.innerText = '🔒 Voting is Locked';
-            } else {
-                badge.className = 'status-badge status-open';
-                badge.innerText = '🟢 Voting is Open';
-            }
-
-            buttons.forEach((btn, index) => {
-                btn.classList.remove('selected');
-                
-                if (myVote !== null) {
-                    btn.disabled = true;
-                    if (myVote === index) btn.classList.add('selected');
-                } else if (pollIsLocked) {
-                    btn.disabled = true;
-                } else {
-                    btn.disabled = false;
-                }
-            });
-        }
-
         function updateProjectorUI(counts, total) {
             document.getElementById('total-count').innerText = total;
 
@@ -521,185 +383,6 @@
                 document.getElementById(`pct-${index}`).innerText = `${percentage}% (${count})`;
             });
         }
-
-        function updateAdminUI() {
-            const lockBtn = document.getElementById('toggle-lock-btn');
-            if (pollIsLocked) {
-                lockBtn.className = 'action-btn btn-success';
-                lockBtn.innerText = '🔓 Unlock Voting';
-            } else {
-                lockBtn.className = 'action-btn btn-danger';
-                lockBtn.innerText = '🔒 Lock Voting';
-            }
-
-            // Toggle admin panels based on auth state
-            if (isAdmin) {
-                document.getElementById('admin-login-ui').style.display = 'none';
-                document.getElementById('admin-controls-ui').style.display = 'flex';
-            } else {
-                document.getElementById('admin-login-ui').style.display = 'flex';
-                document.getElementById('admin-controls-ui').style.display = 'none';
-            }
-        }
-
-        // ==========================================
-        // 5. User Actions
-        // ==========================================
-        
-        // Handle Voting
-        document.querySelectorAll('.vote-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                if (!currentUser) return showToast("Not authenticated yet.");
-                if (pollIsLocked) return showToast("Voting is currently locked.");
-                if (myVote !== null) return showToast("You have already voted!");
-
-                const optionIndex = parseInt(e.target.dataset.option);
-                
-                try {
-                    // UPSERT logic: Insert vote, or update if user_id exists
-                    const { error } = await supabaseClient
-                        .from('votes')
-                        .upsert({ user_id: currentUser.id, option_index: optionIndex });
-                        
-                    if (error) throw error;
-
-                    myVote = optionIndex;
-                    updateVoteUI();
-                    showToast("Vote cast successfully!");
-
-                } catch (error) {
-                    console.error("Voting error:", error);
-                    showToast("Error casting vote.");
-                }
-            });
-        });
-
-        // Handle Admin Login (Supabase Auth)
-        window.loginAdmin = async function() {
-            const email = document.getElementById('admin-email').value;
-            const pass = document.getElementById('admin-pass').value;
-
-            if (!email || !pass) {
-                return showToast("Please enter an email and password.");
-            }
-
-            try {
-                // Sign in with Supabase
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: pass
-                });
-
-                if (error) throw error;
-
-                currentUser = data.user;
-                isAdmin = true;
-                showToast("Admin logged in successfully.");
-                
-                // Re-fetch data associated with the new authenticated user
-                fetchInitialData();
-            } catch (error) {
-                console.error("Login Error:", error);
-                showToast("Login failed: " + error.message);
-            }
-        }
-
-        // Handle Admin Logout
-        window.logoutAdmin = async function() {
-            try {
-                await supabaseClient.auth.signOut();
-                
-                isAdmin = false;
-                currentUser = null;
-                
-                document.getElementById('admin-email').value = '';
-                document.getElementById('admin-pass').value = '';
-                
-                showToast("Admin logged out.");
-                
-                // Re-initialize to get a new anonymous session for voting
-                initAuth();
-            } catch (error) {
-                console.error("Logout error:", error);
-                showToast("Error logging out.");
-            }
-        }
-
-        // Handle Admin Lock Toggle
-        window.toggleLock = async function() {
-            if (!isAdmin || !currentUser) return;
-            try {
-                const { error } = await supabaseClient
-                    .from('poll_config')
-                    .update({ is_locked: !pollIsLocked })
-                    .eq('id', 'main');
-                    
-                if (error) throw error;
-                // Toast will be triggered by realtime listener
-            } catch (error) {
-                console.error("Lock error:", error);
-                showToast("Error updating status. Check RLS policies.");
-            }
-        }
-
-        // Handle Admin Reset
-        window.resetPoll = async function() {
-            if (!isAdmin || !currentUser) return;
-            try {
-                // Delete all votes (Requires RLS policy allowing it)
-                const { error: deleteError } = await supabaseClient
-                    .from('votes')
-                    .delete()
-                    .neq('user_id', '00000000-0000-0000-0000-000000000000'); // Dummy condition to delete all rows
-                    
-                if (deleteError) throw deleteError;
-
-                // Ensure it's unlocked when reset
-                const { error: unlockError } = await supabaseClient
-                    .from('poll_config')
-                    .update({ is_locked: false })
-                    .eq('id', 'main');
-                    
-                if (unlockError) throw unlockError;
-
-                showToast("Poll reset successfully!");
-            } catch (error) {
-                console.error("Reset error:", error);
-                showToast("Error resetting poll. Check RLS policies.");
-            }
-        }
-
-        // ==========================================
-        // 6. Router & Utilities
-        // ==========================================
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // function handleRoute() {
-        //     let hash = window.location.hash || '#vote';
-            
-        //     // Hide all views
-        //     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        //     document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-            
-        //     // Show target view
-        //     const targetView = document.getElementById(`view-${hash.substring(1)}`);
-        //     const targetNav = document.getElementById(`nav-${hash.substring(1)}`);
-            
-        //     if (targetView) targetView.classList.add('active');
-        //     if (targetNav) targetNav.classList.add('active');
-        // }
-
-        // window.addEventListener('hashchange', handleRoute);
-        // handleRoute(); // Call on load
-        
-        // // Start Auth Cycle
-        // initAuth();
-
     </script>
 </body>
 </html>
