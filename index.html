@@ -35,48 +35,6 @@
             min-height: 100vh;
         }
 
-        /* Navigation */
-        nav {
-            background: var(--card-bg);
-            padding: 1rem;
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: var(--text-color);
-            font-weight: 600;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: background 0.2s;
-        }
-
-        nav a:hover, nav a.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        /* Views */
-        .view {
-            display: none;
-            flex: 1;
-            padding: 2rem;
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .view.active {
-            display: block;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -138,96 +96,6 @@
         .status-open { background: #d1fae5; color: #065f46; }
         .status-locked { background: #fee2e2; color: #991b1b; }
 
-        /* Projector Page */
-        .chart-container {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        .bar-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .bar-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-
-        .bar-track {
-            background: #e5e7eb;
-            height: 24px;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 12px;
-        }
-
-        .total-participants {
-            text-align: center;
-            margin-top: 2rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-
-        /* Admin Page */
-        .admin-panel {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-
-        .admin-controls {
-            display: none; /* Hidden until logged in */
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .admin-login {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            max-width: 300px;
-            margin: 0 auto;
-        }
-
-        input[type="email"],
-        input[type="password"] {
-            padding: 0.75rem;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        button.action-btn {
-            padding: 1rem 2rem;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            transition: opacity 0.2s;
-        }
-
-        button.action-btn:hover { opacity: 0.9; }
-        .btn-primary { background: var(--primary); }
-        .btn-danger { background: var(--danger); }
-        .btn-success { background: var(--success); }
-        .btn-secondary { background: #6b7280; }
-
         /* Toast Message */
         #toast {
             position: fixed;
@@ -251,7 +119,6 @@
 </head>
 <body>
 
-    <!-- 1. Voting Page -->
     <div id="view-vote" class="view">
         <div style="text-align: center;">
             <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
@@ -349,7 +216,6 @@
             }
 
             updateVoteUI();
-            updateAdminUI();
             fetchAndUpdateAllVotes();
         }
 
@@ -412,14 +278,30 @@
         // ==========================================
         // 4. UI Update Functions
         // ==========================================
+     
+        function updateVoteUI() {
+            const badge = document.getElementById('vote-status-badge');
+            const buttons = document.querySelectorAll('.vote-btn');
 
-        function updateProjectorUI(counts, total) {
-            document.getElementById('total-count').innerText = total;
+            if (pollIsLocked) {
+                badge.className = 'status-badge status-locked';
+                badge.innerText = '🔒 Voting is Locked';
+            } else {
+                badge.className = 'status-badge status-open';
+                badge.innerText = '🟢 Voting is Open';
+            }
 
-            counts.forEach((count, index) => {
-                const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
-                document.getElementById(`bar-${index}`).style.width = `${percentage}%`;
-                document.getElementById(`pct-${index}`).innerText = `${percentage}% (${count})`;
+            buttons.forEach((btn, index) => {
+                btn.classList.remove('selected');
+                
+                if (myVote !== null) {
+                    btn.disabled = true;
+                    if (myVote === index) btn.classList.add('selected');
+                } else if (pollIsLocked) {
+                    btn.disabled = true;
+                } else {
+                    btn.disabled = false;
+                }
             });
         }
 
