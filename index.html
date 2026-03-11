@@ -264,80 +264,12 @@
         <div style="text-align: center;">
             <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
         </div>
-        <h1>What is your favorite programming language?</h1>
+        <h1>WHICH VIDEO WAS THE BEST?!</h1>
         <div class="options-grid">
             <button class="vote-btn" data-option="0">FRESHMEN</button>
             <button class="vote-btn" data-option="1">SOPHOMORES</button>
             <button class="vote-btn" data-option="2">JUNIORS</button>
             <button class="vote-btn" data-option="3">SENIORS</button>
-        </div>
-    </div>
-
-    <!-- 2. Projector Page -->
-    <div id="view-live" class="view">
-        <h1>Live Results</h1>
-        <div class="chart-container">
-            <div class="bar-group">
-                <div class="bar-label"><span>FRESHMEN</span> <span id="pct-0">0%</span></div>
-                <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
-            </div>
-            <div class="bar-group">
-                <div class="bar-label"><span>SOPHOMORES</span> <span id="pct-1">0%</span></div>
-                <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
-            </div>
-            <div class="bar-group">
-                <div class="bar-label"><span>JUNIORS</span> <span id="pct-2">0%</span></div>
-                <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
-            </div>
-            <div class="bar-group">
-                <div class="bar-label"><span>SENIORS</span> <span id="pct-3">0%</span></div>
-                <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
-            </div>
-            
-            <div class="total-participants">
-                Total Votes: <span id="total-count">0</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. Admin Page -->
-    <div id="view-admin" class="view">
-        <h1>Admin Dashboard</h1>
-        <div class="admin-panel">
-            
-            <!-- Supabase Login -->
-            <div id="admin-login-ui" class="admin-login">
-                <p>Sign in to access controls.</p>
-                <input type="email" id="admin-email" placeholder="Admin Email">
-                <input type="password" id="admin-pass" placeholder="Password">
-                <button class="action-btn btn-primary" onclick="loginAdmin()">Sign In</button>
-            </div>
-
-            <!-- Controls -->
-            <div id="admin-controls-ui" class="admin-controls">
-                <div style="margin-bottom: 2rem;">
-                    <h3 style="margin-bottom: 1rem;">Poll Status</h3>
-                    <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">
-                        🔒 Lock Voting
-                    </button>
-                </div>
-                
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
-                
-                <div>
-                    <h3 style="margin-bottom: 1rem;">Danger Zone</h3>
-                    <button class="action-btn btn-danger" style="background: #000;" onclick="resetPoll()">
-                        ⚠️ Reset Poll (Clear All Votes)
-                    </button>
-                </div>
-
-                <div style="margin-top: 2rem;">
-                    <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">
-                        Log Out
-                    </button>
-                </div>
-            </div>
-
         </div>
     </div>
 
