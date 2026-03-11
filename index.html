@@ -55,8 +55,10 @@
 
         .vote-btn {
             background: var(--card-bg);
+            width: 200px;
             border: 2px solid #e5e7eb;
             padding: 2rem;
+            margin-top: 2rem;
             font-size: 1.25rem;
             font-weight: 600;
             border-radius: var(--border-radius);
@@ -123,6 +125,7 @@
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 800px;
+            display: grid;
         }
 
         .bar-group {
@@ -179,24 +182,24 @@
 
     <div class="chart-container">
         <button class="vote-btn" data-option="0">
-            <div class="bar-label"><span>FRESHMEN</span> <span id="pct-0">0%</span></div>
+            <div class="bar-label"><span>FRESHMEN  |  </span> <span id="pct-0">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
         </button>
         <button class="vote-btn" data-option="1">
-            <div class="bar-label"><span>SOPHOMORES</span> <span id="pct-1">0%</span></div>
+            <div class="bar-label"><span>SOPHOMORES  |  </span> <span id="pct-1">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
         </button>
         <button class="vote-btn" data-option="2">
-            <div class="bar-label"><span>JUNIORS</span> <span id="pct-2">0%</span></div>
+            <div class="bar-label"><span>JUNIORS  |  </span> <span id="pct-2">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
         </button>
         <button class="vote-btn" data-option="4">
-            <div class="bar-label"><span>SENIORS</span> <span id="pct-3">0%</span></div>
+            <div class="bar-label"><span>SENIORS  |  </span> <span id="pct-3">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
         </button>
         
-        <div class="total-participants">
-            Total Votes: <span id="total-count">0</span>
+        <!-- <div class="total-participants">
+            Total Votes: <span id="total-count">0</span> -->
         </div>
     </div>
 
@@ -375,12 +378,12 @@
 
         // Animate the bars and update text
         function updateProjectorUI(counts, total) {
-            document.getElementById('total-count').innerText = total;
+            // document.getElementById('total-count').innerText = total;
 
             counts.forEach((count, index) => {
                 const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
                 document.getElementById(`bar-${index}`).style.width = `${percentage}%`;
-                document.getElementById(`pct-${index}`).innerText = `${percentage}% (${count})`;
+                document.getElementById(`pct-${index}`).innerText = `${percentage}%`;
             });
         }
 
