@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Polling Wall</title>
+    <title>ANHS Live Polling</title>
     
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -115,6 +115,51 @@
         #toast.show {
             transform: translateX(-50%) translateY(0);
         }
+                /* Projector Page Styles */
+        .chart-container {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .bar-group {
+            margin-bottom: 2rem;
+        }
+
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .bar-track {
+            background: #e5e7eb;
+            height: 32px;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 16px;
+        }
+
+        .total-participants {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
     </style>
 </head>
 <body>
@@ -129,6 +174,30 @@
             <button class="vote-btn" data-option="1">SOPHOMORES</button>
             <button class="vote-btn" data-option="2">JUNIORS</button>
             <button class="vote-btn" data-option="3">SENIORS</button>
+        </div>
+    </div>
+
+    <h1>Live Results</h1>
+    <div class="chart-container">
+        <div class="bar-group">
+            <div class="bar-label"><span>Python</span> <span id="pct-0">0%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>JavaScript</span> <span id="pct-1">0%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>C++</span> <span id="pct-2">0%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>Rust</span> <span id="pct-3">0%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
+        </div>
+        
+        <div class="total-participants">
+            Total Votes: <span id="total-count">0</span>
         </div>
     </div>
 
@@ -302,6 +371,17 @@
                 } else {
                     btn.disabled = false;
                 }
+            });
+        }
+
+        // Animate the bars and update text
+        function updateProjectorUI(counts, total) {
+            document.getElementById('total-count').innerText = total;
+
+            counts.forEach((count, index) => {
+                const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
+                document.getElementById(`bar-${index}`).style.width = `${percentage}%`;
+                document.getElementById(`pct-${index}`).innerText = `${percentage}% (${count})`;
             });
         }
 
