@@ -122,6 +122,7 @@ function setupRealtimeSubscriptions() {
                 updateVoteUI();
                 // after lock change we need to recompute counts
                 fetchAndUpdateAllVotes();
+                updateProjectorUI();
                 updateAdminUI();
             }
             if (payload.new && ( payload.new.option0 !== undefined || payload.new.option1 !== undefined || payload.new.option2 !== undefined || payload.new.option3 !== undefined )) {
@@ -178,6 +179,14 @@ function updateVoteUI() {
         }
     }
 
+    if (pollIsHidden) {
+        document.getElementById('resultGrid').classList.add('hidden');
+        document.getElementById('hiddenGrid').classList.remove('hidden');
+    } else {
+        document.getElementById('resultGrid').classList.remove('hidden');
+        document.getElementById('hiddenGrid').classList.add('hidden');
+    }
+
     if (optionsE) {
         optionsE.forEach((opt, index) => {
             if (opt) opt.innerText = options[index];
@@ -214,6 +223,16 @@ function updateProjectorUI(counts = [], total = 0) {
         } else {
             badge.className = 'status-badge status-open';
             badge.innerText = '🟢 Voting is Open';
+        }
+    }
+
+    if (window.location.pathname === '/wall') {
+        if (pollIsHidden) {
+            forEach(document.querySelectorAll('bar-group'), el => el.classList.add('hidden'));
+            document.getElementById('hiddenText').style.display = 'block';
+        } else {
+            forEach(document.querySelectorAll('bar-group'), el => el.classList.remove('hidden'));
+            document.getElementById('hiddenText').style.display = 'none';
         }
     }
 
