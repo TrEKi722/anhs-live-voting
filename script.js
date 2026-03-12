@@ -230,10 +230,10 @@ function updateProjectorUI(counts = [], total = 0) {
 
     if (window.location.pathname === '/wall') {
         if (pollIsHidden) {
-            forEach(document.querySelectorAll('bar-group'), el => el.classList.add('hidden'));
+            document.querySelectorAll('bar-group').forEach( el => el.classList.add('hidden'));
             document.getElementById('hiddenText').style.display = 'block';
         } else {
-            forEach(document.querySelectorAll('bar-group'), el => el.classList.remove('hidden'));
+            document.querySelectorAll('bar-group').forEach( el => el.classList.remove('hidden'));
             document.getElementById('hiddenText').style.display = 'none';
         }
     }
