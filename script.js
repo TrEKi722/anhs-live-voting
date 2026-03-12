@@ -355,8 +355,21 @@ window.resetPoll = async function() {
     }
 }
 
-window.updateOptions =  async function() {
+window.updateOptions =  async function(optionsIn) {
+    if (!isAdmin) return showToast("Not an admin.");
+    try {
+        const { error } = await supabaseClient
+            .from('poll_config')
+            .update({option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]), option2: document.getElementById(optionsIn[2]), option3: document.getElementById(optionsIn[3])});
+            
+        if (error) throw error;
 
+        updateAdminUI();
+        showToast("Options updated successfully!");
+    } catch (error) {
+        console.error("Option update error:", error);
+        showToast("Error updating options.");
+    }
 }
 
 // ==========================================

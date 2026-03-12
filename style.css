@@ -118,6 +118,11 @@ h1, h2 {
     flex-direction: column;
 }
 
+.chart-container .admin-panel {
+    margin-top: 0.5rem;
+    width: auto;
+}
+
 .bar-group {
     margin-bottom: 2rem;
 }
