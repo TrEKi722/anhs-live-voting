@@ -164,22 +164,6 @@ body {
     align-items: center;
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: #111;
-    font-size: 2.5rem;
-}
-
-.chart-container {
-    background: var(--card-bg);
-    padding: 3rem;
-    border-radius: var(--border-radius);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    width: 100%;
-    max-width: 800px;
-}
-
 /* Admin styles */
 body {
     background-color: var(--bg-color);
@@ -216,13 +200,6 @@ nav a:hover, nav a.active {
     color: white;
 }
 
-h1, h2 {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: #111;
-    margin-top: 2rem;
-}
-
 /* Admin Page Specific */
 .admin-panel {
     background: var(--card-bg);
@@ -232,7 +209,7 @@ h1, h2 {
     text-align: center;
     max-width: 800px;
     margin: 0 auto;
-    width: 100%;
+    width: 90vw;
 }
 
 .admin-controls {
