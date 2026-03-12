@@ -47,6 +47,10 @@ h1, h2 {
     gap: 1rem;
 }
 
+.options-grid .hidden{
+    display: none;
+}
+
 .vote-btn {
     padding: 1rem;
     margin: 0.4rem;

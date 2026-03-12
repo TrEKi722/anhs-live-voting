@@ -13,6 +13,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // State Variables
 let currentUser = null;
 let pollIsLocked = false;
+let pollIsHidden = false;
 let options = ["Loading...", "Loading...", "Loading...", "Loading..."];
 let myVote = null;
 let isAdmin = false;
@@ -50,11 +51,12 @@ async function initAuth() {
 async function fetchInitialData() {
     const { data: configData } = await supabaseClient
         .from('poll_config')
-        .select('is_locked, results_hidden, option0, option1, option2, option3')
+        .select('results_hidden, is_locked, results_hidden, option0, option1, option2, option3')
         .eq('id', 'main')
         .single();
     
     if (configData) {
+        pollIsHidden = configData.results_hidden;
         pollIsLocked = configData.is_locked;
         options[0] = configData.option0 || options[0];
         options[1] = configData.option1 || options[1];
@@ -110,6 +112,13 @@ function setupRealtimeSubscriptions() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_config' }, payload => {
             if (payload.new && payload.new.is_locked !== undefined) {
                 pollIsLocked = payload.new.is_locked;
+                updateVoteUI();
+                // after lock change we need to recompute counts
+                fetchAndUpdateAllVotes();
+                updateAdminUI();
+            }           
+            if (payload.new && payload.new.results_hidden !== undefined) {
+                pollIsHidden = payload.new.results_hidden;
                 updateVoteUI();
                 // after lock change we need to recompute counts
                 fetchAndUpdateAllVotes();
@@ -323,6 +332,21 @@ window.toggleLock = async function() {
         const { error } = await supabaseClient
             .from('poll_config')
             .update({ is_locked: !pollIsLocked })
+            .eq('id', 'main');
+            
+        if (error) throw error;
+        showToast("Status updated successfully!");
+    } catch (error) {
+        showToast("Error updating status.");
+    }
+}
+
+window.toggleHide = async function() {
+    if (!isAdmin || !currentUser) return;
+    try {
+        const { error } = await supabaseClient
+            .from('poll_config')
+            .update({ results_hidden: !pollIsHidden })
             .eq('id', 'main');
             
         if (error) throw error;
