@@ -8,88 +8,11 @@
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <style>
-        :root {
-            --bg-color: #f4f4f9;
-            --text-color: #333;
-            --primary: #4f46e5;
-            --card-bg: #ffffff;
-            --border-radius: 12px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            padding: 2rem;
-            align-items: center;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: #111;
-            font-size: 2.5rem;
-        }
-
-        /* Projector Page Styles */
-        .chart-container {
-            background: var(--card-bg);
-            padding: 3rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 800px;
-        }
-
-        .bar-group {
-            margin-bottom: 2rem;
-        }
-
-        .bar-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
-            font-size: 1.25rem;
-        }
-
-        .bar-track {
-            background: #e5e7eb;
-            height: 32px;
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 16px;
-        }
-
-        .total-participants {
-            text-align: center;
-            margin-top: 3rem;
-            font-size: 1.75rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     
-    <h1>Live Results</h1>
+    <h1>Vote now @ anhs-live-voting.pages.dev</h1>
     <div class="chart-container">
         <div class="bar-group">
             <div class="bar-label"><span>FRESHMEN</span> <span id="pct-0">0%</span></div>

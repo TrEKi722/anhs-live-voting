@@ -1,5 +1,5 @@
 <html lang="en">
-<head>
+    <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANHS Live Polling</title>
@@ -7,167 +7,7 @@
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <style>
-        :root {
-            --bg-color: #f4f4f9;
-            --text-color: #333;
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --danger: #ef4444;
-            --danger-hover: #dc2626;
-            --success: #10b981;
-            --card-bg: #ffffff;
-            --border-radius: 12px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            justify-content: center;
-            align-items: center;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        h1, h2 {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: #111;
-        }
-
-        /* Voting Page */
-        .options-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .vote-btn {
-            background: var(--card-bg);
-            width: 95%;
-            border: 2px solid #e5e7eb;
-            padding: 2rem;
-            margin-top: 2rem;
-            font-size: 1.25rem;
-            font-weight: 600;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: all 0.2s;
-            color: var(--text-color);
-        }
-
-        .vote-btn:hover:not(:disabled) {
-            border-color: var(--primary);
-            background: #eef2ff;
-            transform: translateY(-2px);
-        }
-
-        .vote-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .vote-btn.selected {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            opacity: 1;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 999px;
-            font-weight: bold;
-            font-size: 0.875rem;
-            margin-bottom: 1rem;
-        }
-
-        .status-open { background: #d1fae5; color: #065f46; }
-        .status-locked { background: #fee2e2; color: #991b1b; }
-
-        /* Toast Message */
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #333;
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 999px;
-            font-weight: 500;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        #toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
-        
-        /* Projector Page Styles */
-        .chart-container {
-            background: var(--card-bg);
-            padding: 3rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            width: 45%;
-            max-width: 800px;
-            display: grid;
-            justify-content: center;
-        }
-
-        .bar-group {
-            margin-bottom: 2rem;
-        }
-
-        .bar-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
-            font-size: 1.25rem;
-        }
-
-        .bar-track {
-            background: #e5e7eb;
-            height: 32px;
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 16px;
-        }
-
-        .total-participants {
-            text-align: center;
-            margin-top: 3rem;
-            font-size: 1.75rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -176,12 +16,6 @@
             <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
         </div>
         <h1>WHICH VIDEO WAS THE BEST?!</h1>
-        <!-- <div class="options-grid">
-            <button class="vote-btn" data-option="0">FRESHMEN</button>
-            <button class="vote-btn" data-option="1">SOPHOMORES</button>
-            <button class="vote-btn" data-option="2">JUNIORS</button>
-            <button class="vote-btn" data-option="3">SENIORS</button>
-        </div> -->
     </div>
 
     <div class="chart-container">
@@ -204,7 +38,6 @@
         
         <!-- <div class="total-participants">
             Total Votes: <span id="total-count">0</span> -->
-        </div>
     </div>
 
     <!-- Custom Toast Message -->
