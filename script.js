@@ -228,14 +228,12 @@ function updateProjectorUI(counts = [], total = 0) {
         }
     }
 
-    if (window.location.pathname === '/wall') {
-        if (pollIsHidden) {
-            document.getElementsByClassName('chart-container').style.display = 'none';
-            document.getElementById('hiddenText').style.display = 'block';
-        } else {
-            document.getElementsByClassName('chart-container').style.display = 'block';
-            document.getElementById('hiddenText').style.display = 'none';
-        }
+    if (pollIsHidden) {
+        document.getElementById('live-chart').style.display = 'none';
+        document.getElementById('hiddenText').style.display = 'block';
+    } else {
+        document.getElementById('live-chart').style.display = 'block';
+        document.getElementById('hiddenText').style.display = 'none';
     }
 
     if (optionsa) {
