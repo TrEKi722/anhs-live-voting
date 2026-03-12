@@ -29,7 +29,9 @@ async function initAuth() {
             currentUser = session.user;
             isAdmin = !!currentUser.email;
         } else {
-            const { data, error } = await supabaseClient.auth.signInAnonymously();
+            const { data, error } = await supabaseClient.auth.signInAnonymously({
+                options: { captchaToken: turnstile.getResponse(widgetId) }
+            });
             if (error) throw error;
             currentUser = data.user;
             isAdmin = false;
@@ -44,6 +46,13 @@ async function initAuth() {
     }
     updateAdminUI();
 }
+
+const responseToken = turnstile.getResponse(widgetId);
+await supabase.auth.signUp({
+  email,
+  password,
+  options: { captchaToken },
+})
 
 // ==========================================
 // 3. Database Operations & Realtime
