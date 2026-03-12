@@ -165,47 +165,49 @@ function updateAdminOptionInputs() {
     });
 }
 function updateVoteUI() {
-    const optionsE = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
-    const badge = document.getElementById('vote-status-badge');
-    const buttons = document.querySelectorAll('.vote-btn');
+    if (window.location.pathname === '/') {
+        const optionsE = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
+        const badge = document.getElementById('vote-status-badge');
+        const buttons = document.querySelectorAll('.vote-btn');
 
-    if (badge) {
-        if (pollIsLocked) {
-            badge.className = 'status-badge status-locked';
-            badge.innerText = '🔒 Voting is Locked';
-        } else {
-            badge.className = 'status-badge status-open';
-            badge.innerText = '🟢 Voting is Open';
+        if (badge) {
+            if (pollIsLocked) {
+                badge.className = 'status-badge status-locked';
+                badge.innerText = '🔒 Voting is Locked';
+            } else {
+                badge.className = 'status-badge status-open';
+                badge.innerText = '🟢 Voting is Open';
+            }
         }
-    }
 
-    if (pollIsHidden) {
-        document.getElementById('resultGrid').classList.add('hidden');
-        document.getElementById('hiddenGrid').classList.remove('hidden');
-    } else {
-        document.getElementById('resultGrid').classList.remove('hidden');
-        document.getElementById('hiddenGrid').classList.add('hidden');
-    }
+        if (pollIsHidden) {
+            document.getElementById('resultGrid').classList.add('hidden');
+            document.getElementById('hiddenGrid').classList.remove('hidden');
+        } else {
+            document.getElementById('resultGrid').classList.remove('hidden');
+            document.getElementById('hiddenGrid').classList.add('hidden');
+        }
 
-    if (optionsE) {
-        optionsE.forEach((opt, index) => {
-            if (opt) opt.innerText = options[index];
+        if (optionsE) {
+            optionsE.forEach((opt, index) => {
+                if (opt) opt.innerText = options[index];
+            });
+        }
+
+        buttons.forEach((btn) => {
+            const optionIndex = parseInt(btn.dataset.option);
+            btn.classList.remove('selected');
+            
+            if (myVote !== null) {
+                btn.disabled = true;
+                if (myVote === optionIndex) btn.classList.add('selected');
+            } else if (pollIsLocked) {
+                btn.disabled = true;
+            } else {
+                btn.disabled = false;
+            }
         });
     }
-
-    buttons.forEach((btn) => {
-        const optionIndex = parseInt(btn.dataset.option);
-        btn.classList.remove('selected');
-        
-        if (myVote !== null) {
-            btn.disabled = true;
-            if (myVote === optionIndex) btn.classList.add('selected');
-        } else if (pollIsLocked) {
-            btn.disabled = true;
-        } else {
-            btn.disabled = false;
-        }
-    });
 }
 
 function updateProjectorUI(counts = [], total = 0) {
