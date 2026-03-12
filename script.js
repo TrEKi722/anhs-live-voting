@@ -184,12 +184,13 @@ function updateVoteUI() {
         });
     }
 
-    buttons.forEach((btn, index) => {
+    buttons.forEach((btn) => {
+        const optionIndex = parseInt(btn.dataset.option);
         btn.classList.remove('selected');
         
         if (myVote !== null) {
             btn.disabled = true;
-            if (myVote === index || myVote === index+4) btn.classList.add('selected');
+            if (myVote === optionIndex) btn.classList.add('selected');
         } else if (pollIsLocked) {
             btn.disabled = true;
         } else {
