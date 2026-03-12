@@ -31,7 +31,7 @@
             <div class="bar-label"><span>JUNIORS</span> <span id="pct-2">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
         </button>
-        <button class="vote-btn" data-option="4">
+        <button class="vote-btn" data-option="3">
             <div class="bar-label"><span>SENIORS</span> <span id="pct-3">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
         </button>
@@ -161,7 +161,6 @@
                     if (payload.new && payload.new.is_locked !== undefined) {
                         pollIsLocked = payload.new.is_locked;
                         updateVoteUI();
-                        updateAdminUI();
                     }
                 })
                 .subscribe();
@@ -235,7 +234,7 @@
                 if (pollIsLocked) return showToast("Voting is currently locked.");
                 if (myVote !== null) return showToast("You have already voted!");
 
-                const optionIndex = parseInt(e.target.dataset.option);
+                const optionIndex = parseInt(btn.dataset.option);                
                 
                 try {
                     // UPSERT logic: Insert vote, or update if user_id exists
