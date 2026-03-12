@@ -202,7 +202,8 @@ function updateProjectorUI(counts = [], total = 0) {
     // `counts` and `total` default so callers can invoke without data
     const total_count= document.getElementById('total-count');
     if (total_count) total_count.innerText = total;
-    const optionsE = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
+    const optionsa = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
+    const optionsb = [document.getElementById('option0b'), document.getElementById('option1b'), document.getElementById('option2b'), document.getElementById('option3b')];
     const badge = document.getElementById('vote-status-badge');
 
     if (badge) {
@@ -215,8 +216,14 @@ function updateProjectorUI(counts = [], total = 0) {
         }
     }
 
-    if (optionsE) {
-        optionsE.forEach((opt, index) => {
+    if (optionsa) {
+        optionsa.forEach((opt, index) => {
+            if (opt) opt.innerText = options[index];
+        });
+    }
+
+    if (optionsb) {
+        optionsb.forEach((opt, index) => {
             if (opt) opt.innerText = options[index];
         });
     }
