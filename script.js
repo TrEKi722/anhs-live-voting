@@ -47,13 +47,6 @@ async function initAuth() {
     updateAdminUI();
 }
 
-const responseToken = turnstile.getResponse(widgetId);
-await supabase.auth.signUp({
-  email,
-  password,
-  options: { captchaToken },
-})
-
 // ==========================================
 // 3. Database Operations & Realtime
 // ==========================================
