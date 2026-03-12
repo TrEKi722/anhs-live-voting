@@ -41,6 +41,7 @@ async function initAuth() {
         console.error("Auth error:", error);
         showToast("Authentication failed. Check console.");
     }
+    updateAdminUI();
 }
 
 // ==========================================
