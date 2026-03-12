@@ -280,7 +280,7 @@ function updateAdminUI() {
     } 
     
     if (hideBtn) {
-        if (pollIsLocked) {
+        if (pollIsHidden) {
             hideBtn.className = 'action-btn btn-success';
             hideBtn.innerText = '👁️ Show Results';
         } else {
