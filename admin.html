@@ -49,173 +49,39 @@
             </div>
 
         </div>
+        <div class="admin-edit-ui">
+
+        </div>
+        <div class="chart-container">
+            <h2>Current Poll Resutls</h2>
+            <div class="bar-group">
+                <div class="bar-label"><span>FRESHMEN</span> <span id="pct-0">0%</span></div>
+                <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
+            </div>
+            <div class="bar-group">
+                <div class="bar-label"><span>SOPHOMORES</span> <span id="pct-1">0%</span></div>
+                <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
+            </div>
+            <div class="bar-group">
+                <div class="bar-label"><span>JUNIORS</span> <span id="pct-2">0%</span></div>
+                <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
+            </div>
+            <div class="bar-group">
+                <div class="bar-label"><span>SENIORS</span> <span id="pct-3">0%</span></div>
+                <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
+            </div>
+
+            <div class="total-participants">
+                Total Votes: <span id="total-count">0</span>
+            </div>
+        </div>
     </div>
 
     <!-- Custom Toast Message -->
     <div id="toast">Message goes here</div>
 
     <!-- Application Logic -->
-    <script>
-        const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
-        
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <script src="script.js"></script>
 
-        let currentUser = null;
-        let pollIsLocked = false;
-        let isAdmin = false;
-
-        async function initAuth() {
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                
-                if (session) {
-                    currentUser = session.user;
-                    if (currentUser.email) {
-                        isAdmin = true;
-                    } else {
-                        isAdmin = false;
-                    }
-                } else {
-                    isAdmin = false;
-                }
-                
-                fetchInitialData();
-                setupRealtimeSubscriptions();
-
-            } catch (error) {
-                console.error("Auth error:", error);
-                showToast("Authentication failed. Check console.");
-            }
-        }
-
-        async function fetchInitialData() {
-            const { data: configData } = await supabaseClient
-                .from('poll_config')
-                .select('is_locked')
-                .eq('id', 'main')
-                .single();
-            
-            if (configData) {
-                pollIsLocked = configData.is_locked;
-            }
-
-            updateAdminUI();
-        }
-
-        function setupRealtimeSubscriptions() {
-            supabaseClient
-                .channel('poll-config-channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_config' }, payload => {
-                    if (payload.new && payload.new.is_locked !== undefined) {
-                        pollIsLocked = payload.new.is_locked;
-                        updateAdminUI();
-                    }
-                })
-                .subscribe();
-        }
-
-        function updateAdminUI() {
-            const lockBtn = document.getElementById('toggle-lock-btn');
-            if (pollIsLocked) {
-                lockBtn.className = 'action-btn btn-success';
-                lockBtn.innerText = '🔓 Unlock Voting';
-            } else {
-                lockBtn.className = 'action-btn btn-danger';
-                lockBtn.innerText = '🔒 Lock Voting';
-            }
-
-            if (isAdmin) {
-                document.getElementById('admin-login-ui').style.display = 'none';
-                document.getElementById('admin-controls-ui').style.display = 'flex';
-            } else {
-                document.getElementById('admin-login-ui').style.display = 'flex';
-                document.getElementById('admin-controls-ui').style.display = 'none';
-            }
-        }
-
-        window.loginAdmin = async function() {
-            const email = document.getElementById('admin-email').value;
-            const pass = document.getElementById('admin-pass').value;
-
-            if (!email || !pass) return showToast("Please enter an email and password.");
-
-            try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: pass
-                });
-
-                if (error) throw error;
-
-                currentUser = data.user;
-                isAdmin = true;
-                showToast("Admin logged in successfully.");
-                fetchInitialData();
-            } catch (error) {
-                showToast("Login failed: " + error.message);
-            }
-        }
-
-        window.logoutAdmin = async function() {
-            try {
-                await supabaseClient.auth.signOut();
-                isAdmin = false;
-                currentUser = null;
-                document.getElementById('admin-email').value = '';
-                document.getElementById('admin-pass').value = '';
-                showToast("Admin logged out.");
-                updateAdminUI();
-            } catch (error) {
-                showToast("Error logging out.");
-            }
-        }
-
-        window.toggleLock = async function() {
-            if (!isAdmin || !currentUser) return;
-            try {
-                const { error } = await supabaseClient
-                    .from('poll_config')
-                    .update({ is_locked: !pollIsLocked })
-                    .eq('id', 'main');
-                    
-                if (error) throw error;
-            } catch (error) {
-                showToast("Error updating status. Check RLS policies.");
-            }
-        }
-
-        window.resetPoll = async function() {
-            if (!isAdmin || !currentUser) return;
-            try {
-                const { error: deleteError } = await supabaseClient
-                    .from('votes')
-                    .delete()
-                    .neq('user_id', '00000000-0000-0000-0000-000000000000');
-                    
-                if (deleteError) throw deleteError;
-
-                const { error: unlockError } = await supabaseClient
-                    .from('poll_config')
-                    .update({ is_locked: false })
-                    .eq('id', 'main');
-                    
-                if (unlockError) throw unlockError;
-
-                showToast("Poll reset successfully!");
-            } catch (error) {
-                showToast("Error resetting poll. Check RLS policies.");
-            }
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-        
-        initAuth();
-    </script>
 </body>
 </html>

@@ -11,23 +11,26 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+            
+    <div style="text-align: center;">
+         <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
+    </div>
     <h1>Vote now @ anhs-live-voting.pages.dev</h1>
     <div class="chart-container">
         <div class="bar-group">
-            <div class="bar-label"><span>FRESHMEN</span> <span id="pct-0">0%</span></div>
+            <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
         </div>
         <div class="bar-group">
-            <div class="bar-label"><span>SOPHOMORES</span> <span id="pct-1">0%</span></div>
+            <div class="bar-label"><span id="option1">SOPHOMORES</span> <span id="pct-1">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
         </div>
         <div class="bar-group">
-            <div class="bar-label"><span>JUNIORS</span> <span id="pct-2">0%</span></div>
+            <div class="bar-label"><span id="option2">JUNIORS</span> <span id="pct-2">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
         </div>
         <div class="bar-group">
-            <div class="bar-label"><span>SENIORS</span> <span id="pct-3">0%</span></div>
+            <div class="bar-label"><span id="option3">SENIORS</span> <span id="pct-3">0%</span></div>
             <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
         </div>
         
@@ -37,63 +40,6 @@
     </div>
 
     <!-- Application Logic -->
-    <script>
-        const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
-        
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // Fetch the initial tallies when the page loads
-        async function fetchAndUpdateAllVotes() {
-            const { data: votes, error } = await supabaseClient
-                .from('votes')
-                .select('option_index');
-
-            if (error) {
-                console.error("Error fetching votes:", error);
-                return;
-            }
-
-            let voteCounts = [0, 0, 0, 0];
-            let totalVotes = 0;
-
-            if (votes) {
-                votes.forEach(v => {
-                    if (v.option_index >= 0 && v.option_index <= 3) {
-                        voteCounts[v.option_index]++;
-                        totalVotes++;
-                    }
-                });
-            }
-
-            updateProjectorUI(voteCounts, totalVotes);
-        }
-
-        // Listen for any new votes (or resets) happening in real-time
-        function setupRealtimeSubscriptions() {
-            supabaseClient
-                .channel('votes-channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, payload => {
-                    console.log('Votes changed, updating totals...');
-                    fetchAndUpdateAllVotes();
-                })
-                .subscribe();
-        }
-
-        // Animate the bars and update text
-        function updateProjectorUI(counts, total) {
-            document.getElementById('total-count').innerText = total;
-
-            counts.forEach((count, index) => {
-                const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
-                document.getElementById(`bar-${index}`).style.width = `${percentage}%`;
-                document.getElementById(`pct-${index}`).innerText = `${percentage}% (${count})`;
-            });
-        }
-
-        // Start the application
-        fetchAndUpdateAllVotes();
-        setupRealtimeSubscriptions();
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
