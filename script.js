@@ -189,7 +189,7 @@ function updateVoteUI() {
         
         if (myVote !== null) {
             btn.disabled = true;
-            if (myVote === index) btn.classList.add('selected');
+            if (myVote === index || myVote === index+4) btn.classList.add('selected');
         } else if (pollIsLocked) {
             btn.disabled = true;
         } else {
@@ -238,6 +238,8 @@ function updateProjectorUI(counts = [], total = 0) {
 
 function updateAdminUI() {
     const lockBtn = document.getElementById('toggle-lock-btn');
+    const hideBtn = document.getElementById('toggle-hide-btn');
+    
     if (lockBtn) {
         if (pollIsLocked) {
             lockBtn.className = 'action-btn btn-success';
@@ -245,6 +247,16 @@ function updateAdminUI() {
         } else {
             lockBtn.className = 'action-btn btn-danger';
             lockBtn.innerText = '🔒 Lock Voting';
+        }
+    } 
+    
+    if (hideBtn) {
+        if (pollIsLocked) {
+            hideBtn.className = 'action-btn btn-success';
+            hideBtn.innerText = '👁️ Show Results';
+        } else {
+            hideBtn.className = 'action-btn btn-danger';
+            hideBtn.innerText = '🙈 Hide Results';
         }
     }
 
