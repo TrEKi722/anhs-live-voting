@@ -60,6 +60,8 @@ async function fetchInitialData() {
         options[1] = configData.option1 || options[1];
         options[2] = configData.option2 || options[2];
         options[3] = configData.option3 || options[3];
+        // reflect values in admin edit inputs if visible
+        updateAdminOptionInputs();
     }
 
     if (currentUser) {
@@ -73,6 +75,7 @@ async function fetchInitialData() {
     }
 
     updateVoteUI();
+    updateAdminUI();
     fetchAndUpdateAllVotes();
 }
 
@@ -108,7 +111,8 @@ function setupRealtimeSubscriptions() {
             if (payload.new && payload.new.is_locked !== undefined) {
                 pollIsLocked = payload.new.is_locked;
                 updateVoteUI();
-                updateProjectorUI();
+                // after lock change we need to recompute counts
+                fetchAndUpdateAllVotes();
                 updateAdminUI();
             }
             if (payload.new && ( payload.new.option0 !== undefined || payload.new.option1 !== undefined || payload.new.option2 !== undefined || payload.new.option3 !== undefined )) {
@@ -117,9 +121,9 @@ function setupRealtimeSubscriptions() {
                 options[2] = payload.new.option2 || options[2];
                 options[3] = payload.new.option3 || options[3];
                 updateVoteUI();
-                updateProjectorUI();
-                updateAdminUI();
-            }
+                // option titles changed, refresh counts as well
+                fetchAndUpdateAllVotes();
+                updateAdminUI();                updateAdminOptionInputs();            }
         })
         .subscribe();
 
@@ -138,6 +142,18 @@ function setupRealtimeSubscriptions() {
 // ==========================================
 // 4. UI Update Functions
 // ==========================================
+
+// copy current option text into the admin edit fields
+function updateAdminOptionInputs() {
+    ['editOption0','editOption1','editOption2','editOption3'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = options[idx] || '';
+            // also update placeholder so admin sees the current text when field is empty
+            el.placeholder = options[idx] || el.placeholder || '';
+        }
+    });
+}
 function updateVoteUI() {
     const optionsE = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
     const badge = document.getElementById('vote-status-badge');
@@ -173,8 +189,10 @@ function updateVoteUI() {
     });
 }
 
-function updateProjectorUI(counts, total) {
-    document.getElementById('total-count').innerText = total;
+function updateProjectorUI(counts = [], total = 0) {
+    // `counts` and `total` default so callers can invoke without data
+    const total_count= document.getElementById('total-count');
+    if (total_count) total_count.innerText = total;
     const optionsE = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
     const badge = document.getElementById('vote-status-badge');
 
@@ -280,6 +298,7 @@ window.loginAdmin = async function() {
     } catch (error) {
         showToast("Login failed: " + error.message);
     }
+    updateAdminUI();
 }
 
 window.logoutAdmin = async function() {
@@ -307,8 +326,9 @@ window.toggleLock = async function() {
             .eq('id', 'main');
             
         if (error) throw error;
+        showToast("Status updated successfully!");
     } catch (error) {
-        showToast("Error updating status. Check RLS policies.");
+        showToast("Error updating status.");
     }
 }
 
@@ -331,8 +351,12 @@ window.resetPoll = async function() {
 
         showToast("Poll reset successfully!");
     } catch (error) {
-        showToast("Error resetting poll. Check RLS policies.");
+        showToast("Error resetting poll.");
     }
+}
+
+window.updateOptions =  async function() {
+
 }
 
 // ==========================================

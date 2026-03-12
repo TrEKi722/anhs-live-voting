@@ -26,7 +26,7 @@
 
             <div id="admin-controls-ui" class="admin-controls">
                 <div style="margin-bottom: 2rem;">
-                    <h3 style="margin-bottom: 1rem;">Poll Status</h3>
+                    <h3>Poll Status</h3>
                     <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">
                         🔒 Lock Voting
                     </button>
@@ -35,7 +35,7 @@
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
                 
                 <div>
-                    <h3 style="margin-bottom: 1rem;">Danger Zone</h3>
+                    <h3>Danger Zone</h3>
                     <button class="action-btn btn-danger" style="background: #000;" onclick="resetPoll()">
                         ⚠️ Reset Poll (Clear All Votes)
                     </button>
@@ -48,7 +48,12 @@
                 </div>
 
                 <div class="admin-edit-ui">
-
+                    <h3>Edit</h3>
+                    <input type="text" id="editOption0" placeholder="Option 1 Text">
+                    <input type="text" id="editOption1" placeholder="Option 2 Text">
+                    <input type="text" id="editOption2" placeholder="Option 3 Text">
+                    <input type="text" id="editOption3" placeholder="Option 4 Text">
+                    <button class="action-btn btn-primary" style="margin-top: 0.5rem;" onclick="updateOptions()">Update Options</button>
                 </div>
 
                 <div class="chart-container">
