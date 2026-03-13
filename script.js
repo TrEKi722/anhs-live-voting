@@ -538,16 +538,6 @@ async function inviteUser(supabase, email) {
   return { success: true, user: result.user };
 }
 
-
-// --- Usage example ---
-const { success, user, error } = await inviteUser(supabase, "newperson@example.com");
-
-if (success) {
-  console.log("Invite sent to:", user.email);
-} else {
-  console.error("Invite failed:", error);
-}
-
 // ==========================================
 // 6. Utilities
 // ==========================================
