@@ -190,7 +190,7 @@ function updateVoteUI() {
         const wRes = document.getElementById('resultGrid');
         const hid = document.getElementById('hiddenGrid');
 
-        if (adminNav && isAdmin) adminNav.style.display = 'block';
+        if (adminNav && isAdmin) adminNav.style.display = 'flex';
 
         if (badge) {
             if (pollIsLocked) {
@@ -308,7 +308,7 @@ function updateAdminUI() {
     const hideBtn = document.getElementById('toggle-hide-btn');
     const adminNav = document.getElementById('admin-nav');
 
-    if (adminNav && isAdmin) adminNav.style.display = 'block';
+    if (adminNav && isAdmin) adminNav.style.display = 'flex';
     
     if (lockBtn) {
         if (pollIsLocked) {

@@ -173,12 +173,12 @@ nav {
     background: var(--card-bg);
     padding: 1rem 0;
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
     gap: 1.5rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     position: fixed;
     top: 0;
-    z-index: 100;
+    z-index: 10;
     width: 100%;
 }
 
