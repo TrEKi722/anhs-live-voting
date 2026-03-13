@@ -55,6 +55,17 @@
                         <button class="action-btn btn-danger" onclick="resetPoll();document.getElementById('resetConfirmModal').style.display = 'none';">Yes, Reset Poll</button>
                     </div>
 
+                    <div class="modal" id="addAdminModal">
+                        <h1>Enter the new admin's email.</h1>
+                        <input type="text" id="adminEmailInput" placeholder="example@example.com">
+                        <button class="action-btn btn-secondary" onclick="document.getElementById('addAdminModal').style.display = 'none';">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="addAdmin('adminEmailInput');document.getElementById('addAdminModal').style.display = 'none';">Send Invite</button>
+                    </div>
+
+                    <div>
+                        <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">Invite User</button>
+                    </div>
+
                     <div>
                         <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">Log Out</button>
                     </div>

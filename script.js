@@ -497,6 +497,36 @@ window.updateOptions =  async function(optionsIn) {
     }
 }
 
+window.addAdmin = async function(elementId) {
+    if (!isAdmin) return showToast("Not an admin.");
+    const email = document.getElementById(elementId).value;
+
+    if (!email) return showToast("Please enter an email.");
+
+    sendInvite(email);
+}
+
+async function sendInvite(email) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+  if (!accessToken) throw new Error('Not signed in');
+
+  const FUNCTION_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user';
+
+  const res = await fetch(FUNCTION_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Invite failed');
+  console.log('Invite sent', json);
+}
+
 // ==========================================
 // 6. Utilities
 // ==========================================
