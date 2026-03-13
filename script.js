@@ -511,6 +511,7 @@ async function inviteUser(supabase, email) {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
+    showToast("You must be logged in to invite users.");
     return { success: false, error: "You must be logged in to invite users." };
   }
 
@@ -529,9 +530,11 @@ async function inviteUser(supabase, email) {
   const result = await response.json();
 
   if (!response.ok) {
+    showToast(result.error ?? "Invite failed.");
     return { success: false, error: result.error ?? "Invite failed." };
   }
 
+  showToast(`Invite sent to ${email}!`);
   return { success: true, user: result.user };
 }
 
