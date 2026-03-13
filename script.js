@@ -21,7 +21,7 @@ let isAdmin = false;
 // ==========================================
 // 2. Authentication
 // ==========================================
-async function initAuth() {
+async function initAuth(token) {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         
@@ -30,7 +30,7 @@ async function initAuth() {
             isAdmin = !!currentUser.email;
         } else {
             const { data, error } = await supabaseClient.auth.signInAnonymously({
-                options: { captchaToken: turnstile.getResponse(widgetId) }
+                options: { captchaToken: token }
             });
             if (error) throw error;
             currentUser = data.user;
@@ -464,8 +464,8 @@ document.querySelectorAll('.vote-btn').forEach(btn => {
 // Runs after Turnstile is ready and calls initAuth to set up the app
 // ==========================================
 
-window.onTurnstileLoad = async function() {
-    await initAuth();
+window.onTurnstileLoad = async function(token) {
+    await initAuth(token);
 
     setupUI();
 }
