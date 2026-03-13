@@ -14,6 +14,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let pollIsLocked = false;
 let pollIsHidden = false;
+let question = "Loading question...";
 let options = ["Loading...", "Loading...", "Loading...", "Loading..."];
 let myVote = null;
 let isAdmin = false;
@@ -65,6 +66,7 @@ async function fetchInitialData() {
     if (configData) {
         pollIsHidden = configData.results_hidden;
         pollIsLocked = configData.is_locked;
+        question = configData.question || question;
         options[0] = configData.option0 || options[0];
         options[1] = configData.option1 || options[1];
         options[2] = configData.option2 || options[2];
@@ -162,17 +164,22 @@ function setupRealtimeSubscriptions() {
 
 // copy current option text into the admin edit fields
 function updateAdminOptionInputs() {
+    const titleEl = document.getElementById('editTitle');
+    if (titleEl) {
+        titleEl.value = question;
+        titleEl.placeholder = question;
+    }
     ['editOption0','editOption1','editOption2','editOption3'].forEach((id, idx) => {
         const el = document.getElementById(id);
         if (el) {
             el.value = options[idx] || '';
-            // also update placeholder so admin sees the current text when field is empty
             el.placeholder = options[idx] || el.placeholder || '';
         }
     });
 }
 function updateVoteUI() {
     if (window.location.pathname === '/') {
+        const questionEl = document.getElementById('question');
         const optionsE = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
         const badge = document.getElementById('vote-status-badge');
         const buttons = document.querySelectorAll('.vote-btn');
@@ -199,6 +206,8 @@ function updateVoteUI() {
                 hid.classList.add('hidden');
             }
         }
+
+        if (questionEl) questionEl.innerText = question;
 
         if (optionsE) {
             optionsE.forEach((opt, index) => {
@@ -441,7 +450,8 @@ window.updateOptions =  async function(optionsIn) {
     try {
         const { error } = await supabaseClient
             .from('poll_config')
-            .update({option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]).value, option2: document.getElementById(optionsIn[2]).value, option3: document.getElementById(optionsIn[3]).value})
+            .update({ question: document.getElementById('editTitle').value })
+            .update({ option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]).value, option2: document.getElementById(optionsIn[2]).value, option3: document.getElementById(optionsIn[3]).value })
             .eq('id', 'main');
 
         if (error) throw error;

@@ -231,7 +231,7 @@ nav a:hover, nav a.active {
     gap: 1rem;
 }
 
-.admin-edit-inputs {
+.admin-edit-grid {
     display:grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
