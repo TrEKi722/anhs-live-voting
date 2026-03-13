@@ -116,28 +116,66 @@
       }
     }
 
+    // Helper: parse fragment (after #) into an object
+    function parseFragment(fragment) {
+      if (!fragment) return {};
+      const q = fragment.startsWith('#') ? fragment.slice(1) : fragment;
+      return Object.fromEntries(new URLSearchParams(q));
+    }
+
+    // Helper: parse query string
+    function parseQuery(qs) {
+      const q = qs.startsWith('?') ? qs.slice(1) : qs;
+      return Object.fromEntries(new URLSearchParams(q));
+    }
+
     async function initFromRedirect() {
       showStatus('ok', 'Processing reset link…');
       try {
-        // Extract session from URL fragment/query, and store it
-        const { data, error } = await supabase.auth.getSessionFromUrl({ storeSession: true });
-        if (error) {
-          console.warn('getSessionFromUrl error', error);
-          showStatus('err', 'Invalid or expired link: ' + (error.message || 'please request a new reset email.'));
-          showDebug(JSON.stringify(error, null, 2));
-          fallbackEl.style.display = 'block';
+        const url = new URL(window.location.href);
+        const fragment = parseFragment(url.hash);
+        const query = parseQuery(url.search);
+
+        // 1) If access_token present in fragment -> set session
+        if (fragment.access_token) {
+          const access_token = fragment.access_token;
+          const refresh_token = fragment.refresh_token || null;
+          // set session directly
+          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (error) {
+            console.warn('setSession error', error);
+            showStatus('err', 'Invalid or expired link: ' + (error.message || 'please request a new reset email.'));
+            showDebug(JSON.stringify(error, null, 2));
+            fallbackEl.style.display = 'block';
+            return;
+          }
+          // success: show form
+          hideStatus();
+          form.style.display = 'block';
           return;
         }
-        const session = data?.session ?? null;
-        if (!session) {
-          // No session — recovery failed or no session returned
-          showStatus('err', 'No active session found. Please request a new password reset.');
-          fallbackEl.style.display = 'block';
+
+        // 2) PKCE/token_hash flow (token_hash & type in query)
+        if (query.token_hash && query.type) {
+          const { token_hash, type } = query;
+          // verifyOtp exchanges the token_hash for a session
+          const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
+          if (error) {
+            console.warn('verifyOtp error', error);
+            showStatus('err', 'Invalid or expired link: ' + (error.message || 'please request a new reset email.'));
+            showDebug(JSON.stringify(error, null, 2));
+            fallbackEl.style.display = 'block';
+            return;
+          }
+          // success: show form
+          hideStatus();
+          form.style.display = 'block';
           return;
         }
-        // Session exists — show form
-        hideStatus();
-        form.style.display = 'block';
+
+        // 3) No usable tokens
+        showStatus('err', 'No valid auth token found in the link. Please request a new password reset.');
+        fallbackEl.style.display = 'block';
       } catch (err) {
         console.error(err);
         showStatus('err', 'Unexpected error while processing the link.');
