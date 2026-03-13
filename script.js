@@ -389,6 +389,8 @@ window.loginAdmin = async function() {
     const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-pass').value;
 
+    await supabaseClient.auth.signOut();
+
     if (!email || !pass) return showToast("Please enter an email and password.");
 
     try {
