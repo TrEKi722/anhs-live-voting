@@ -59,7 +59,7 @@ async function initAuth(token) {
 async function fetchInitialData() {
     const { data: configData } = await supabaseClient
         .from('poll_config')
-        .select('results_hidden, is_locked, results_hidden, option0, option1, option2, option3')
+        .select('results_hidden, is_locked, results_hidden, question, option0, option1, option2, option3')
         .eq('id', 'main')
         .single();
     
