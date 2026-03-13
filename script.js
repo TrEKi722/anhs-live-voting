@@ -42,11 +42,13 @@ async function initAuth(token) {
         console.log("Authenticated as:", currentUser.id, isAdmin ? "(Admin)" : "(Voter)");
         fetchInitialData();
         setupRealtimeSubscriptions();
-        setupUI();
     } catch (error) {
-        console.error("Auth error:", error);
-        showToast("Authentication failed. Check console.");
+        if (window.location.pathname !== '/admin') {
+            console.error("Auth error:", error);
+            showToast("Authentication failed. Check console.");
+        }
     }
+    setupUI();
     updateAdminUI();
 }
 
