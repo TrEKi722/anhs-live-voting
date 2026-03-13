@@ -134,15 +134,19 @@ function setupRealtimeSubscriptions() {
                 updateProjectorUI();
                 updateAdminUI();
             }
-            if (payload.new && ( payload.new.option0 !== undefined || payload.new.option1 !== undefined || payload.new.option2 !== undefined || payload.new.option3 !== undefined )) {
+            if (payload.new && ( payload.new.question !== undefined || payload.new.option0 !== undefined || payload.new.option1 !== undefined || payload.new.option2 !== undefined || payload.new.option3 !== undefined )) {
+                question = payload.new.question || question;
                 options[0] = payload.new.option0 || options[0];
                 options[1] = payload.new.option1 || options[1];
                 options[2] = payload.new.option2 || options[2];
                 options[3] = payload.new.option3 || options[3];
+                updateProjectorUI();
                 updateVoteUI();
                 // option titles changed, refresh counts as well
                 fetchAndUpdateAllVotes();
-                updateAdminUI();                updateAdminOptionInputs();            }
+                updateAdminUI();
+                updateAdminOptionInputs();
+            }
         })
         .subscribe();
 
@@ -480,7 +484,7 @@ window.updateOptions =  async function(optionsIn) {
     try {
         const { error } = await supabaseClient
             .from('poll_config')
-            .update({ question: document.getElementById('editTitle').value, option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]).value, option2: document.getElementById(optionsIn[2]).value, option3: document.getElementById(optionsIn[3]).value })
+            .update({ question: document.getElementById(optionsIn[0]).value, option0: document.getElementById(optionsIn[1]).value, option1: document.getElementById(optionsIn[2]).value, option2: document.getElementById(optionsIn[3]).value, option3: document.getElementById(optionsIn[4]).value })
             .eq('id', 'main');
 
         if (error) throw error;
