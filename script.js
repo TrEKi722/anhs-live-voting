@@ -503,57 +503,46 @@ window.addAdmin = async function(elementId) {
 
     if (!email) return showToast("Please enter an email.");
 
-    sendInvite(email);
+    inviteUser(email);
 }
 
-async function sendInvite(email) {
-    // 1) Try v2 API: supabase.auth.getSession()
-    let accessToken = null;
-    try {
-    if (supabase.auth && typeof supabase.auth.getSession === "function") {
-        const { data } = await supabase.auth.getSession();
-        accessToken = data?.session?.access_token ?? null;
-    }
-    } catch (e) {
-    // ignore and try other methods
-    }
+async function inviteUser(supabase, email) {
+  // Grab the current session JWT to authenticate the edge function call
+  const { data: { session } } = await supabase.auth.getSession();
 
-    // 2) Try legacy v1: supabase.auth.session()
-    if (!accessToken) {
-    try {
-        if (supabase.auth && typeof supabase.auth.session === "function") {
-        const session = supabase.auth.session();
-        accessToken = session?.access_token ?? null;
-        }
-    } catch (e) { /* ignore */ }
-    }
+  if (!session) {
+    return { success: false, error: "You must be logged in to invite users." };
+  }
 
-    // 3) Try direct property (some older codebases)
-    if (!accessToken) {
-    accessToken = supabase.auth?.session?.access_token ?? null;
-    }
-
-    if (!accessToken) return showToast("You must be signed in.");
-
-    // Replace FUNCTION_URL with your deployed Edge Function URL
-    const FUNCTION_URL = "`https://<project-ref>.functions.supabase.co/invite-user`";
-
-    const resp = await fetch(FUNCTION_URL, {
-    method: "POST",
-    headers: {
+  const response = await fetch(
+    'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user',
+    {
+      method: "POST",
+      headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ email }),
-    });
-
-    const json = await resp.json();
-    if (!resp.ok) {
-    const message = json?.error ?? JSON.stringify(json);
-    return showToast("Invite failed: " + message);
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ email }),
     }
+  );
 
-    showToast("Invitation sent to " + email);
+  const result = await response.json();
+
+  if (!response.ok) {
+    return { success: false, error: result.error ?? "Invite failed." };
+  }
+
+  return { success: true, user: result.user };
+}
+
+
+// --- Usage example ---
+const { success, user, error } = await inviteUser(supabase, "newperson@example.com");
+
+if (success) {
+  console.log("Invite sent to:", user.email);
+} else {
+  console.error("Invite failed:", error);
 }
 
 // ==========================================
