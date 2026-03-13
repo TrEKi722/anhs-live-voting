@@ -294,10 +294,13 @@ function updateProjectorUI(counts = [], total = 0) {
     counts.forEach((count, index) => {
         const barElement = document.getElementById(`bar-${index}`);
         const pctElement = document.getElementById(`pct-${index}`);
+        const colors = ["yellow","green","blue","red"];
+        
         
         if (barElement && pctElement) {
             const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
             barElement.style.width = `${percentage}%`;
+            barElement.style.background = colors[index] || 'var(--primary)';
             pctElement.innerText = `${percentage}% (${count})`;
         } else if (pctElement) {
             const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
