@@ -251,6 +251,7 @@ input[type="text"] {
     border: 1px solid #ccc;
     border-radius: 8px;
     font-size: 1rem;
+    margin: 0.25rem;
 }
 
 button.action-btn {
