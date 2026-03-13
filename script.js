@@ -184,9 +184,13 @@ function updateVoteUI() {
         const optionsb = [document.getElementById('option0b'), document.getElementById('option1b'), document.getElementById('option2b'), document.getElementById('option3b')];
         const badge = document.getElementById('vote-status-badge');
         const buttons = document.querySelectorAll('.vote-btn');
+        
+        const adminNav = document.getElementById('admin-nav');
 
         const wRes = document.getElementById('resultGrid');
         const hid = document.getElementById('hiddenGrid');
+
+        if (adminNav && isAdmin) adminNav.style.display = 'block';
 
         if (badge) {
             if (pollIsLocked) {
