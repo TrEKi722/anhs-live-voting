@@ -49,7 +49,7 @@
     <div id="fallback" style="display:none;">
       <p class="small">If this link didn't work, request a password reset again from the app or contact support.</p>
       <div style="display:flex;gap:12px;justify-content:center;margin-top:8px">
-        <a id="signinLink" class="btn" href="/" style="text-decoration:none;display:inline-block">Go to sign in</a>
+        <a id="signinLink" class="btn" href="/admin" style="text-decoration:none;display:inline-block">Go to sign in</a>
       </div>
     </div>
 
@@ -106,8 +106,8 @@
           submitBtn.disabled = false;
           return;
         }
-        showStatus('ok', 'Password updated. Redirecting to sign in…');
-        setTimeout(() => window.location.href = '/', 900);
+        showStatus('ok', 'Password updated. Redirecting to admin dashboard...');
+        setTimeout(() => window.location.href = '/admin', 900);
       } catch (err) {
         console.error(err);
         showStatus('err', 'Unexpected error while setting password.');
@@ -194,7 +194,7 @@
     });
 
     cancelBtn.addEventListener('click', () => {
-      window.location.href = '/admin';
+      window.location.href = '/';
     });
 
     // Run on load
