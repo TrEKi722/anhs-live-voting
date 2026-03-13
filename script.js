@@ -180,7 +180,8 @@ function updateAdminOptionInputs() {
 function updateVoteUI() {
     if (window.location.pathname === '/') {
         const questionEl = document.getElementById('question');
-        const optionsE = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
+        const optionsa = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
+        const optionsb = [document.getElementById('option0b'), document.getElementById('option1b'), document.getElementById('option2b'), document.getElementById('option3b')];
         const badge = document.getElementById('vote-status-badge');
         const buttons = document.querySelectorAll('.vote-btn');
 
@@ -209,8 +210,14 @@ function updateVoteUI() {
 
         if (questionEl) questionEl.innerText = question;
 
-        if (optionsE) {
-            optionsE.forEach((opt, index) => {
+        if (optionsa) {
+            optionsa.forEach((opt, index) => {
+                if (opt) opt.innerText = options[index];
+            });
+        }
+
+        if (optionsb) {
+            optionsb.forEach((opt, index) => {
                 if (opt) opt.innerText = options[index];
             });
         }
@@ -223,9 +230,9 @@ function updateVoteUI() {
                 // btn.disabled = true;
                 if (myVote === optionIndex) btn.classList.add('selected');
             } else if (pollIsLocked) {
-                // btn.disabled = true;
+                btn.disabled = true;
             } else {
-                // btn.disabled = false;
+                btn.disabled = false;
             }
         });
     }
@@ -235,6 +242,7 @@ function updateProjectorUI(counts = [], total = 0) {
     // `counts` and `total` default so callers can invoke without data
     const total_count= document.getElementById('total-count');
     if (total_count) total_count.innerText = total;
+    const questionEl = document.getElementById('question');
     const optionsa = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
     const optionsb = [document.getElementById('option0b'), document.getElementById('option1b'), document.getElementById('option2b'), document.getElementById('option3b')];
     const badge = document.getElementById('vote-status-badge');
@@ -261,6 +269,8 @@ function updateProjectorUI(counts = [], total = 0) {
             hText.style.display = 'none';
         }
     }
+
+    if (questionEl) questionEl.innerText = question;
 
     if (optionsa) {
         optionsa.forEach((opt, index) => {
@@ -450,8 +460,7 @@ window.updateOptions =  async function(optionsIn) {
     try {
         const { error } = await supabaseClient
             .from('poll_config')
-            .update({ question: document.getElementById('editTitle').value })
-            .update({ option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]).value, option2: document.getElementById(optionsIn[2]).value, option3: document.getElementById(optionsIn[3]).value })
+            .update({ question: document.getElementById('editTitle').value, option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]).value, option2: document.getElementById(optionsIn[2]).value, option3: document.getElementById(optionsIn[3]).value })
             .eq('id', 'main');
 
         if (error) throw error;
