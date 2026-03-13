@@ -503,7 +503,7 @@ window.addAdmin = async function(elementId) {
 
     if (!email) return showToast("Please enter an email.");
 
-    inviteUser(email);
+    inviteUser(supabaseClient,email);
 }
 
 async function inviteUser(supabase, email) {
