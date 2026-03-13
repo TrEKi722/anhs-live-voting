@@ -12,26 +12,16 @@
 
         <!-- Cloudflare Turnstile -->
         <link rel="preconnect" href="https://challenges.cloudflare.com">
-        <script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-        async
-        defer
-        ></script>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     </head>
     <body>
 
         <div id="turnstile-container" style="display: block; text-align: center; margin-top: 50px;">
             <h2>Please complete the CAPTCHA to continue</h2>
-            <div
-            class="cf-turnstile"
-            data-sitekey="0x4AAAAAACp4ciLpxF9JPdqQ"
-            data-theme="light"
-            data-size="normal"
-            data-callback="initAuth"
-            ></div>
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAACp4ciLpxF9JPdqQ" data-theme="light" data-size="normal" data-callback="initAuth"></div>
         </div>
 
-        <div id="full-page" style="display:none;">
+        <div id="full-page" style="display: none;">
             <h1>Admin Dashboard</h1>
             <div class="admin-panel">
                 
@@ -45,35 +35,24 @@
                 <div id="admin-controls-ui" class="admin-controls">
                     <div style="margin-bottom: 2rem;">
                         <h3>Poll Status</h3>
-                        <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">
-                            🔒 Lock Voting
-                        </button>
-                        <button id="toggle-hide-btn" class="action-btn btn-danger" onclick="toggleHide()">
-                            🙈 Hide Results
-                        </button>
+                        <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">🔒 Lock Voting</button>
+                        <button id="toggle-hide-btn" class="action-btn btn-danger" onclick="toggleHide()">🙈 Hide Results</button>
+                        <button class="action-btn btn-danger" style="background: #000;" onclick="resetPoll()">⚠️ Reset Poll</button>
+                    </div>
+                    <div>
+                        <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">Log Out</button>
                     </div>
                     
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
-                    
-                    <div>
-                        <h3>Danger Zone</h3>
-                        <button class="action-btn btn-danger" style="background: #000;" onclick="resetPoll()">
-                            ⚠️ Reset Poll (Clear All Votes)
-                        </button>
-                    </div>
-
-                    <div style="margin-top: 2rem;">
-                        <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">
-                            Log Out
-                        </button>
-                    </div>
 
                     <div class="admin-edit-ui">
                         <h3>Edit</h3>
-                        <input type="text" id="editOption0" placeholder="Option 1 Text">
-                        <input type="text" id="editOption1" placeholder="Option 2 Text">
-                        <input type="text" id="editOption2" placeholder="Option 3 Text">
-                        <input type="text" id="editOption3" placeholder="Option 4 Text">
+                        <div class="admin-edit-inputs">
+                            <input type="text" id="editOption0" placeholder="Loading...">
+                            <input type="text" id="editOption1" placeholder="Loading...">
+                            <input type="text" id="editOption2" placeholder="Loading...">
+                            <input type="text" id="editOption3" placeholder="Loading...">
+                        </div>
                         <button class="action-btn btn-primary" style="margin-top: 0.5rem;" onclick="updateOptions(['editOption0','editOption1','editOption2','editOption3'])">Update Options</button>
                     </div>
 
@@ -110,6 +89,6 @@
 
         <!-- Application Logic -->
         <script src="script.js"></script>
-
+    
     </body>
 </html>

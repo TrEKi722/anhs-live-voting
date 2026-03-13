@@ -231,6 +231,11 @@ nav a:hover, nav a.active {
     gap: 1rem;
 }
 
+.admin-edit-inputs {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
 .admin-login {
     display: flex;
     flex-direction: column;
