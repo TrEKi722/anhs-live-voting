@@ -3,67 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Welcome — Set your password</title>
+  <title>Change your password</title>
   <style>
-    :root{
-      --bg:#f6f9fc;
-      --card:#ffffff;
-      --muted:#64748b;
-      --brand:#2563eb;
-      --danger:#ef4444;
-    }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial; background:var(--bg); margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
-    .card{width:100%; max-width:520px; background:var(--card); padding:28px; border-radius:12px; box-shadow:0 6px 24px rgba(16,24,40,0.08); text-align:left;}
-    h1{margin:0 0 8px 0; font-size:20px;}
-    p.lead{margin:0 0 18px 0; color:var(--muted);}
-    .status{padding:10px 12px; border-radius:8px; margin-bottom:14px; display:none;}
-    .status.ok{background:#ecfdf5;color:#065f46;border:1px solid #bbf7d0; display:block;}
-    .status.warn{background:#fffbeb;color:#92400e;border:1px solid #fef3c7; display:block;}
-    .status.err{background:#fff1f2;color:var(--danger);border:1px solid #fecaca; display:block;}
-    form{display:flex; flex-direction:column; gap:12px;}
-    label{font-size:13px; color:#0f172a;}
-    input[type="password"]{padding:10px 12px; border-radius:8px; border:1px solid #e6eef8; background:#fbfdff; font-size:15px;}
-    .hint{font-size:13px; color:var(--muted);}
-    .btn{background:var(--brand); color:white; padding:10px 14px; border-radius:10px; border:none; font-weight:600; cursor:pointer;}
-    .btn[disabled]{opacity:0.6; cursor:not-allowed;}
-    .secondary{background:transparent; color:var(--brand); border:1px solid rgba(37,99,235,0.12); padding:8px 12px; border-radius:8px; cursor:pointer;}
-    .center{display:flex; gap:12px; justify-content:center; align-items:center;}
-    .small{font-size:13px; color:var(--muted); text-align:center; margin-top:12px;}
-    .debug{font-family:monospace;font-size:12px;color:#334155;background:#f8fafc;padding:8px;border-radius:8px;margin-top:12px;display:none;}
+    :root{--bg:#f5f7fb;--card:#fff;--muted:#6b7280;--brand:#0b5fff;--danger:#dc2626}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:var(--bg); margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
+    .card{width:100%;max-width:520px;background:var(--card);padding:28px;border-radius:12px;box-shadow:0 6px 24px rgba(16,24,40,0.06)}
+    h1{margin:0 0 6px;font-size:20px}
+    p.lead{margin:0 0 18px;color:var(--muted)}
+    .status{padding:10px 12px;border-radius:8px;margin-bottom:14px;display:none}
+    .status.ok{background:#ecfdf5;color:#065f46;border:1px solid #bbf7d0;display:block}
+    .status.err{background:#fff1f2;color:var(--danger);border:1px solid #fecaca;display:block}
+    form{display:flex;flex-direction:column;gap:12px}
+    label{font-size:13px;color:#0f172a}
+    input[type="password"]{padding:10px 12px;border-radius:8px;border:1px solid #e6eef8;background:#fbfdff;font-size:15px}
+    .btn{background:var(--brand);color:white;padding:10px 14px;border-radius:10px;border:none;font-weight:600;cursor:pointer}
+    .btn[disabled]{opacity:0.6;cursor:not-allowed}
+    .link{background:transparent;color:var(--brand);border:1px solid rgba(11,95,255,0.12);padding:8px 12px;border-radius:8px;cursor:pointer}
+    .small{font-size:13px;color:var(--muted);text-align:center;margin-top:12px}
+    .debug{font-family:monospace;font-size:12px;color:#334155;background:#f8fafc;padding:8px;border-radius:8px;margin-top:12px;display:none}
   </style>
 </head>
 <body>
   <main class="card" role="main">
-    <h1>Welcome — finish setting up your account</h1>
-    <p class="lead">We just need one more step: set a password for your account so you can sign in with email + password going forward.</p>
+    <h1>Change your password</h1>
+    <p class="lead">Enter a new password to finish resetting your account.</p>
 
-    <div id="status" class="status" aria-live="assertive"></div>
-
-    <div id="emailInfo" class="hint" style="display:none;"></div>
+    <div id="status" class="status"></div>
 
     <form id="pwForm" style="display:none;">
       <div>
         <label for="password">New password</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" aria-describedby="passwordHint" />
-        <div class="hint" id="passwordHint">Choose a strong password with at least 8 characters.</div>
+        <input id="password" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
       </div>
       <div>
         <label for="confirm">Confirm password</label>
-        <input id="confirm" name="confirm" type="password" autocomplete="new-password" aria-describedby="confirmHint" />
-        <div class="hint" id="confirmHint">Repeat the password you entered above.</div>
+        <input id="confirm" name="confirm" type="password" autocomplete="new-password" placeholder="Repeat the password" />
       </div>
 
-      <div class="center" style="margin-top:6px;">
+      <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
         <button id="submitBtn" class="btn" type="button">Set password</button>
+        <button id="cancelBtn" class="link" type="button">Cancel</button>
       </div>
     </form>
 
-    <div id="fallback" style="display:none; margin-top:8px;">
-      <p class="small">If this page didn't sign you in automatically, request a password reset.</p>
-      <div class="center" style="margin-top:8px;">
-        <button id="openAppBtn" class="btn">Open App</button>
-        <button id="resetBtn" class="secondary">Reset password</button>
+    <div id="fallback" style="display:none;">
+      <p class="small">If this link didn't work, request a password reset again from the app or contact support.</p>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:8px">
+        <a id="signinLink" class="btn" href="/" style="text-decoration:none;display:inline-block">Go to sign in</a>
       </div>
     </div>
 
@@ -73,9 +59,9 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // TODO: replace with your project credentials
-    const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
+    // Replace these with your project's values
+    const SUPABASE_URL = '<YOUR_SUPABASE_URL>'; // e.g. https://ntzxejhhxtzdyyeqbfpn.supabase.co
+    const SUPABASE_ANON_KEY = '<YOUR_SUPABASE_ANON_KEY>';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true }
@@ -83,18 +69,15 @@
 
     const statusEl = document.getElementById('status');
     const debugEl = document.getElementById('debug');
-    const emailInfoEl = document.getElementById('emailInfo');
     const form = document.getElementById('pwForm');
     const pwInput = document.getElementById('password');
     const confirmInput = document.getElementById('confirm');
     const submitBtn = document.getElementById('submitBtn');
-    const skipBtn = document.getElementById('skipBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
     const fallbackEl = document.getElementById('fallback');
-    const openAppBtn = document.getElementById('openAppBtn');
-    const resetBtn = document.getElementById('resetBtn');
 
     function showStatus(type, text) {
-      statusEl.className = 'status ' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'warn');
+      statusEl.className = 'status ' + (type === 'ok' ? 'ok' : 'err');
       statusEl.textContent = text;
       statusEl.style.display = 'block';
     }
@@ -106,37 +89,24 @@
       debugEl.setAttribute('aria-hidden', 'false');
     }
 
-    // Helper to show fallback UI
-    function showFallback() {
-      fallbackEl.style.display = 'block';
-      openAppBtn.addEventListener('click', () => window.location.href = '/');
-      resetBtn.addEventListener('click', () => {
-        // open password reset page or call supabase.auth.resetPasswordForEmail via your UI (not included here)
-        window.location.href = '/reset-password';
-      });
-    }
-
-    // Validate password
     function validatePassword(pw, confirm) {
       if (!pw || pw.length < 8) return 'Password must be at least 8 characters.';
       if (pw !== confirm) return 'Passwords do not match.';
       return null;
     }
 
-    // Set password when user is signed in
     async function setPassword(password) {
       submitBtn.disabled = true;
       try {
-        const userUpdate = await supabase.auth.updateUser({ password });
-        if (userUpdate.error) {
-          console.warn('updateUser error', userUpdate.error);
-          showStatus('err', 'Could not set password: ' + userUpdate.error.message);
-          showDebug(JSON.stringify(userUpdate.error, null, 2));
+        const { data, error } = await supabase.auth.updateUser({ password });
+        if (error) {
+          console.warn('updateUser error', error);
+          showStatus('err', 'Could not set password: ' + error.message);
+          showDebug(JSON.stringify(error, null, 2));
           submitBtn.disabled = false;
           return;
         }
-        showStatus('ok', 'Password set successfully. Redirecting to the app...');
-        // small delay so user sees confirmation
+        showStatus('ok', 'Password updated. Redirecting to sign in…');
         setTimeout(() => window.location.href = '/', 900);
       } catch (err) {
         console.error(err);
@@ -146,61 +116,51 @@
       }
     }
 
-    // Main handler: parse session and show UI accordingly
-    async function handleRedirectAndShow() {
-      showStatus('warn', 'Finishing verification and signing you in…');
-
+    async function initFromRedirect() {
+      showStatus('ok', 'Processing reset link…');
       try {
-        // getSessionFromUrl handles both fragment and query-based flows and stores session if storeSession: true
+        // Extract session from URL fragment/query, and store it
         const { data, error } = await supabase.auth.getSessionFromUrl({ storeSession: true });
-
         if (error) {
-          // Common: token expired or invalid; show fallback
           console.warn('getSessionFromUrl error', error);
-          showStatus('err', 'There was a problem verifying the link: ' + error.message);
+          showStatus('err', 'Invalid or expired link: ' + (error.message || 'please request a new reset email.'));
           showDebug(JSON.stringify(error, null, 2));
-          showFallback();
+          fallbackEl.style.display = 'block';
           return;
         }
-
         const session = data?.session ?? null;
-
-        // If a session exists, we are authenticated client-side and can let user set a password
-        if (session) {
-          hideStatus();
-          const email = session.user?.email ?? '';
-          emailInfoEl.textContent = email ? `Signed in as ${email}` : `Signed in`;
-          emailInfoEl.style.display = 'block';
-          form.style.display = 'block';
-        } else {
-          // No session: verification may have succeeded server-side but no session issued (depends on flow).
-          // In that case, instruct the user to open the app and sign in or use a magic link.
-          showStatus('ok', 'Email confirmed. Please open the app and sign in (or request a password reset).');
-          showFallback();
+        if (!session) {
+          // No session — recovery failed or no session returned
+          showStatus('err', 'No active session found. Please request a new password reset.');
+          fallbackEl.style.display = 'block';
+          return;
         }
+        // Session exists — show form
+        hideStatus();
+        form.style.display = 'block';
       } catch (err) {
         console.error(err);
-        showStatus('err', 'Unexpected error while processing verification.');
+        showStatus('err', 'Unexpected error while processing the link.');
         showDebug(String(err));
-        showFallback();
+        fallbackEl.style.display = 'block';
       }
     }
 
-    // Wire up form buttons
     submitBtn.addEventListener('click', async () => {
       const pw = pwInput.value.trim();
       const confirm = confirmInput.value.trim();
-      const validationErr = validatePassword(pw, confirm);
-      if (validationErr) {
-        showStatus('err', validationErr);
-        return;
-      }
+      const v = validatePassword(pw, confirm);
+      if (v) { showStatus('err', v); return; }
       hideStatus();
       await setPassword(pw);
     });
 
+    cancelBtn.addEventListener('click', () => {
+      window.location.href = '/';
+    });
+
     // Run on load
-    handleRedirectAndShow();
+    initFromRedirect();
   </script>
 </body>
 </html>
