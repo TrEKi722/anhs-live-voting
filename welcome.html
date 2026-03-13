@@ -38,18 +38,20 @@
     <h1>Welcome — finish setting up your account</h1>
     <p class="lead">We just need one more step: set a password for your account so you can sign in with email + password going forward.</p>
 
-    <div id="status" class="status"></div>
+    <div id="status" class="status" aria-live="assertive"></div>
 
     <div id="emailInfo" class="hint" style="display:none;"></div>
 
     <form id="pwForm" style="display:none;">
       <div>
         <label for="password">New password</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Choose a strong password" />
+        <input id="password" name="password" type="password" autocomplete="new-password" aria-describedby="passwordHint" />
+        <div class="hint" id="passwordHint">Choose a strong password with at least 8 characters.</div>
       </div>
       <div>
         <label for="confirm">Confirm password</label>
-        <input id="confirm" name="confirm" type="password" autocomplete="new-password" placeholder="Repeat the password" />
+        <input id="confirm" name="confirm" type="password" autocomplete="new-password" aria-describedby="confirmHint" />
+        <div class="hint" id="confirmHint">Repeat the password you entered above.</div>
       </div>
 
       <div class="center" style="margin-top:6px;">
