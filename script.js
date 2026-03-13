@@ -190,7 +190,8 @@ function updateVoteUI() {
         const wRes = document.getElementById('resultGrid');
         const hid = document.getElementById('hiddenGrid');
 
-        if (adminNav && isAdmin) adminNav.style.display = 'flex';
+        if (adminNav && isAdmin) adminNav.style.display = 'flex'
+        if (adminNav && isAdmin) document.getElementById('full-page').style.marginTop = '3rem';
 
         if (badge) {
             if (pollIsLocked) {

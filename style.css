@@ -172,14 +172,14 @@ h3 {
 nav {
     background: var(--card-bg);
     padding: 1rem 0;
-    display: flex;
+    /* display: flex; */
     justify-content: center;
     gap: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    position: fixed;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    position: absolute;
     top: 0;
     z-index: 10;
-    width: 100%;
+    width: 100vw;
 }
 
 nav a {
