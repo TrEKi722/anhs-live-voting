@@ -189,6 +189,7 @@ function updateVoteUI() {
 
         const wRes = document.getElementById('resultGrid');
         const hid = document.getElementById('hiddenGrid');
+        const hBadge = document.getElementById('hidden-status-badge');
 
         if (adminNav && isAdmin) adminNav.style.display = 'flex'
 
@@ -206,9 +207,11 @@ function updateVoteUI() {
             if (pollIsHidden) {
                 wRes.classList.add('hidden');
                 hid.classList.remove('hidden');
+                hBadge.style.display = 'block';
             } else {
                 wRes.classList.remove('hidden');
                 hid.classList.add('hidden');
+                hBadge.style.display = 'none';
             }
         }
 
