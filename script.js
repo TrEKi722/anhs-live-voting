@@ -172,6 +172,9 @@ function updateVoteUI() {
         const badge = document.getElementById('vote-status-badge');
         const buttons = document.querySelectorAll('.vote-btn');
 
+        const wRes = document.getElementById('resultGrid');
+        const hid = document.getElementById('hiddenGrid');
+
         if (badge) {
             if (pollIsLocked) {
                 badge.className = 'status-badge status-locked';
@@ -182,12 +185,14 @@ function updateVoteUI() {
             }
         }
 
-        if (pollIsHidden) {
-            document.getElementById('resultGrid').classList.add('hidden');
-            document.getElementById('hiddenGrid').classList.remove('hidden');
-        } else {
-            document.getElementById('resultGrid').classList.remove('hidden');
-            document.getElementById('hiddenGrid').classList.add('hidden');
+        if (wRes && hid) {
+            if (pollIsHidden) {
+                wRes.classList.add('hidden');
+                hid.classList.remove('hidden');
+            } else {
+                wRes.classList.remove('hidden');
+                hid.classList.add('hidden');
+            }
         }
 
         if (optionsE) {
@@ -220,6 +225,9 @@ function updateProjectorUI(counts = [], total = 0) {
     const optionsb = [document.getElementById('option0b'), document.getElementById('option1b'), document.getElementById('option2b'), document.getElementById('option3b')];
     const badge = document.getElementById('vote-status-badge');
 
+    const lChart = document.getElementById('live-chart');
+    const hText = document.getElementById('hiddenText');
+
     if (badge) {
         if (pollIsLocked) {
             badge.className = 'status-badge status-locked';
@@ -230,12 +238,14 @@ function updateProjectorUI(counts = [], total = 0) {
         }
     }
 
-    if (pollIsHidden) {
-        document.getElementById('live-chart').style.display = 'none';
-        document.getElementById('hiddenText').style.display = 'block';
-    } else {
-        document.getElementById('live-chart').style.display = 'block';
-        document.getElementById('hiddenText').style.display = 'none';
+    if (lChart && hText) {
+        if (pollIsHidden) {
+            lChart.style.display = 'none';
+            hText.style.display = 'block';
+        } else {
+            lChart.style.display = 'block';
+            hText.style.display = 'none';
+        }
     }
 
     if (optionsa) {
