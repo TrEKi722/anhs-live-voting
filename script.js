@@ -17,11 +17,13 @@ let pollIsHidden = false;
 let options = ["Loading...", "Loading...", "Loading...", "Loading..."];
 let myVote = null;
 let isAdmin = false;
+let cToken = null;
 
 // ==========================================
 // 2. Authentication
 // ==========================================
 async function initAuth(token) {
+    cToken = token;
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         
@@ -30,7 +32,7 @@ async function initAuth(token) {
             isAdmin = !!currentUser.email;
         } else {
             const { data, error } = await supabaseClient.auth.signInAnonymously({
-                options: { captchaToken: token }
+                options: { captchaToken: cToken }
             });
             if (error) throw error;
             currentUser = data.user;
@@ -347,7 +349,8 @@ window.loginAdmin = async function() {
     try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
-            password: pass
+            password: pass,
+            options: { captchaToken: cToken }
         });
 
         if (error) throw error;
