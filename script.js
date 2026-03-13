@@ -507,8 +507,8 @@ window.addAdmin = async function(elementId) {
 }
 
 async function sendInvite(email) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const accessToken = session?.access_token;
+  const { data, error } = await auth.getSession();
+  const accessToken = data?.access_token;
   if (!accessToken) throw new Error('Not signed in');
 
   const FUNCTION_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user';
