@@ -306,6 +306,9 @@ function updateProjectorUI(counts = [], total = 0) {
 function updateAdminUI() {
     const lockBtn = document.getElementById('toggle-lock-btn');
     const hideBtn = document.getElementById('toggle-hide-btn');
+    const adminNav = document.getElementById('admin-nav');
+
+    if (adminNav && isAdmin) adminNav.style.display = 'block';
     
     if (lockBtn) {
         if (pollIsLocked) {
