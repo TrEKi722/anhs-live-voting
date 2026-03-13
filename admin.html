@@ -37,8 +37,16 @@
                         <h3>Poll Status</h3>
                         <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">🔒 Lock Voting</button>
                         <button id="toggle-hide-btn" class="action-btn btn-danger" onclick="toggleHide()">🙈 Hide Results</button>
-                        <button class="action-btn btn-danger" style="background: #000;" onclick="resetPoll()">⚠️ Reset Poll</button>
+                        <button class="action-btn btn-danger" style="background: #000;" onclick="openModal('resetConfirmModal')">⚠️ Reset Poll</button>
                     </div>
+
+                    <div class="chart-container modal" id="resetConfirmModal">
+                        <h1>Are you sure you want to do this?</h1>
+                        <p>This action cannot be undone and will erase all current votes and reset the poll to its default state.</p>
+                        <button class="action-btn btn-secondary" onclick="document.getElementById('resetConfirmModal').style.display = 'none';">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="resetPoll()">Yes, Reset Poll</button>
+                    </div>
+
                     <div>
                         <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">Log Out</button>
                     </div>

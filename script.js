@@ -337,6 +337,13 @@ function updateAdminUI() {
     }
 }
 
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
 // ==========================================
 // 5. User Actions
 // ==========================================
