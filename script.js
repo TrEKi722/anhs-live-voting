@@ -461,5 +461,16 @@ document.querySelectorAll('.vote-btn').forEach(btn => {
 
 // ==========================================
 // 8. Initialization
+// Runs after Turnstile is ready and calls initAuth to set up the app
 // ==========================================
-initAuth();
+
+window.onTurnstileLoad = async function() {
+    await initAuth();
+
+    setupUI();
+}
+
+function setupUI() {
+    document.getElementById('turnstile-container').style.display = 'none';
+    document.getElementById('full-page').style.display = 'block';
+}
