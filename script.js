@@ -441,7 +441,7 @@ window.updateOptions =  async function(optionsIn) {
     try {
         const { error } = await supabaseClient
             .from('poll_config')
-            .update({option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]), option2: document.getElementById(optionsIn[2]), option3: document.getElementById(optionsIn[3])})
+            .update({option0: document.getElementById(optionsIn[0]).value, option1: document.getElementById(optionsIn[1]).value, option2: document.getElementById(optionsIn[2]).value, option3: document.getElementById(optionsIn[3]).value})
             .eq('id', 'main');
 
         if (error) throw error;
