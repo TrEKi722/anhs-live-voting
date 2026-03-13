@@ -227,7 +227,7 @@ function updateVoteUI() {
             btn.classList.remove('selected');
             
             if (myVote !== null) {
-                // btn.disabled = true;
+                btn.disabled = true;
                 if (myVote === optionIndex) btn.classList.add('selected');
             } else if (pollIsLocked) {
                 btn.disabled = true;
