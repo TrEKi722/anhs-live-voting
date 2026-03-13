@@ -507,24 +507,53 @@ window.addAdmin = async function(elementId) {
 }
 
 async function sendInvite(email) {
-  const { data, error } = await auth.getSession();
-  const accessToken = data?.access_token;
-  if (!accessToken) throw new Error('Not signed in');
+    // 1) Try v2 API: supabase.auth.getSession()
+    let accessToken = null;
+    try {
+    if (supabase.auth && typeof supabase.auth.getSession === "function") {
+        const { data } = await supabase.auth.getSession();
+        accessToken = data?.session?.access_token ?? null;
+    }
+    } catch (e) {
+    // ignore and try other methods
+    }
 
-  const FUNCTION_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user';
+    // 2) Try legacy v1: supabase.auth.session()
+    if (!accessToken) {
+    try {
+        if (supabase.auth && typeof supabase.auth.session === "function") {
+        const session = supabase.auth.session();
+        accessToken = session?.access_token ?? null;
+        }
+    } catch (e) { /* ignore */ }
+    }
 
-  const res = await fetch(FUNCTION_URL, {
-    method: 'POST',
+    // 3) Try direct property (some older codebases)
+    if (!accessToken) {
+    accessToken = supabase.auth?.session?.access_token ?? null;
+    }
+
+    if (!accessToken) return showToast("You must be signed in.");
+
+    // Replace FUNCTION_URL with your deployed Edge Function URL
+    const FUNCTION_URL = "`https://<project-ref>.functions.supabase.co/invite-user`";
+
+    const resp = await fetch(FUNCTION_URL, {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ email }),
-  });
+    });
 
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Invite failed');
-  console.log('Invite sent', json);
+    const json = await resp.json();
+    if (!resp.ok) {
+    const message = json?.error ?? JSON.stringify(json);
+    return showToast("Invite failed: " + message);
+    }
+
+    showToast("Invitation sent to " + email);
 }
 
 // ==========================================
