@@ -514,4 +514,5 @@ window.onTurnstileLoad = async function(token) {
 function setupUI() {
     document.getElementById('turnstile-container').style.display = 'none';
     document.getElementById('full-page').style.display = 'block';
+    if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
 }

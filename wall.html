@@ -31,37 +31,38 @@
             ></div>
         </div>
 
-        <div id="full-page" style="display: none;">
-            <div style="text-align: center;">
-                <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
+        <div id="full-page" style="display: none; flex-direction: row-reverse;">
+            <div>
+                <div style="text-align: center;">
+                    <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
+                </div>
+                <h1>Vote now @ anhs-live-voting.pages.dev</h1>
+                <h1 id="question">Loading...</h1>
+                <div class="chart-container" id="live-chart">
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option1">SOPHOMORES</span> <span id="pct-1">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option2">JUNIORS</span> <span id="pct-2">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option3">SENIORS</span> <span id="pct-3">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
+                    </div>
+                    
+                    <div class="total-participants">
+                        Total Votes: <span id="total-count">0</span>
+                    </div>
+                </div>
+                <h1 id="hiddenText" style="display:none;">🙈 RESULTS HIDDEN 🙈</h1>
             </div>
-            <h1>Vote now @ anhs-live-voting.pages.dev</h1>
-            <h1 id="question">Loading...</h1>
-            <div class="chart-container" id="live-chart">
-                <div class="bar-group">
-                    <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>
-                    <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
-                </div>
-                <div class="bar-group">
-                    <div class="bar-label"><span id="option1">SOPHOMORES</span> <span id="pct-1">0%</span></div>
-                    <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
-                </div>
-                <div class="bar-group">
-                    <div class="bar-label"><span id="option2">JUNIORS</span> <span id="pct-2">0%</span></div>
-                    <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
-                </div>
-                <div class="bar-group">
-                    <div class="bar-label"><span id="option3">SENIORS</span> <span id="pct-3">0%</span></div>
-                    <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
-                </div>
-                
-                <div class="total-participants">
-                    Total Votes: <span id="total-count">0</span>
-                </div>
-            </div>
-            <h1 id="hiddenText" style="display:none;">🙈 RESULTS HIDDEN 🙈</h1>
-
-            <img src="./media/pagesQR.png" alt="QR to voting site" margin-top: 20px;">
+            <img src="./media/pagesQR.png" alt="QR to voting site" style="margin: 20px;">
         </div>
 
         <!-- Application Logic -->
