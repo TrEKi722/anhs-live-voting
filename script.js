@@ -80,8 +80,8 @@ async function fetchInitialData() {
             .from('votes')
             .select('option_index')
             .eq('user_id', currentUser.id)
-            .single();
-        
+            .maybeSingle(); // <-- was .single()
+
         myVote = myVoteData ? myVoteData.option_index : null;
     }
 
@@ -512,12 +512,11 @@ window.addAdmin = async function(elementId) {
 }
 
 async function inviteUser(supabase, email) {
-  // Grab the current session JWT to authenticate the edge function call
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.refreshSession(); // <-- was getSession()
 
   if (!session) {
     showToast("You must be logged in to invite users.");
-    return { success: false, error: "You must be logged in to invite users." };
+    return { success: false };
   }
 
   const response = await fetch(
@@ -582,6 +581,4 @@ function setupUI() {
 
 window.onLoginTurnstileComplete = function(token) {
     loginCToken = token;
-    initAuth(null);
-    
 }
