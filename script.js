@@ -580,4 +580,5 @@ function setupUI() {
 
 window.onLoginTurnstileComplete = function(token) {
     loginCToken = token;
+    initAuth(null);
 }
