@@ -389,27 +389,30 @@ window.loginAdmin = async function() {
     const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-pass').value;
 
-    await supabaseClient.auth.signOut();
-
     if (!email || !pass) return showToast("Please enter an email and password.");
+    if (!loginCToken) return showToast("Please complete the CAPTCHA.");
+
+    await supabaseClient.auth.signOut();
 
     try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
+            email,
             password: pass,
-            options: { captchaToken: cToken }
+            options: { captchaToken: loginCToken }
         });
 
         if (error) throw error;
 
+        loginCToken = null; // clear after use
         currentUser = data.user;
         isAdmin = true;
         showToast("Admin logged in successfully.");
         fetchInitialData();
+        updateAdminUI();
     } catch (error) {
         showToast("Login failed: " + error.message);
+        loginCToken = null; // reset so widget can be re-completed
     }
-    updateAdminUI();
 }
 
 window.logoutAdmin = async function() {
@@ -575,4 +578,10 @@ function setupUI() {
     document.getElementById('turnstile-container').style.display = 'none';
     document.getElementById('full-page').style.display = 'block';
     if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
+}
+
+window.onLoginTurnstileComplete = function(token) {
+    loginCToken = token;
+    initAuth(null);
+    
 }

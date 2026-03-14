@@ -16,11 +16,6 @@
     </head>
     <body>
 
-        <div id="turnstile-container" style="display: block; text-align: center; margin-top: 50px;">
-            <h2>Please complete the CAPTCHA to continue</h2>
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAACp4ciLpxF9JPdqQ" data-theme="light" data-size="normal" data-callback="initAuth"></div>
-        </div>
-
         <nav id="admin-nav" style="display:none;">
             <a href="./" id="nav-vote">📱 Vote</a>
             <a href="/wall" id="nav-live">📊 Live View</a>
@@ -37,6 +32,13 @@
                     <p>Sign in to access controls.</p>
                     <input type="email" id="admin-email" placeholder="Admin Email">
                     <input type="password" id="admin-pass" placeholder="Password">
+                    <!-- Fresh captcha just for login -->
+                    <div class="cf-turnstile"
+                        data-sitekey="0x4AAAAAACp4ciLpxF9JPdqQ"
+                        data-theme="light"
+                        data-size="normal"
+                        data-callback="onLoginTurnstileComplete">
+                    </div>
                     <button class="action-btn btn-primary" onclick="loginAdmin()">Sign In</button>
                 </div>
 
