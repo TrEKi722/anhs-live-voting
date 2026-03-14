@@ -18,6 +18,7 @@ let question = "Loading question...";
 let options = ["Loading...", "Loading...", "Loading...", "Loading..."];
 let myVote = null;
 let isAdmin = false;
+let adminSession = null;
 let cToken = null;
 
 // ==========================================
@@ -403,15 +404,16 @@ window.loginAdmin = async function() {
 
         if (error) throw error;
 
-        loginCToken = null; // clear after use
+        loginCToken = null;
         currentUser = data.user;
+        adminSession = data.session; // <-- store the session directly
         isAdmin = true;
         showToast("Admin logged in successfully.");
         fetchInitialData();
         updateAdminUI();
     } catch (error) {
         showToast("Login failed: " + error.message);
-        loginCToken = null; // reset so widget can be re-completed
+        loginCToken = null;
     }
 }
 
@@ -512,34 +514,31 @@ window.addAdmin = async function(elementId) {
 }
 
 async function inviteUser(supabase, email) {
-  const { data: { session } } = await supabase.auth.refreshSession(); // <-- was getSession()
-
-  if (!session) {
-    showToast("You must be logged in to invite users.");
-    return { success: false };
-  }
-
-  const response = await fetch(
-    'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user',
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ email }),
+    if (!adminSession) {
+        showToast("You must be logged in to invite users.");
+        return { success: false };
     }
-  );
 
-  const result = await response.json();
+    const response = await fetch(
+        'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user',
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${adminSession.access_token}`, // <-- use stored session
+            },
+            body: JSON.stringify({ email }),
+        }
+    );
 
-  if (!response.ok) {
-    showToast(result.error ?? "Invite failed.");
-    return { success: false, error: result.error ?? "Invite failed." };
-  }
+    const result = await response.json();
+    if (!response.ok) {
+        showToast(result.error ?? "Invite failed.");
+        return { success: false, error: result.error ?? "Invite failed." };
+    }
 
-  showToast(`Invite sent to ${email}!`);
-  return { success: true, user: result.user };
+    showToast(`Invite sent to ${email}!`);
+    return { success: true, user: result.user };
 }
 
 // ==========================================
