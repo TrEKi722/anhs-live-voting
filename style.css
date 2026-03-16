@@ -11,6 +11,19 @@
     --border-radius: 12px;
 }
 
+:root[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --card-bg: #2d2d2d;
+    --text-color: #e0e0e0;
+    --primary: #00857D;
+    --primary-hover: #00a99d;
+    --chosen: #00a99d;
+    --danger: #ff6b6b;
+    --danger-hover: #ff5252;
+    --success: #51cf66;
+    --border-radius: 12px;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;

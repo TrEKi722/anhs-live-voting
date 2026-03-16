@@ -21,6 +21,31 @@ let isAdmin = false;
 let adminSession = null;
 let cToken = null;
 
+addEventListener("DOMContentLoaded", (event) => {
+    const darkModeMql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+    if (darkModeMql && darkModeMql.matches) {
+        localStorage.setItem('theme', 'dark');
+    } else {
+        localStorage.setItem('theme', null);
+    }
+});
+
+window.onTurnstileLoad = async function(token) {
+    await initAuth(token);
+}
+
+function setupUI() {
+    document.getElementById('turnstile-container').style.display = 'none';
+    document.getElementById('full-page').style.display = 'block';
+    if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
+}
+
+window.onLoginTurnstileComplete = function(token) {
+    loginCToken = token;
+    initAuth(null);
+}
+
 // ==========================================
 // 2. Authentication
 // ==========================================
@@ -562,23 +587,3 @@ document.querySelectorAll('.vote-btn').forEach(btn => {
         castVote(optionIndex);
     });
 });
-
-// ==========================================
-// 8. Initialization
-// Runs after Turnstile is ready and calls initAuth to set up the app
-// ==========================================
-
-window.onTurnstileLoad = async function(token) {
-    await initAuth(token);
-}
-
-function setupUI() {
-    document.getElementById('turnstile-container').style.display = 'none';
-    document.getElementById('full-page').style.display = 'block';
-    if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
-}
-
-window.onLoginTurnstileComplete = function(token) {
-    loginCToken = token;
-    initAuth(null);
-}
