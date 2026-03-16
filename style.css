@@ -298,12 +298,12 @@ button.action-btn:hover { opacity: 0.9; }
   width: 100%; /* Full width */
   height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
-  background-color: rgb(255, 255, 255); /* Fallback color */
+  background-color: var(--bg-color); /* Fallback color */
 }
 
 /* Modal Content */
 .modal-content {
-  background-color: var(--bg-color);
+  background-color: #fefefe;
   margin: auto;
   padding: 20px;
   border: 1px solid #888;
