@@ -36,7 +36,7 @@
                 <div style="text-align: center;">
                     <div id="vote-status-badge" class="status-badge status-open">Loading status...</div>
                 </div>
-                <h1>Vote now @ anhs-live-voting.pages.dev</h1>
+                <h1 id="voteNow">Vote now @ anhs-live-voting.pages.dev</h1>
                 <h1 id="question">Loading...</h1>
                 <div class="chart-container" id="live-chart">
                     <div class="bar-group">
@@ -62,10 +62,14 @@
                 </div>
                 <h1 id="hiddenText" style="display:none;">🙈 RESULTS HIDDEN 🙈</h1>
             </div>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2Fanhs-live-voting.pages.dev&size=500x500&color=000&bgcolor=f4f4f9" alt="QR to voting site" style="height:fit-content; margin: 50px; align-self: center;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2Fanhs-live-voting.pages.dev&size=500x500&color=000&bgcolor=f4f4f9" id="qr" alt="QR to voting site" style="height:fit-content; margin: 50px; align-self: center;">
         </div>
 
         <!-- Application Logic -->
         <script src="script.js"></script>
+        <script>
+            document.getElementById('voteNow').textContent('Vote now @' + window.location.hostname);
+            document.getElementById('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' + window.location.hostname + '&size=500x500&color=000&bgcolor=f4f4f9';
+        </script>
     </body>
 </html>
