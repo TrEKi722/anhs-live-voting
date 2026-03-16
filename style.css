@@ -52,7 +52,6 @@ h1, h2 {
     text-align: center;
     margin-bottom: 1rem;
     margin-top: 1rem;
-    color: #111;
 }
 
 h3 {
@@ -76,7 +75,6 @@ h3 {
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: all 0.2s;
-    color: var(--text-color);
 }
 
 .vote-btn:hover:not(:disabled) {
@@ -305,7 +303,7 @@ button.action-btn:hover { opacity: 0.9; }
 
 /* Modal Content */
 .modal-content {
-  background-color: #fefefe;
+  background-color: var(--bg-color);
   margin: auto;
   padding: 20px;
   border: 1px solid #888;
