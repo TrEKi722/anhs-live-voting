@@ -23,11 +23,20 @@ let cToken = null;
 
 addEventListener("DOMContentLoaded", (event) => {
     const darkModeMql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-
-    if (darkModeMql && darkModeMql.matches) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', null);
+    
+    // Function to apply theme
+    const applyTheme = (isDark) => {
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    };
+    
+    // Apply initial theme
+    if (darkModeMql) {
+        applyTheme(darkModeMql.matches);
+        
+        // Listen for changes
+        darkModeMql.addEventListener('change', (e) => {
+            applyTheme(e.matches);
+        });
     }
 });
 
