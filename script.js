@@ -563,7 +563,6 @@ window.loginAdmin = async function() {
         loginCToken = null;
         currentUser = data.user;
         adminSession = data.session; // <-- store the session directly
-        isAdmin = true;
         showToast("Admin logged in successfully.");
         fetchInitialData();
         await checkSuperAdmin();
@@ -572,6 +571,8 @@ window.loginAdmin = async function() {
         showToast("Login failed: " + error.message);
         loginCToken = null;
     }
+    checkAdmin();
+    checkSuperAdmin();
 }
 
 window.logoutAdmin = async function() {
