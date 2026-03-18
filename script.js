@@ -19,6 +19,7 @@ let options = ["Loading...", "Loading...", "Loading...", "Loading..."];
 let myVote = null;
 let isAdmin = false;
 let adminSession = null;
+let isSuperAdmin = false;
 let cToken = null;
 
 addEventListener("DOMContentLoaded", (event) => {
@@ -84,8 +85,84 @@ async function initAuth(token) {
             showToast("Authentication failed. Check console.");
         }
     }
+    await checkSuperAdmin();
     setupUI();
     updateAdminUI();
+}
+
+async function checkSuperAdmin() {
+    try {
+        if (!currentUser) {
+            isSuperAdmin = false;
+            return;
+        }
+
+        const response = await fetch(
+            `${SUPABASE_URL}/functions/v1/get-user-role?user_id=${currentUser.id}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        // Expected format:
+        // { "role": "<role|string|null>" } OR { "error": "" }
+
+        if (!response.ok || result.error) {
+            console.error("Role fetch error:", result.error);
+            isSuperAdmin = false;
+            return;
+        }
+
+        isSuperAdmin = result.role === "super_admin";
+
+        if (isSuperAdmin) {
+            await loadAdminList();
+        }
+    } catch (err) {
+        console.error("Error checking super admin:", err);
+        isSuperAdmin = false;
+    }
+}
+
+async function checkAdmin() {
+    try {
+        if (!currentUser) {
+            isSuperAdmin = false;
+            return;
+        }
+
+        const response = await fetch(
+            `${SUPABASE_URL}/functions/v1/get-user-role?user_id=${currentUser.id}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        // Expected format:
+        // { "role": "<role|string|null>" } OR { "error": "" }
+
+        if (!response.ok || result.error) {
+            console.error("Role fetch error:", result.error);
+            isAdmin = false;
+            return;
+        }
+
+        isAdmin = result.role === "admin" || result.role === "super_admin" ;
+
+    } catch (err) {
+        console.error("Error checking super admin:", err);
+        isAdmin = false;
+    }
 }
 
 // ==========================================
@@ -216,6 +293,46 @@ function updateAdminOptionInputs() {
         }
     });
 }
+
+async function loadAdminList() {
+    try {
+        const response = await fetch(
+            `${SUPABASE_URL}/functions/v1/get-users-with-roles`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+            console.error("Error fetching users:", result.error);
+            return;
+        }
+
+        const adminList = document.getElementById("adminList");
+        if (!adminList) return;
+
+        // Clear existing list
+        adminList.innerHTML = "";
+
+        result.users.forEach(user => {
+            const li = document.createElement("li");
+
+            const role = user.role ? user.role : "user";
+            li.textContent = `${user.email} — ${role}`;
+
+            adminList.appendChild(li);
+        });
+
+    } catch (err) {
+        console.error("Error loading admin list:", err);
+    }
+}
+
 function updateVoteUI() {
     if (window.location.pathname === '/') {
         const questionEl = document.getElementById('question');
@@ -387,6 +504,11 @@ function updateAdminUI() {
             controlsUI.style.display = 'none';
         }
     }
+
+    const superAdminControls = document.getElementById('superAdminControls');
+    if (superAdminControls) {
+        superAdminControls.style.display = isSuperAdmin ? 'block' : 'none';
+    }
 }
 
 function openModal(id) {
@@ -444,6 +566,7 @@ window.loginAdmin = async function() {
         isAdmin = true;
         showToast("Admin logged in successfully.");
         fetchInitialData();
+        await checkSuperAdmin();
         updateAdminUI();
     } catch (error) {
         showToast("Login failed: " + error.message);

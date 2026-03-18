@@ -44,57 +44,65 @@
                     <a href="/reset-password.html">Forgot password?</a>
                 </div>
 
-                <div id="admin-controls-ui" class="admin-controls">
-                    <div style="margin-bottom: 2rem;">
-                        <h3>Poll Status</h3>
-                        <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">🔒 Lock Voting</button>
-                        <button id="toggle-hide-btn" class="action-btn btn-danger" onclick="toggleHide()">🙈 Hide Results</button>
-                        <button class="action-btn btn-danger" style="background: #000;" onclick="openModal('resetConfirmModal')">⚠️ Reset Poll</button>
-                    </div>
-
-                    <div class="modal" id="resetConfirmModal">
-                        <h1>Are you sure you want to do this?</h1>
-                        <p style="margin-bottom: 20px;">This action cannot be undone and will erase all current votes and reset the poll to its default state.</p>
-                        <button class="action-btn btn-secondary" onclick="document.getElementById('resetConfirmModal').style.display = 'none';">Cancel</button>
-                        <button class="action-btn btn-danger" onclick="resetPoll();document.getElementById('resetConfirmModal').style.display = 'none';">Yes, Reset Poll</button>
-                    </div>
-
-                    <div class="modal" id="addAdminModal">
-                        <h1>Enter the new admin's email.</h1>
-                        <input type="text" id="adminEmailInput" placeholder="example@example.com">
-                        <button class="action-btn btn-secondary" onclick="document.getElementById('addAdminModal').style.display = 'none';">Cancel</button>
-                        <button class="action-btn btn-danger" onclick="addAdmin('adminEmailInput');document.getElementById('addAdminModal').style.display = 'none';">Send Invite</button>
-                    </div>
-
+                <div id="admin-controls-ui" class="admin-controls" style="display: flex; flex-direction: row-reverse;">
                     <div>
-                        <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">Invite Admin</button>
-                        <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">Log Out</button>
-                    </div>
-                    
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
-
-                    <div class="admin-edit-ui">
-                        <h3>Edit</h3>
-                        <input type="text" id="editTitle" style="width: 85%" placeholder="Loading...">
-                        <div class="admin-edit-grid">
-                            <input type="text" id="editOption0" placeholder="Loading...">
-                            <input type="text" id="editOption1" placeholder="Loading...">
-                            <input type="text" id="editOption2" placeholder="Loading...">
-                            <input type="text" id="editOption3" placeholder="Loading...">
+                        <div style="margin-bottom: 2rem;">
+                            <h3>Poll Status</h3>
+                            <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">🔒 Lock Voting</button>
+                            <button id="toggle-hide-btn" class="action-btn btn-danger" onclick="toggleHide()">🙈 Hide Results</button>
+                            <button class="action-btn btn-danger" style="background: #000;" onclick="openModal('resetConfirmModal')">⚠️ Reset Poll</button>
                         </div>
-                        <button class="action-btn btn-primary" style="margin-top: 0.5rem;" onclick="openModal('updateConfirmModal')">Update Options</button>
+
+                        <div class="modal" id="resetConfirmModal">
+                            <h1>Are you sure you want to do this?</h1>
+                            <p style="margin-bottom: 20px;">This action cannot be undone and will erase all current votes and reset the poll to its default state.</p>
+                            <button class="action-btn btn-secondary" onclick="document.getElementById('resetConfirmModal').style.display = 'none';">Cancel</button>
+                            <button class="action-btn btn-danger" onclick="resetPoll();document.getElementById('resetConfirmModal').style.display = 'none';">Yes, Reset Poll</button>
+                        </div>
+
+                        <div class="modal" id="addAdminModal">
+                            <h1>Enter the new admin's email.</h1>
+                            <input type="text" id="adminEmailInput" placeholder="example@example.com">
+                            <button class="action-btn btn-secondary" onclick="document.getElementById('addAdminModal').style.display = 'none';">Cancel</button>
+                            <button class="action-btn btn-danger" onclick="addAdmin('adminEmailInput');document.getElementById('addAdminModal').style.display = 'none';">Send Invite</button>
+                        </div>
+
+                        <div>
+                            <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">Invite Admin</button>
+                            <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">Log Out</button>
+                        </div>
+                        
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
+
+                        <div class="admin-edit-ui">
+                            <h3>Edit</h3>
+                            <input type="text" id="editTitle" style="width: 85%" placeholder="Loading...">
+                            <div class="admin-edit-grid">
+                                <input type="text" id="editOption0" placeholder="Loading...">
+                                <input type="text" id="editOption1" placeholder="Loading...">
+                                <input type="text" id="editOption2" placeholder="Loading...">
+                                <input type="text" id="editOption3" placeholder="Loading...">
+                            </div>
+                            <button class="action-btn btn-primary" style="margin-top: 0.5rem;" onclick="openModal('updateConfirmModal')">Update Options</button>
+                        </div>
+
+                        <div class="modal" id="updateConfirmModal">
+                            <h1>Are you sure you want to do this?</h1>
+                            <p style="margin-bottom: 20px;">This action cannot be undone and will update the poll question and options for everyone including the live display.</p>
+                            <button class="action-btn btn-secondary" onclick="document.getElementById('updateConfirmModal').style.display = 'none';">Cancel</button>
+                            <button class="action-btn btn-danger" onclick="updateOptions(['editTitle','editOption0','editOption1','editOption2','editOption3']);document.getElementById('updateConfirmModal').style.display = 'none';">Yes, Update Poll</button>
+                        </div>
+
+                        <div id="superAdminControls" style="display:none;">
+                            <h2>Super Admin</h2>
+                            <h3>Current Admins</h3>
+                            <ul id="adminList">
+                                <!-- Admin emails will be populated here -->
+                            </ul>
+                        </div>                        
                     </div>
 
-                    <div class="modal" id="updateConfirmModal">
-                        <h1>Are you sure you want to do this?</h1>
-                        <p style="margin-bottom: 20px;">This action cannot be undone and will update the poll question and options for everyone including the live display.</p>
-                        <button class="action-btn btn-secondary" onclick="document.getElementById('updateConfirmModal').style.display = 'none';">Cancel</button>
-                        <button class="action-btn btn-danger" onclick="updateOptions(['editTitle','editOption0','editOption1','editOption2','editOption3']);document.getElementById('updateConfirmModal').style.display = 'none';">Yes, Update Poll</button>
-                    </div>
-
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
-
-                    <div class="chart-container" style="width: auto;">
+                    <div class="chart-container">
                         <h2>Current Poll Results</h2>
                         <div class="bar-group">
                             <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>
