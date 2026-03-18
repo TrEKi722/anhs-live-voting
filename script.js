@@ -505,9 +505,11 @@ function updateAdminUI() {
         }
     }
 
-    const superAdminControls = document.getElementById('superAdminControls');
-    if (superAdminControls) {
-        superAdminControls.style.display = isSuperAdmin ? 'block' : 'none';
+    await checkSuperAdmin();
+
+    const sAEl = document.getElementById('superAdminControls');
+    if (sAEl) {
+        sAEl.style.display = isSuperAdmin ? 'block' : 'none';
     }
 }
 
