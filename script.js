@@ -505,7 +505,7 @@ function updateAdminUI() {
         }
     }
 
-    await checkSuperAdmin();
+    checkSuperAdmin();
 
     const sAEl = document.getElementById('superAdminControls');
     if (sAEl) {
