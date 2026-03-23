@@ -202,14 +202,14 @@ function setupRealtimeSubscriptions() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_config' }, payload => {
             if (payload.new && payload.new.is_locked !== undefined) {
                 pollIsLocked = payload.new.is_locked;
-                updateVoteUI();
+                updateVoteBtns();
                 // after lock change we need to recompute counts
                 fetchAndUpdateAllVotes();
                 updateAdminUI();
             }           
             if (payload.new && payload.new.results_hidden !== undefined) {
                 pollIsHidden = payload.new.results_hidden;
-                updateVoteUI();
+                updateVoteBtns();
                 // after lock change we need to recompute counts
                 fetchAndUpdateAllVotes();
                 updateProjectorUI();
@@ -222,7 +222,7 @@ function setupRealtimeSubscriptions() {
                 options[2] = payload.new.option2 || options[2];
                 options[3] = payload.new.option3 || options[3];
                 updateProjectorUI();
-                updateVoteUI();
+                updateVoteBtns();
                 // option titles changed, refresh counts as well
                 fetchAndUpdateAllVotes();
                 updateAdminUI();
