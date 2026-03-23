@@ -520,7 +520,7 @@ window.castVote = async function(optionIndex) {
         if (error) throw error;
 
         myVote = optionIndex;
-        updateVoteUI();
+        updateVoteBtns();
         showToast("Vote cast successfully!");
     } catch (error) {
         console.error("Voting error:", error);
