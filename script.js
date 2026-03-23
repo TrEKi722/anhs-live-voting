@@ -291,6 +291,7 @@ function updateVoteBtns() {
         const buttons = document.querySelectorAll('.vote-btn');
         const wRes = document.getElementById('resultGrid');
         const hid = document.getElementById('hiddenGrid');
+        const hBadge = document.getElementById('hidden-status-badge');
 
         if (wRes && hid) {
             if (pollIsHidden) {
