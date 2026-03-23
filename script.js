@@ -411,10 +411,11 @@ function updateAdminUI() {
     
     if (loginUI && controlsUI) {
         if (isAdmin) {
-            loginUI.style.removeProperty('display');
+            loginUI.style.display = 'none';
             controlsUI.style.display = 'flex';
+            controlsUI.style.flexDirection = 'row-reverse';
         } else {
-            loginUI.style.removeProperty('display');
+            loginUI.style.display = 'flex';
             controlsUI.style.display = 'none';
         }
     }
