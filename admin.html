@@ -40,8 +40,8 @@
                     <a href="/reset-password.html">Forgot password?</a>
                 </div>
 
-                <div id="adminDash" style="display: none; flex-direction: row-reverse;">
-                    <div class="admin-panel" style="margin-left:2rem;">
+                <div id="adminDash" style="display: none; flex-direction: row-reverse; gap: 2rem; align-items: flex-start;">
+                    <div class="admin-panel" style="flex: 1; min-width: 300px; margin-left: 0;">
                         <div style="margin-bottom: 2rem;">
                             <h3>Poll Status</h3>
                             <button id="toggle-lock-btn" class="action-btn btn-danger" onclick="toggleLock()">🔒 Lock Voting</button>
@@ -97,7 +97,7 @@
                         </div>                        
                     </div>
 
-                    <div class="chart-container" style="width:30vw;">
+                    <div class="chart-container" style="flex: 1; min-width: 280px;">
                         <h2>Current Poll Results</h2>
                         <div class="bar-group">
                             <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>

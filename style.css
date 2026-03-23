@@ -24,6 +24,12 @@
     --border-radius: 12px;
 }
 
+@media (max-width: 768px) {
+    #adminDash {
+        flex-direction: column !important;
+    }
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
