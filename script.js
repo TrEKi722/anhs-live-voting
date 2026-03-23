@@ -8,7 +8,7 @@
 const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseC = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let token = null;
 
@@ -28,12 +28,12 @@ let isSuperAdmin = false;
 
 async function initAuth(token) {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseC.auth.getSession();
         
         if (session) {
             currentUser = session.user;
         } else if (window.location.pathname !== '/admin') {
-            const { data, error } = await supabase.auth.signInAnonymously({
+            const { data, error } = await supabaseC.auth.signInAnonymously({
                 options: { captchaToken: token }
             });
             if (error) throw error;
@@ -101,7 +101,7 @@ addEventListener("DOMContentLoaded", (event) => {
 });
 
 async function initSupabase() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseC.auth.getSession();
 
     if (session) {
         // Already logged in — skip Turnstile entirely
@@ -136,7 +136,7 @@ async function turnstileComplete(cToken) {
 // 3. Supabase
 // ==========================================
 async function fetchInitialData() {
-    const { data: configData } = await supabase
+    const { data: configData } = await supabaseC
         .from('poll_config')
         .select('results_hidden, is_locked, results_hidden, question, option0, option1, option2, option3')
         .eq('id', 'main')
@@ -155,7 +155,7 @@ async function fetchInitialData() {
     }
 
     if (currentUser) {
-        const { data: myVoteData } = await supabase
+        const { data: myVoteData } = await supabaseC
             .from('votes')
             .select('option_index')
             .eq('user_id', currentUser.id)
@@ -171,7 +171,7 @@ async function fetchInitialData() {
 }
 
 async function fetchAndUpdateAllVotes() {
-    const { data: votes, error } = await supabase
+    const { data: votes, error } = await supabaseC
         .from('votes')
         .select('option_index');
 
@@ -197,7 +197,7 @@ async function fetchAndUpdateAllVotes() {
 }
 
 function setupRealtimeSubscriptions() {
-    supabase
+    supabaseC
         .channel('poll-config-channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_config' }, payload => {
             if (payload.new && payload.new.is_locked !== undefined) {
@@ -231,7 +231,7 @@ function setupRealtimeSubscriptions() {
         })
         .subscribe();
 
-    supabase
+    supabaseC
         .channel('votes-channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, payload => {
             fetchAndUpdateAllVotes();
@@ -494,7 +494,7 @@ window.castVote = async function(optionIndex) {
     if (myVote !== null) return showToast("You have already voted!");
 
     try {
-        const { error } = await supabase
+        const { error } = await supabaseC
             .from('votes')
             .upsert({ user_id: currentUser.id, option_index: optionIndex });
             
@@ -520,10 +520,10 @@ window.loginUser = async function() {
     if (!email || !pass) return showToast("Please enter an email and password.");
     if (!token) return showToast("Please complete the CAPTCHA.");
 
-    await supabase.auth.signOut();
+    await supabaseC.auth.signOut();
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseC.auth.signInWithPassword({
             email,
             password: pass,
             options: { captchaToken: token }
@@ -546,7 +546,7 @@ window.loginUser = async function() {
 
 window.logoutUser = async function() {
     try {
-        await supabase.auth.signOut();
+        await supabaseC.auth.signOut();
         isAdmin = false;
         currentUser = null;
         const emailField = document.getElementById('admin-email');
@@ -564,7 +564,7 @@ window.logoutUser = async function() {
 window.toggleLock = async function() {
     if (!isAdmin || !currentUser) return;
     try {
-        const { error } = await supabase
+        const { error } = await supabaseC
             .from('poll_config')
             .update({ is_locked: !pollIsLocked })
             .eq('id', 'main');
@@ -579,7 +579,7 @@ window.toggleLock = async function() {
 window.toggleHide = async function() {
     if (!isAdmin || !currentUser) return;
     try {
-        const { error } = await supabase
+        const { error } = await supabaseC
             .from('poll_config')
             .update({ results_hidden: !pollIsHidden })
             .eq('id', 'main');
@@ -594,14 +594,14 @@ window.toggleHide = async function() {
 window.resetPoll = async function() {
     if (!isAdmin || !currentUser) return;
     try {
-        const { error: deleteError } = await supabase
+        const { error: deleteError } = await supabaseC
             .from('votes')
             .delete()
             .neq('user_id', '00000000-0000-0000-0000-000000000000');
             
         if (deleteError) throw deleteError;
 
-        const { error: unlockError } = await supabase
+        const { error: unlockError } = await supabaseC
             .from('poll_config')
             .update({ is_locked: false })
             .eq('id', 'main');
@@ -617,7 +617,7 @@ window.resetPoll = async function() {
 window.updateOptions =  async function(optionsIn) {
     if (!isAdmin) return showToast("Not an admin.");
     try {
-        const { error } = await supabase
+        const { error } = await supabaseC
             .from('poll_config')
             .update({ question: document.getElementById(optionsIn[0]).value, option0: document.getElementById(optionsIn[1]).value, option1: document.getElementById(optionsIn[2]).value, option2: document.getElementById(optionsIn[3]).value, option3: document.getElementById(optionsIn[4]).value })
             .eq('id', 'main');
@@ -642,17 +642,17 @@ window.addAdmin = async function(elementId) {
 
     if (!email) return showToast("Please enter an email.");
 
-    inviteUser(supabase,email);
+    inviteUser(supabaseC,email);
 }
 
-async function inviteUser(supabase, email) {
+async function inviteUser(supabaseC, email) {
     if (!currentSession) {
         showToast("You must be logged in to invite users.");
         return { success: false };
     }
 
     const response = await fetch(
-        'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user',
+        'https://ntzxejhhxtzdyyeqbfpn.supabaseC.co/functions/v1/invite-user',
         {
             method: "POST",
             headers: {
