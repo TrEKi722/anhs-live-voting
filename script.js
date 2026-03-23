@@ -237,7 +237,7 @@ function setupRealtimeSubscriptions() {
             fetchAndUpdateAllVotes();
             if (payload.eventType === 'DELETE' && currentUser && payload.old.user_id === currentUser.id) {
                 myVote = null;
-                updateVoteUI();
+                updateVoteBtns();
             }
         })
         .subscribe();
