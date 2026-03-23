@@ -3,80 +3,47 @@
 // ==========================================
 
 // ==========================================
-// 1. Initialization & Config
+// 1. Variables
 // ==========================================
 const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// State Variables
+let token = null;
+
 let currentUser = null;
+let currentSession = null;
 let pollIsLocked = false;
 let pollIsHidden = false;
 let question = "Loading question...";
 let options = ["Loading...", "Loading...", "Loading...", "Loading..."];
 let myVote = null;
 let isAdmin = false;
-let adminSession = null;
 let isSuperAdmin = false;
-let cToken = null;
-
-addEventListener("DOMContentLoaded", (event) => {
-    const darkModeMql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-    
-    // Function to apply theme
-    const applyTheme = (isDark) => {
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    };
-    
-    // Apply initial theme
-    if (darkModeMql) {
-        applyTheme(darkModeMql.matches);
-        
-        // Listen for changes
-        darkModeMql.addEventListener('change', (e) => {
-            applyTheme(e.matches);
-        });
-    }
-});
-
-window.onTurnstileLoad = async function(token) {
-    await initAuth(token);
-}
-
-function setupUI() {
-    document.getElementById('turnstile-container').style.display = 'none';
-    document.getElementById('full-page').style.display = 'block';
-    if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
-}
-
-window.onLoginTurnstileComplete = function(token) {
-    loginCToken = token;
-    initAuth(null);
-}
 
 // ==========================================
-// 2. Authentication
+// 2. Authentication & Initialization
 // ==========================================
+
 async function initAuth(token) {
-    cToken = token;
     try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
             currentUser = session.user;
-            isAdmin = !!currentUser.email;
         } else if (window.location.pathname !== '/admin') {
-            const { data, error } = await supabaseClient.auth.signInAnonymously({
-                options: { captchaToken: cToken }
+            const { data, error } = await supabase.auth.signInAnonymously({
+                options: { captchaToken: token }
             });
             if (error) throw error;
             currentUser = data.user;
             isAdmin = false;
         }
         
-        console.log("Authenticated as:", currentUser.id, isAdmin ? "(Admin)" : "(Voter)");
+        await checkRole();
+        
+        console.log("Authenticated as:", currentUser.id, isSuperAdmin ? "(Super Admin)" : isAdmin ? "(Admin)" : "(Voter)");
         fetchInitialData();
         setupRealtimeSubscriptions();
     } catch (error) {
@@ -85,53 +52,14 @@ async function initAuth(token) {
             showToast("Authentication failed. Check console.");
         }
     }
-    await checkSuperAdmin();
     setupUI();
     updateAdminUI();
 }
 
-async function checkSuperAdmin() {
+async function checkRole() {
     try {
         if (!currentUser) {
-            isSuperAdmin = false;
-            return;
-        }
-
-        const response = await fetch(
-            `${SUPABASE_URL}/functions/v1/get-user-role?user_id=${currentUser.id}`,
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        const result = await response.json();
-
-        // Expected format:
-        // { "role": "<role|string|null>" } OR { "error": "" }
-
-        if (!response.ok || result.error) {
-            console.error("Role fetch error:", result.error);
-            isSuperAdmin = false;
-            return;
-        }
-
-        isSuperAdmin = result.role === "super_admin";
-
-        if (isSuperAdmin) {
-            await loadAdminList();
-        }
-    } catch (err) {
-        console.error("Error checking super admin:", err);
-        isSuperAdmin = false;
-    }
-}
-
-async function checkAdmin() {
-    try {
-        if (!currentUser) {
+            isAdmin = false;
             isSuperAdmin = false;
             return;
         }
@@ -154,22 +82,61 @@ async function checkAdmin() {
         if (!response.ok || result.error) {
             console.error("Role fetch error:", result.error);
             isAdmin = false;
+            isSuperAdmin = false;
             return;
         }
 
         isAdmin = result.role === "admin" || result.role === "super_admin" ;
+        isSuperAdmin = result.role === "super_admin";
 
     } catch (err) {
         console.error("Error checking super admin:", err);
         isAdmin = false;
+        isSuperAdmin = false;
     }
 }
 
+addEventListener("DOMContentLoaded", (event) => {
+    initSupabase();
+});
+
+async function initSupabase() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session) {
+        // Already logged in — skip Turnstile entirely
+        initAuth(null); // call your existing post-auth function directly
+    } else {
+        // No session — show container and load Turnstile
+        document.getElementById('turnstile-container').style.display = 'block';
+        loadTurnstile();
+    }
+}
+
+function loadTurnstile() {
+    // Preconnect hint
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = 'https://challenges.cloudflare.com';
+    document.head.appendChild(link);
+
+    // Turnstile script
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+}
+
+async function turnstileComplete(cToken) {
+    token = cToken;
+}
+
 // ==========================================
-// 3. Database Operations & Realtime
+// 3. Supabase
 // ==========================================
 async function fetchInitialData() {
-    const { data: configData } = await supabaseClient
+    const { data: configData } = await supabase
         .from('poll_config')
         .select('results_hidden, is_locked, results_hidden, question, option0, option1, option2, option3')
         .eq('id', 'main')
@@ -188,7 +155,7 @@ async function fetchInitialData() {
     }
 
     if (currentUser) {
-        const { data: myVoteData } = await supabaseClient
+        const { data: myVoteData } = await supabase
             .from('votes')
             .select('option_index')
             .eq('user_id', currentUser.id)
@@ -197,18 +164,20 @@ async function fetchInitialData() {
         myVote = myVoteData ? myVoteData.option_index : null;
     }
 
-    updateVoteUI();
+    updateVoteBtns();
+    updateQandA();
     updateAdminUI();
     fetchAndUpdateAllVotes();
 }
 
 async function fetchAndUpdateAllVotes() {
-    const { data: votes, error } = await supabaseClient
+    const { data: votes, error } = await supabase
         .from('votes')
         .select('option_index');
 
     if (error) {
         console.error("Error fetching votes:", error);
+        showToast("Error fetching votes. Check console or reload.");
         return;
     }
 
@@ -224,11 +193,11 @@ async function fetchAndUpdateAllVotes() {
         });
     }
 
-    updateProjectorUI(voteCounts, totalVotes);
+    updateResults(voteCounts, totalVotes);
 }
 
 function setupRealtimeSubscriptions() {
-    supabaseClient
+    supabase
         .channel('poll-config-channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_config' }, payload => {
             if (payload.new && payload.new.is_locked !== undefined) {
@@ -262,7 +231,7 @@ function setupRealtimeSubscriptions() {
         })
         .subscribe();
 
-    supabaseClient
+    supabase
         .channel('votes-channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, payload => {
             fetchAndUpdateAllVotes();
@@ -275,8 +244,174 @@ function setupRealtimeSubscriptions() {
 }
 
 // ==========================================
-// 4. UI Update Functions
+// 4. UI
 // ==========================================
+
+// Theme application and detection, automatically listens for changes
+addEventListener("DOMContentLoaded", (event) => {
+    const darkModeMql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+    
+    // Function to apply theme
+    const applyTheme = (isDark) => {
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    };
+    
+    // Apply initial theme
+    if (darkModeMql) {
+        applyTheme(darkModeMql.matches);
+        
+        // Listen for changes
+        darkModeMql.addEventListener('change', (e) => {
+            applyTheme(e.matches);
+        });
+    }
+});
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.innerText = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+}
+
+function hideCaptcha() {
+    document.getElementById('turnstile-container').style.display = 'none';
+    document.getElementById('full-page').style.display = 'block';
+    if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
+}
+
+// ==========================================
+// 4.a Voter & Wall UI Updates
+// ==========================================
+
+function updateVoteBtns() {
+    if (window.location.pathname === '/') {
+        const buttons = document.querySelectorAll('.vote-btn');
+        const wRes = document.getElementById('resultGrid');
+        const hid = document.getElementById('hiddenGrid');
+
+        if (wRes && hid) {
+            if (pollIsHidden) {
+                wRes.classList.add('hidden');
+                hid.classList.remove('hidden');
+                hBadge.style.display = 'block';
+            } else {
+                wRes.classList.remove('hidden');
+                hid.classList.add('hidden');
+                hBadge.style.display = 'none';
+            }
+        }
+
+        buttons.forEach((btn) => {
+            const optionIndex = parseInt(btn.dataset.option);
+            btn.classList.remove('selected');
+            
+            if (myVote !== null) {
+                btn.disabled = true;
+                if (myVote === optionIndex) btn.classList.add('selected');
+            } else if (pollIsLocked) {
+                btn.disabled = true;
+            } else {
+                btn.disabled = false;
+            }
+        });
+    }
+}
+
+// Updates live results bars
+function updateResults(counts = [], total = 0) {
+    const total_count= document.getElementById('total-count');
+    if (total_count) total_count.innerText = total;
+
+    counts.forEach((count, index) => {
+        const barElement = document.getElementById(`bar-${index}`);
+        const pctElement = document.getElementById(`pct-${index}`);
+        const colors = ["yellow","green","blue","red"];
+        
+        if (barElement && pctElement) {
+            const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
+            barElement.style.width = `${percentage}%`;
+            barElement.style.background = colors[index] || 'var(--primary)';
+            pctElement.innerText = `${percentage}% (${count})`;
+        } else if (pctElement) {
+            const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
+            pctElement.innerText = `${percentage}%`;
+        }
+    });
+}
+
+function updateQandA() {
+    const questionEl = document.getElementById('question');
+    const optionEls = [
+        document.getElementById('option-0'),
+        document.getElementById('option-1'),
+        document.getElementById('option-2'),
+        document.getElementById('option-3')
+    ];
+
+    if (questionEl) questionEl.innerText = question;
+
+    if (optionEls) {
+        optionEls.forEach((el, idx) => {
+            if (el) {
+                el.innerText = options[idx] || `Option ${idx + 1}`;
+                el.style.display = options[idx] ? 'block' : 'none';
+            }
+        });
+    }
+}
+
+// ==========================================
+// 4.b Admin UI Updates
+// ==========================================
+function updateAdminUI() {
+    const lockBtn = document.getElementById('toggle-lock-btn');
+    const hideBtn = document.getElementById('toggle-hide-btn');
+    
+    if (lockBtn) {
+        if (pollIsLocked) {
+            lockBtn.className = 'action-btn btn-success';
+            lockBtn.innerText = '🔓 Unlock Voting';
+        } else {
+            lockBtn.className = 'action-btn btn-danger';
+            lockBtn.innerText = '🔒 Lock Voting';
+        }
+    } 
+    
+    if (hideBtn) {
+        if (pollIsHidden) {
+            hideBtn.className = 'action-btn btn-success';
+            hideBtn.innerText = '👁️ Show Results';
+        } else {
+            hideBtn.className = 'action-btn btn-danger';
+            hideBtn.innerText = '🙈 Hide Results';
+        }
+    }
+
+    const loginUI = document.getElementById('admin-login-ui');
+    const controlsUI = document.getElementById('admin-controls-ui');
+    
+    if (loginUI && controlsUI) {
+        if (isAdmin) {
+            loginUI.style.display = 'none';
+            controlsUI.style.display = 'flex';
+        } else {
+            loginUI.style.display = 'flex';
+            controlsUI.style.display = 'none';
+        }
+    }
+
+    const superAdminEl = document.getElementById('superAdminControls');
+    if (superAdminEl && isSuperAdmin) {
+        superAdminEl.style.display = 'block';
+        loadAdminList();
+    } else if (superAdminEl) {
+        superAdminEl.style.display = 'none';
+    }
+}
+
 
 // copy current option text into the admin edit fields
 function updateAdminOptionInputs() {
@@ -333,186 +468,6 @@ async function loadAdminList() {
     }
 }
 
-function updateVoteUI() {
-    if (window.location.pathname === '/') {
-        const questionEl = document.getElementById('question');
-        const optionsa = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
-        const optionsb = [document.getElementById('option0b'), document.getElementById('option1b'), document.getElementById('option2b'), document.getElementById('option3b')];
-        const badge = document.getElementById('vote-status-badge');
-        const buttons = document.querySelectorAll('.vote-btn');
-        
-        const adminNav = document.getElementById('admin-nav');
-
-        const wRes = document.getElementById('resultGrid');
-        const hid = document.getElementById('hiddenGrid');
-        const hBadge = document.getElementById('hidden-status-badge');
-
-        if (adminNav && isAdmin) adminNav.style.display = 'flex'
-
-        if (badge) {
-            if (pollIsLocked) {
-                badge.className = 'status-badge status-locked';
-                badge.innerText = '🔒 Voting is Locked';
-            } else {
-                badge.className = 'status-badge status-open';
-                badge.innerText = '🟢 Voting is Open';
-            }
-        }
-
-        if (wRes && hid) {
-            if (pollIsHidden) {
-                wRes.classList.add('hidden');
-                hid.classList.remove('hidden');
-                hBadge.style.display = 'block';
-            } else {
-                wRes.classList.remove('hidden');
-                hid.classList.add('hidden');
-                hBadge.style.display = 'none';
-            }
-        }
-
-        if (questionEl) questionEl.innerText = question;
-
-        if (optionsa) {
-            optionsa.forEach((opt, index) => {
-                if (opt) opt.innerText = options[index];
-            });
-        }
-
-        if (optionsb) {
-            optionsb.forEach((opt, index) => {
-                if (opt) opt.innerText = options[index];
-            });
-        }
-
-        buttons.forEach((btn) => {
-            const optionIndex = parseInt(btn.dataset.option);
-            btn.classList.remove('selected');
-            
-            if (myVote !== null) {
-                btn.disabled = true;
-                if (myVote === optionIndex) btn.classList.add('selected');
-            } else if (pollIsLocked) {
-                btn.disabled = true;
-            } else {
-                btn.disabled = false;
-            }
-        });
-    }
-}
-
-function updateProjectorUI(counts = [], total = 0) {
-    // `counts` and `total` default so callers can invoke without data
-    const total_count= document.getElementById('total-count');
-    if (total_count) total_count.innerText = total;
-    const questionEl = document.getElementById('question');
-    const optionsa = [document.getElementById('option0'), document.getElementById('option1'), document.getElementById('option2'), document.getElementById('option3')];
-    const optionsb = [document.getElementById('option0b'), document.getElementById('option1b'), document.getElementById('option2b'), document.getElementById('option3b')];
-    const badge = document.getElementById('vote-status-badge');
-
-    const lChart = document.getElementById('live-chart');
-    const hText = document.getElementById('hiddenText');
-
-    if (badge) {
-        if (pollIsLocked) {
-            badge.className = 'status-badge status-locked';
-            badge.innerText = '🔒 Voting is Locked';
-        } else {
-            badge.className = 'status-badge status-open';
-            badge.innerText = '🟢 Voting is Open';
-        }
-    }
-
-    if (lChart && hText) {
-        if (pollIsHidden) {
-            lChart.style.display = 'none';
-            hText.style.display = 'block';
-        } else {
-            lChart.style.display = 'block';
-            hText.style.display = 'none';
-        }
-    }
-
-    if (questionEl) questionEl.innerText = question;
-
-    if (optionsa) {
-        optionsa.forEach((opt, index) => {
-            if (opt) opt.innerText = options[index];
-        });
-    }
-
-    if (optionsb) {
-        optionsb.forEach((opt, index) => {
-            if (opt) opt.innerText = options[index];
-        });
-    }
-
-    counts.forEach((count, index) => {
-        const barElement = document.getElementById(`bar-${index}`);
-        const pctElement = document.getElementById(`pct-${index}`);
-        const colors = ["yellow","green","blue","red"];
-        
-        
-        if (barElement && pctElement) {
-            const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
-            barElement.style.width = `${percentage}%`;
-            barElement.style.background = colors[index] || 'var(--primary)';
-            pctElement.innerText = `${percentage}% (${count})`;
-        } else if (pctElement) {
-            const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
-            pctElement.innerText = `${percentage}%`;
-        }
-    });
-}
-
-function updateAdminUI() {
-    const lockBtn = document.getElementById('toggle-lock-btn');
-    const hideBtn = document.getElementById('toggle-hide-btn');
-    const adminNav = document.getElementById('admin-nav');
-
-    if (adminNav && isAdmin) adminNav.style.display = 'flex';
-    
-    if (lockBtn) {
-        if (pollIsLocked) {
-            lockBtn.className = 'action-btn btn-success';
-            lockBtn.innerText = '🔓 Unlock Voting';
-        } else {
-            lockBtn.className = 'action-btn btn-danger';
-            lockBtn.innerText = '🔒 Lock Voting';
-        }
-    } 
-    
-    if (hideBtn) {
-        if (pollIsHidden) {
-            hideBtn.className = 'action-btn btn-success';
-            hideBtn.innerText = '👁️ Show Results';
-        } else {
-            hideBtn.className = 'action-btn btn-danger';
-            hideBtn.innerText = '🙈 Hide Results';
-        }
-    }
-
-    const loginUI = document.getElementById('admin-login-ui');
-    const controlsUI = document.getElementById('admin-controls-ui');
-    
-    if (loginUI && controlsUI) {
-        if (isAdmin) {
-            loginUI.style.display = 'none';
-            controlsUI.style.display = 'flex';
-        } else {
-            loginUI.style.display = 'flex';
-            controlsUI.style.display = 'none';
-        }
-    }
-
-    checkSuperAdmin();
-
-    const sAEl = document.getElementById('superAdminControls');
-    if (sAEl) {
-        sAEl.style.display = isSuperAdmin ? 'block' : 'none';
-    }
-}
-
 function openModal(id) {
     const modal = document.getElementById(id);
     if (modal) {
@@ -522,14 +477,24 @@ function openModal(id) {
 
 // ==========================================
 // 5. User Actions
+// 
+// 5.a Voting
 // ==========================================
+
+document.querySelectorAll('.vote-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const optionIndex = parseInt(btn.dataset.option);
+        castVote(optionIndex);
+    });
+});
+
 window.castVote = async function(optionIndex) {
     if (!currentUser) return showToast("Not authenticated yet.");
     if (pollIsLocked) return showToast("Voting is currently locked.");
     if (myVote !== null) return showToast("You have already voted!");
 
     try {
-        const { error } = await supabaseClient
+        const { error } = await supabase
             .from('votes')
             .upsert({ user_id: currentUser.id, option_index: optionIndex });
             
@@ -544,42 +509,44 @@ window.castVote = async function(optionIndex) {
     }
 }
 
-window.loginAdmin = async function() {
+// ==========================================
+// 5.b Admin Actions
+// ==========================================
+
+window.loginUser = async function() {
     const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-pass').value;
 
     if (!email || !pass) return showToast("Please enter an email and password.");
-    if (!loginCToken) return showToast("Please complete the CAPTCHA.");
+    if (!token) return showToast("Please complete the CAPTCHA.");
 
-    await supabaseClient.auth.signOut();
+    await supabase.auth.signOut();
 
     try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password: pass,
-            options: { captchaToken: loginCToken }
+            options: { captchaToken: token }
         });
 
         if (error) throw error;
 
-        loginCToken = null;
+        token = null;
         currentUser = data.user;
-        adminSession = data.session; // <-- store the session directly
+        currentSession = data.session; // <-- store the session directly
         showToast("Admin logged in successfully.");
         fetchInitialData();
-        await checkSuperAdmin();
-        updateAdminUI();
     } catch (error) {
         showToast("Login failed: " + error.message);
-        loginCToken = null;
+        token = null;
     }
-    checkAdmin();
-    checkSuperAdmin();
+    await checkRole();
+    updateAdminUI();
 }
 
-window.logoutAdmin = async function() {
+window.logoutUser = async function() {
     try {
-        await supabaseClient.auth.signOut();
+        await supabase.auth.signOut();
         isAdmin = false;
         currentUser = null;
         const emailField = document.getElementById('admin-email');
@@ -589,6 +556,7 @@ window.logoutAdmin = async function() {
         showToast("Admin logged out.");
         updateAdminUI();
     } catch (error) {
+        console.log("Logout error:", error);
         showToast("Error logging out.");
     }
 }
@@ -596,7 +564,7 @@ window.logoutAdmin = async function() {
 window.toggleLock = async function() {
     if (!isAdmin || !currentUser) return;
     try {
-        const { error } = await supabaseClient
+        const { error } = await supabase
             .from('poll_config')
             .update({ is_locked: !pollIsLocked })
             .eq('id', 'main');
@@ -611,7 +579,7 @@ window.toggleLock = async function() {
 window.toggleHide = async function() {
     if (!isAdmin || !currentUser) return;
     try {
-        const { error } = await supabaseClient
+        const { error } = await supabase
             .from('poll_config')
             .update({ results_hidden: !pollIsHidden })
             .eq('id', 'main');
@@ -626,14 +594,14 @@ window.toggleHide = async function() {
 window.resetPoll = async function() {
     if (!isAdmin || !currentUser) return;
     try {
-        const { error: deleteError } = await supabaseClient
+        const { error: deleteError } = await supabase
             .from('votes')
             .delete()
             .neq('user_id', '00000000-0000-0000-0000-000000000000');
             
         if (deleteError) throw deleteError;
 
-        const { error: unlockError } = await supabaseClient
+        const { error: unlockError } = await supabase
             .from('poll_config')
             .update({ is_locked: false })
             .eq('id', 'main');
@@ -649,7 +617,7 @@ window.resetPoll = async function() {
 window.updateOptions =  async function(optionsIn) {
     if (!isAdmin) return showToast("Not an admin.");
     try {
-        const { error } = await supabaseClient
+        const { error } = await supabase
             .from('poll_config')
             .update({ question: document.getElementById(optionsIn[0]).value, option0: document.getElementById(optionsIn[1]).value, option1: document.getElementById(optionsIn[2]).value, option2: document.getElementById(optionsIn[3]).value, option3: document.getElementById(optionsIn[4]).value })
             .eq('id', 'main');
@@ -664,17 +632,21 @@ window.updateOptions =  async function(optionsIn) {
     }
 }
 
+// ==========================================
+// 5.c Super Admin Actions
+// ==========================================
+
 window.addAdmin = async function(elementId) {
     if (!isAdmin) return showToast("Not an admin.");
     const email = document.getElementById(elementId).value;
 
     if (!email) return showToast("Please enter an email.");
 
-    inviteUser(supabaseClient,email);
+    inviteUser(supabase,email);
 }
 
 async function inviteUser(supabase, email) {
-    if (!adminSession) {
+    if (!currentSession) {
         showToast("You must be logged in to invite users.");
         return { success: false };
     }
@@ -685,7 +657,7 @@ async function inviteUser(supabase, email) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${adminSession.access_token}`, // <-- use stored session
+                "Authorization": `Bearer ${currentSession.access_token}`, // <-- use stored session
             },
             body: JSON.stringify({ email }),
         }
@@ -701,24 +673,3 @@ async function inviteUser(supabase, email) {
     return { success: true, user: result.user };
 }
 
-// ==========================================
-// 6. Utilities
-// ==========================================
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    if (toast) {
-        toast.innerText = message;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-}
-
-// ==========================================
-// 7. Event Listeners
-// ==========================================
-document.querySelectorAll('.vote-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const optionIndex = parseInt(btn.dataset.option);
-        castVote(optionIndex);
-    });
-});

@@ -10,14 +10,10 @@
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
         
         <link rel="stylesheet" href="style.css">
-
-        <!-- Cloudflare Turnstile -->
-        <link rel="preconnect" href="https://challenges.cloudflare.com">
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     </head>
     <body>
 
-        <nav id="admin-nav" style="display:none;">
+        <nav id="admin-nav">
             <a href="./" id="nav-vote">📱 Vote</a>
             <a href="/wall" id="nav-live">📊 Live View</a>
             <a href="/admin" id="nav-admin">⚙️ Admin Dashboard</a>
@@ -38,9 +34,9 @@
                         data-sitekey="0x4AAAAAACp4ciLpxF9JPdqQ"
                         data-theme="light"
                         data-size="normal"
-                        data-callback="onLoginTurnstileComplete">
+                        data-callback="turnstileComplete">
                     </div>
-                    <button class="action-btn btn-primary" onclick="loginAdmin()">Sign In</button>
+                    <button class="action-btn btn-primary" onclick="loginUser()">Sign In</button>
                     <a href="/reset-password.html">Forgot password?</a>
                 </div>
 
@@ -60,16 +56,8 @@
                             <button class="action-btn btn-danger" onclick="resetPoll();document.getElementById('resetConfirmModal').style.display = 'none';">Yes, Reset Poll</button>
                         </div>
 
-                        <div class="modal" id="addAdminModal">
-                            <h1>Enter the new admin's email.</h1>
-                            <input type="text" id="adminEmailInput" placeholder="example@example.com">
-                            <button class="action-btn btn-secondary" onclick="document.getElementById('addAdminModal').style.display = 'none';">Cancel</button>
-                            <button class="action-btn btn-danger" onclick="addAdmin('adminEmailInput');document.getElementById('addAdminModal').style.display = 'none';">Send Invite</button>
-                        </div>
-
                         <div>
-                            <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">Invite Admin</button>
-                            <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutAdmin()">Log Out</button>
+                            <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="logoutUser()">Log Out</button>
                         </div>
                         
                         <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
@@ -95,6 +83,13 @@
 
                         <div id="superAdminControls" style="display:none;">
                             <h2>Super Admin</h2>
+                            <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">Invite Admin</button>
+                            <div class="modal" id="addAdminModal">
+                               <h1>Enter the new admin's email.</h1>
+                                <input type="text" id="adminEmailInput" placeholder="example@example.com">
+                                <button class="action-btn btn-secondary" onclick="document.getElementById('addAdminModal').style.display = 'none';">Cancel</button>
+                                <button class="action-btn btn-danger" onclick="addAdmin('adminEmailInput');document.getElementById('addAdminModal').style.display = 'none';">Send Invite</button>
+                            </div>
                             <h3>Current Admins</h3>
                             <ul id="adminList">
                                 <!-- Admin emails will be populated here -->
