@@ -684,7 +684,7 @@ async function inviteUser(email,role) {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${currentSession.access_token}`, // <-- use stored session
             },
-            body: JSON.stringify({ email : email }, {role : role}),
+            body: JSON.stringify({ email : email, role : role}),
         }
     );
 
