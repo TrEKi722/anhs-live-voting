@@ -212,7 +212,8 @@ function setupRealtimeSubscriptions() {
                 updateVoteBtns();
                 // after lock change we need to recompute counts
                 fetchAndUpdateAllVotes();
-                updateProjectorUI();
+                updateQandA();
+                updateResults();
                 updateAdminUI();
             }
             if (payload.new && ( payload.new.question !== undefined || payload.new.option0 !== undefined || payload.new.option1 !== undefined || payload.new.option2 !== undefined || payload.new.option3 !== undefined )) {
@@ -221,7 +222,8 @@ function setupRealtimeSubscriptions() {
                 options[1] = payload.new.option1 || options[1];
                 options[2] = payload.new.option2 || options[2];
                 options[3] = payload.new.option3 || options[3];
-                updateProjectorUI();
+                updateQandA();
+                updateResults();
                 updateVoteBtns();
                 // option titles changed, refresh counts as well
                 fetchAndUpdateAllVotes();
