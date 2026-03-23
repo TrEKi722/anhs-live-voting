@@ -451,7 +451,7 @@ function updateAdminOptionInputs() {
 async function loadAdminList() {
     try {
         const response = await fetch(
-            `${SUPABASE_URL}/functions/v1/get-users-with-roles`,
+            `https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/get-users-with-roles`,
             {
                 method: "GET",
                 headers: {
@@ -656,22 +656,25 @@ window.updateOptions =  async function(optionsIn) {
 // ==========================================
 
 window.addAdmin = async function(elementId) {
-    if (!isAdmin) return showToast("Not an admin.");
+    if (!isSuperAdmin) return showToast("Not a super admin.");
     const email = document.getElementById(elementId).value;
 
     if (!email) return showToast("Please enter an email.");
 
-    inviteUser(supabaseC,email);
+    inviteUser(email);
 }
 
-async function inviteUser(supabaseC, email) {
-    if (!currentSession) {
+async function inviteUser(email) {
+    if (!currentUser || !currentSession) {
+        console.error("Invite error: No authenticated user or session.");
+        console.log("Current user:", currentUser);
+        console.log("Current session:", currentSession);
         showToast("You must be logged in to invite users.");
         return { success: false };
     }
 
     const response = await fetch(
-        'https://ntzxejhhxtzdyyeqbfpn.supabaseC.co/functions/v1/invite-user',
+        'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user',
         {
             method: "POST",
             headers: {
