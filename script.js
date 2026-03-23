@@ -292,6 +292,7 @@ function updateVoteBtns() {
         const wRes = document.getElementById('resultGrid');
         const hid = document.getElementById('hiddenGrid');
         const hBadge = document.getElementById('hidden-status-badge');
+        const lBadge = document.getElementById('locked-status-badge');
 
         if (wRes && hid) {
             if (pollIsHidden) {
@@ -302,6 +303,18 @@ function updateVoteBtns() {
                 wRes.classList.remove('hidden');
                 hid.classList.add('hidden');
                 hBadge.style.display = 'none';
+            }
+        }
+
+        if (lBadge) {
+            if (pollIsLocked) {
+                lBadge.content = '😎 Voting is open 😎';
+                lBadge.classList.add('status-unlocked');
+                lBadge.classList.remove('status-locked');
+            } else {
+                lBadge.content = '🚫 Voting is locked 🚫';
+                lBadge.classList.remove('status-unlocked');
+                lBadge.classList.add('status-locked');
             }
         }
 
