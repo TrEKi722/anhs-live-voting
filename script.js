@@ -449,6 +449,16 @@ function updateAdminOptionInputs() {
     });
 }
 
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+// ==========================================
+// 4.c Super Admin UI Updates
+// ==========================================
 async function loadAdminList() {
     try {
         const response = await fetch(
@@ -456,6 +466,7 @@ async function loadAdminList() {
             {
                 method: "GET",
                 headers: {
+                    "Authorization": `Bearer ${currentSession.access_token}`,
                     "Content-Type": "application/json"
                 }
             }
@@ -485,13 +496,6 @@ async function loadAdminList() {
 
     } catch (err) {
         console.error("Error loading admin list:", err);
-    }
-}
-
-function openModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) {
-        modal.style.display = 'block';
     }
 }
 
