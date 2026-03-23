@@ -405,7 +405,7 @@ function updateAdminUI() {
     }
 
     const loginUI = document.getElementById('admin-login-ui');
-    const controlsUI = document.getElementById('adminDash');
+    const controlsUI = document.getElementById('adminPanel');
     
     if (loginUI && controlsUI) {
         if (isAdmin) {
