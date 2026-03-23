@@ -363,10 +363,10 @@ function updateResults(counts = [], total = 0) {
 function updateQandA() {
     const questionEl = document.getElementById('question');
     const optionEls = [
-        document.getElementById('option-0'),
-        document.getElementById('option-1'),
-        document.getElementById('option-2'),
-        document.getElementById('option-3')
+        document.getElementById('option0'),
+        document.getElementById('option1'),
+        document.getElementById('option2'),
+        document.getElementById('option3')
     ];
 
     if (questionEl) questionEl.innerText = question;
