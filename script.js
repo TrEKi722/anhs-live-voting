@@ -277,8 +277,10 @@ function showToast(message) {
 }
 
 function hideCaptcha() {
-    document.getElementById('turnstile-container').style.display = 'none';
-    document.getElementById('full-page').style.display = 'block';
+    if (window.location.pathname !== '/admin') {
+        document.getElementById('turnstile-container').style.display = 'none';
+        document.getElementById('full-page').style.display = 'block';
+    }
     if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
 }
 
