@@ -85,10 +85,14 @@
                             <h2>Super Admin</h2>
                             <button class="action-btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">Invite Admin</button>
                             <div class="modal" id="addAdminModal">
-                               <h1>Enter the new admin's email.</h1>
-                                <input type="text" id="adminEmailInput" placeholder="example@example.com">
+                               <h1>Enter the new admin's email & role.</h1>
+                                <input type="email" id="adminEmailInput" placeholder="example@example.com">
+                                <select id="adminRoleSelect" style="margin-top: 1rem; padding: 0.5rem;">
+                                    <option value="admin">Admin</option>
+                                    <option value="superadmin">Super Admin</option>
+                                </select>
                                 <button class="action-btn btn-secondary" onclick="document.getElementById('addAdminModal').style.display = 'none';">Cancel</button>
-                                <button class="action-btn btn-danger" onclick="addAdmin('adminEmailInput');document.getElementById('addAdminModal').style.display = 'none';">Send Invite</button>
+                                <button class="action-btn btn-danger" onclick="addAdmin('adminEmailInput','adminRoleSelect');document.getElementById('addAdminModal').style.display = 'none';">Send Invite</button>
                             </div>
                             <!-- <h3>Current Admins</h3>
                             <ul id="adminList"> -->

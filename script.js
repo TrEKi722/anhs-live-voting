@@ -656,16 +656,18 @@ window.updateOptions =  async function(optionsIn) {
 // 5.c Super Admin Actions
 // ==========================================
 
-window.addAdmin = async function(elementId) {
+window.addAdmin = async function(emailElementId, roleElementId) {
     if (!isSuperAdmin) return showToast("Not a super admin.");
-    const email = document.getElementById(elementId).value;
+    const email = document.getElementById(emailElementId).value;
+    const role = document.getElementById(roleElementId).value;
 
     if (!email) return showToast("Please enter an email.");
+    if (!role) return showToast("Please choose a role.");
 
-    inviteUser(email);
+    inviteUser(email, role);
 }
 
-async function inviteUser(email) {
+async function inviteUser(email,role) {
     if (!currentUser || !currentSession) {
         console.error("Invite error: No authenticated user or session.");
         console.log("Current user:", currentUser);
@@ -682,7 +684,7 @@ async function inviteUser(email) {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${currentSession.access_token}`, // <-- use stored session
             },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email : email }, {role : role}),
         }
     );
 
