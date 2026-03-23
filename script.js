@@ -482,15 +482,18 @@ async function loadAdminList() {
         const adminList = document.getElementById("adminList");
         if (!adminList) return;
 
-        // Clear existing list
         adminList.innerHTML = "";
 
-        result.users.forEach(user => {
+        const admins = result.users.filter(u => u.role === "admin" || u.role === "super_admin"); // ← filter here
+
+        if (admins.length === 0) {
+            adminList.innerHTML = "<li>No admins found.</li>";
+            return;
+        }
+
+        admins.forEach(user => {
             const li = document.createElement("li");
-
-            const role = user.role ? user.role : "user";
-            li.textContent = `${user.email} — ${role}`;
-
+            li.textContent = `${user.email} — ${user.role}`;
             adminList.appendChild(li);
         });
 
