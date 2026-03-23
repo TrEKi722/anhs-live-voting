@@ -105,6 +105,7 @@ async function initSupabase() {
     if (session) {
         // Already logged in — skip Turnstile entirely
         initAuth(null); // call your existing post-auth function directly
+        hideCaptcha();
     } else {
         // No session — show container and load Turnstile
         document.getElementById('turnstile-container').style.display = 'block';
