@@ -32,6 +32,7 @@ async function initAuth(token) {
         
         if (session) {
             currentUser = session.user;
+            currentSession = session;
         } else if (window.location.pathname !== '/admin') {
             const { data, error } = await supabaseC.auth.signInAnonymously({
                 options: { captchaToken: token }
