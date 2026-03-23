@@ -308,13 +308,13 @@ function updateVoteBtns() {
 
         if (lBadge) {
             if (pollIsLocked) {
-                lBadge.content = '😎 Voting is open 😎';
-                lBadge.classList.add('status-unlocked');
-                lBadge.classList.remove('status-locked');
-            } else {
-                lBadge.content = '🚫 Voting is locked 🚫';
-                lBadge.classList.remove('status-unlocked');
+                lBadge.textContent = '🚫 Voting is locked 🚫';
                 lBadge.classList.add('status-locked');
+                lBadge.classList.remove('status-unlocked');
+            } else {
+                lBadge.textContent = '😎 Voting is open 😎';
+                lBadge.classList.remove('status-locked');
+                lBadge.classList.add('status-unlocked');
             }
         }
 
