@@ -53,7 +53,7 @@ async function initAuth(token) {
         }
     }
     hideCaptcha();
-    updateAdminUI();
+    await updateAdminUI();
 }
 
 async function checkRole() {
@@ -407,14 +407,14 @@ function updateAdminUI() {
     }
 
     const loginUI = document.getElementById('admin-login-ui');
-    const controlsUI = document.getElementById('adminPanel');
+    const controlsUI = document.getElementById('adminDash');
     
     if (loginUI && controlsUI) {
         if (isAdmin) {
-            loginUI.style.display = 'none';
+            loginUI.style.removeProperty('display');
             controlsUI.style.display = 'flex';
         } else {
-            loginUI.style.display = 'flex';
+            loginUI.style.removeProperty('display');
             controlsUI.style.display = 'none';
         }
     }
