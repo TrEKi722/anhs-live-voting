@@ -52,7 +52,6 @@ async function initAuth(token) {
             showToast("Authentication failed. Check console.");
         }
     }
-    setupUI();
     updateAdminUI();
 }
 
