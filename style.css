@@ -269,6 +269,7 @@ button.action-btn {
     cursor: pointer;
     color: white;
     transition: opacity 0.2s;
+    margin: 0.5rem;
 }
 
 button.action-btn:hover { opacity: 0.9; }
