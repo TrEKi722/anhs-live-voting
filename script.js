@@ -204,14 +204,12 @@ function setupRealtimeSubscriptions() {
             if (payload.new && payload.new.is_locked !== undefined) {
                 pollIsLocked = payload.new.is_locked;
                 updateVoteBtns();
-                // after lock change we need to recompute counts
                 fetchAndUpdateAllVotes();
                 updateAdminUI();
             }           
             if (payload.new && payload.new.results_hidden !== undefined) {
                 pollIsHidden = payload.new.results_hidden;
                 updateVoteBtns();
-                // after lock change we need to recompute counts
                 fetchAndUpdateAllVotes();
                 updateQandA();
                 updateResults();
@@ -226,7 +224,6 @@ function setupRealtimeSubscriptions() {
                 updateQandA();
                 updateResults();
                 updateVoteBtns();
-                // option titles changed, refresh counts as well
                 fetchAndUpdateAllVotes();
                 updateAdminUI();
                 updateAdminOptionInputs();
@@ -359,6 +356,33 @@ function updateResults(counts = [], total = 0) {
             pctElement.innerText = `${percentage}%`;
         }
     });
+
+    const lBadge = document.getElementById('locked-status-badge');
+
+    if (lBadge) {
+        if (pollIsLocked) {
+            lBadge.textContent = '🚫 Voting is locked 🚫';
+            lBadge.classList.add('status-locked');
+            lBadge.classList.remove('status-unlocked');
+        } else {
+            lBadge.textContent = '😎 Voting is open 😎';
+            lBadge.classList.remove('status-locked');
+            lBadge.classList.add('status-unlocked');
+        }
+    }
+
+    const hText = document.getElementById('hiddenText');
+    const lChart = document.getElementById('live-chart');
+
+    if (hText && lChart) {
+        if (pollIsHidden) {
+            hText.style.display = 'block';
+            lChart.style.display = 'none';
+        } else {
+            hText.style.display = 'none';
+            lChart.style.display = 'block';
+        }
+    }
 }
 
 function updateQandA() {
