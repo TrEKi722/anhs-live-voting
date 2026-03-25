@@ -104,11 +104,7 @@ addEventListener("DOMContentLoaded", (event) => {
 async function initSupabase() {
     const { data: { session } } = await supabaseC.auth.getSession();
 
-    if (window.location.pathname === '/admin' && !isAdmin) {
-        // Admin page but not an admin — show container and load Turnstile
-        document.getElementById('turnstile-container').style.display = 'block';
-        loadTurnstile();
-    } else if (session) {
+    if (session) {
         // Already logged in — skip Turnstile entirely
         initAuth(null); // call your existing post-auth function directly
     } else {
