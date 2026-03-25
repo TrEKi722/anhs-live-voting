@@ -104,7 +104,11 @@ addEventListener("DOMContentLoaded", (event) => {
 async function initSupabase() {
     const { data: { session } } = await supabaseC.auth.getSession();
 
-    if (session) {
+    if (window.location.pathname === '/admin' && !isAdmin) {
+        // Admin page but not an admin — show container and load Turnstile
+        document.getElementById('turnstile-container').style.display = 'block';
+        loadTurnstile();
+    } else if (session) {
         // Already logged in — skip Turnstile entirely
         initAuth(null); // call your existing post-auth function directly
     } else {
@@ -480,6 +484,13 @@ function openModal(id) {
     }
 }
 
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'none ';
+    }
+}
+
 // ==========================================
 // 4.c Super Admin UI Updates
 // ==========================================
@@ -687,6 +698,41 @@ window.updateOptions =  async function(optionsIn) {
 // 5.c Super Admin Actions
 // ==========================================
 
+window.editRole = async function(emailElementId, roleElementId) {
+    if (!isSuperAdmin) return showToast("Not a super admin.");
+    const email = document.getElementById(emailElementId).value;
+    const role = document.getElementById(roleElementId).value;
+
+    if (!email) return showToast("Please enter an email.");
+    if (!role) return showToast("Please choose a role.");
+
+    try {
+        const response = await fetch(
+            'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/edit-role',
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${currentSession.access_token}`,
+                },
+                body: JSON.stringify({ email, role }),
+            }
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+            showToast(result.error ?? "Role update failed.");
+            return;
+        }
+
+        showToast(`Updated ${email} to role ${role}!`);
+        loadAdminList();
+    } catch (err) {
+        console.error("Error updating role:", err);
+        showToast("Error updating role. Check console.");
+    }
+}
+
 window.addAdmin = async function(emailElementId, roleElementId) {
     if (!isSuperAdmin) return showToast("Not a super admin.");
     const email = document.getElementById(emailElementId).value;
@@ -729,3 +775,35 @@ async function inviteUser(email,role) {
     return { success: true, user: result.user };
 }
 
+window.removeAdmin = async function(emailElementId) {
+    const email = document.getElementById(emailElementId).value;
+
+    if (!isSuperAdmin) return showToast("Not a super admin.");
+    if (!email) return showToast("Please enter an email.");
+
+    try {
+        const response = await fetch(
+            'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/delete-user',
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${currentSession.access_token}`,
+                },
+                body: JSON.stringify({ email }),
+            }
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+            showToast(result.error ?? "Remove failed.");
+            return;
+        }
+
+        showToast(`${email} has been deleted`);
+        loadAdminList();
+    } catch (err) {
+        console.error("Error removing admin:", err);
+        showToast("Error removing admin. Check console.");
+    }
+}
