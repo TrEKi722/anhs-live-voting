@@ -82,6 +82,7 @@
 
                         <div id="superAdminControls" style="display:none;">
                             <h2>Super Admin</h2>
+                            <hr style="padding:2rem;">
                             <button class="action-btn btn-danger" style="background: green; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('editRoleModal')">✏️ Edit Role</button>
                             <button class="action-btn btn-danger" style="background: green; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">✉️ Invite Admin</button>
                             <button class="action-btn btn-danger" style="background: #ef4444; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('removeAdminModal')">🗑️ Remove Admin</button>
@@ -93,7 +94,7 @@
                                     <option value="super_admin">Super Admin</option>
                                 </select>
                                 <button class="action-btn btn-secondary" onclick="closeModal('editRoleModal');">Cancel</button>
-                                <button class="action-btn btn-danger" onclick="editRole('editEmailInput','editRoleSelect');closeModal('editRoleModal');">Send Invite</button>
+                                <button class="action-btn btn-danger" onclick="editRole('editEmailInput','editRoleSelect');closeModal('editRoleModal');">Edit Role</button>
                             </div>
                             <div class="modal" id="addAdminModal">
                                <h1>Enter the new admin's email & role.</h1>
@@ -109,7 +110,7 @@
                                  <h1>Enter the email of the admin to remove.</h1>
                                 <input type="email" id="removeEmailInput" placeholder="example@example.com">
                                 <button class="action-btn btn-secondary" onclick="closeModal('removeAdminModal');">Cancel</button>
-                                <button class="action-btn btn-danger" onclick="removeAdmin('removeEmailInput');closeModal('removeAdminModal');">Send Invite</button>
+                                <button class="action-btn btn-danger" onclick="removeAdmin('removeEmailInput');closeModal('removeAdminModal');">Remove Admin</button>
                             </div>
                             <h3>Current Admins</h3>
                             <ul id="adminList"></ul>
