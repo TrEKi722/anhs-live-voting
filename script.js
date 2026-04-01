@@ -120,12 +120,32 @@ window.signInWithGoogle = async function() {
         provider: 'google',
         options: {
             redirectTo: `${window.location.origin}/`,
-            queryParams: {
-                hd: window.location.hostname.split('.').slice(-2).join('.') // optional: hint to Google to show school accounts
-            }
+            scopes: 'email'
         }
     });
     if (error) showToast("Google sign in failed: " + error.message);
+}
+
+window.signInWithApple = async function() {
+    const { error } = await supabaseC.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+            redirectTo: `${window.location.origin}/`,
+            scopes: 'email'
+        }
+    });
+    if (error) showToast("Apple sign in failed: " + error.message);
+}
+
+window.signInWithMicrosoft = async function() {
+    const { error } = await supabaseC.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+            redirectTo: `${window.location.origin}/`,
+            scopes: 'email'
+        }
+    });
+    if (error) showToast("Microsoft sign in failed: " + error.message);
 }
 
 window.showAnonymousFallback = function() {
