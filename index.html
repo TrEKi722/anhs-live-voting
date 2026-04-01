@@ -11,6 +11,18 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
+
+        <div id="auth-container" style="display: none; flex-direction: column; align-items: center; gap: 1rem; margin-top: 4rem; text-align: center;">
+            <h2>Sign in to vote</h2>
+            <p style="color: #6b7280; max-width: 300px;">Sign in with your school Google account to cast your vote. One vote per person.</p>
+            <button class="action-btn btn-primary" onclick="signInWithGoogle()" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+                <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px;"> Sign in with Google
+            </button>
+            <button onclick="showAnonymousFallback()" style="background:none; border:none; color:#6b7280; cursor:pointer; font-size:0.85rem; text-decoration:underline;">
+                Skip (vote anonymously)
+            </button>
+        </div>
+
         <div id="turnstile-container" style="display: none; text-align: center; margin-top: 50px;">
             <h2>Please complete the CAPTCHA to vote</h2>
             <div

@@ -105,13 +105,33 @@ async function initSupabase() {
     const { data: { session } } = await supabaseC.auth.getSession();
 
     if (session) {
-        // Already logged in — skip Turnstile entirely
-        initAuth(null); // call your existing post-auth function directly
+        // Already have a session (returning user or post-OAuth redirect)
+        initAuth(null);
+    } else if (window.location.pathname !== '/admin') {
+        // No session — show the Google sign-in screen
+        document.getElementById('auth-container').style.display = 'flex';
     } else {
-        // No session — show container and load Turnstile
-        document.getElementById('turnstile-container').style.display = 'block';
-        loadTurnstile();
+        // Admin page — show nothing (admin has its own login)
     }
+}
+
+window.signInWithGoogle = async function() {
+    const { error } = await supabaseC.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: `${window.location.origin}/`,
+            queryParams: {
+                hd: window.location.hostname.split('.').slice(-2).join('.') // optional: hint to Google to show school accounts
+            }
+        }
+    });
+    if (error) showToast("Google sign in failed: " + error.message);
+}
+
+window.showAnonymousFallback = function() {
+    document.getElementById('auth-container').style.display = 'none';
+    document.getElementById('turnstile-container').style.display = 'block';
+    loadTurnstile();
 }
 
 function loadTurnstile() {
@@ -278,6 +298,7 @@ function showToast(message) {
 
 function hideCaptcha() {
     if (window.location.pathname !== '/admin') {
+        document.getElementById('auth-container').style.display = 'none';
         document.getElementById('turnstile-container').style.display = 'none';
         document.getElementById('full-page').style.display = 'block';
     }
