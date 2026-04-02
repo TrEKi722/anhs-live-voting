@@ -105,14 +105,11 @@ async function initSupabase() {
     const { data: { session } } = await supabaseC.auth.getSession();
 
     if (session) {
-        // Already have a session (returning user or post-OAuth redirect)
         initAuth(null);
-    } else if (window.location.pathname !== '/admin') {
-        // No session — show the Google sign-in screen
-        document.getElementById('auth-container').style.display = 'flex';
-    } else if (!isAdmin) {
+    } else if (!isAdmin && window.location.pathname === '/admin') {
         logoutUser();
-        document.getElementById('auth-container').style.display = 'flex';
+        loadTurnstile();
+        document.getElementById('turnstile-container').style.display = 'flex';
     }
 }
 
@@ -120,8 +117,8 @@ window.signInWithGoogle = async function() {
     const { error } = await supabaseC.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: `${window.location.origin}/`,
-            scopes: 'email'
+            redirectTo: `${window.location.origin}/${window.location.pathname}`,
+            scopes: 'openid email profile'
         }
     });
     if (error) showToast("Google sign in failed: " + error.message);
@@ -131,8 +128,8 @@ window.signInWithMicrosoft = async function() {
     const { error } = await supabaseC.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-            redirectTo: `${window.location.origin}/`,
-            scopes: 'email'
+            redirectTo: `${window.location.origin}/${window.location.pathname}`,
+            scopes: 'openid email profile'
         }
     });
     if (error) showToast("Microsoft sign in failed: " + error.message);
