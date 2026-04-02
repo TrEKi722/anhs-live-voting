@@ -110,7 +110,7 @@ async function initSupabase() {
     } else if (window.location.pathname !== '/admin') {
         // No session — show the Google sign-in screen
         document.getElementById('auth-container').style.display = 'flex';
-    } else if (!isAdmin && session) {
+    } else if (!isAdmin) {
         logoutUser();
         document.getElementById('auth-container').style.display = 'flex';
     }
