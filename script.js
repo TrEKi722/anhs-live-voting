@@ -110,32 +110,22 @@ async function initSupabase() {
     } else if (window.location.pathname !== '/admin') {
         // No session — show the Google sign-in screen
         document.getElementById('auth-container').style.display = 'flex';
-    } else {
-        // Admin page — show nothing (admin has its own login)
+    } else if (!isAdmin && session) {
+        logoutUser();
+        document.getElementById('auth-container').style.display = 'flex';
     }
 }
 
-window.signInWithGoogle = async function() {
-    const { error } = await supabaseC.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: `${window.location.origin}/`,
-            scopes: 'email'
-        }
-    });
-    if (error) showToast("Google sign in failed: " + error.message);
-}
-
-window.signInWithApple = async function() {
-    const { error } = await supabaseC.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-            redirectTo: `${window.location.origin}/`,
-            scopes: 'email'
-        }
-    });
-    if (error) showToast("Apple sign in failed: " + error.message);
-}
+// window.signInWithGoogle = async function() {
+//     const { error } = await supabaseC.auth.signInWithOAuth({
+//         provider: 'google',
+//         options: {
+//             redirectTo: `${window.location.origin}/`,
+//             scopes: 'email'
+//         }
+//     });
+//     if (error) showToast("Google sign in failed: " + error.message);
+// }
 
 window.signInWithMicrosoft = async function() {
     const { error } = await supabaseC.auth.signInWithOAuth({
@@ -608,10 +598,6 @@ window.castVote = async function(optionIndex) {
     }
 }
 
-// ==========================================
-// 5.b Admin Actions
-// ==========================================
-
 window.loginUser = async function() {
     const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-pass').value;
@@ -633,7 +619,7 @@ window.loginUser = async function() {
         token = null;
         currentUser = data.user;
         currentSession = data.session; // <-- store the session directly
-        showToast("Admin logged in successfully.");
+        showToast("User logged in successfully.");
         fetchInitialData();
     } catch (error) {
         showToast("Login failed: " + error.message);
@@ -652,13 +638,17 @@ window.logoutUser = async function() {
         const passField = document.getElementById('admin-pass');
         if (emailField) emailField.value = '';
         if (passField) passField.value = '';
-        showToast("Admin logged out.");
+        showToast("User logged out.");
         updateAdminUI();
     } catch (error) {
         console.log("Logout error:", error);
         showToast("Error logging out.");
     }
 }
+
+// ==========================================
+// 5.b Admin Actions
+// ==========================================
 
 window.toggleLock = async function() {
     if (!isAdmin || !currentUser) return;

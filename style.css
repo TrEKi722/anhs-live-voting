@@ -248,7 +248,7 @@ nav a:hover, nav a.active {
 
 .admin-login {
     display: flex;
-    flex-direction: column;
+    flex-direction: column-revserse;
     gap: 1rem;
     max-width: 300px;
     margin: 0 auto;
