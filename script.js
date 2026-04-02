@@ -57,8 +57,8 @@ async function initAuth(token) {
     await updateAdminUI();
 }
 
-addEventListener("DOMContentLoaded", (event) => {
-    const { data: { session } } = supabaseC.auth.getSession();
+addEventListener("DOMContentLoaded", async (event) => {
+    const { data: { session } } = await supabaseC.auth.getSession();
     const authCon = document.getElementById('auth-container');
 
     if (!isAdmin && window.location.pathname === '/admin') {
