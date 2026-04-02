@@ -397,7 +397,7 @@ function updateVoteBtns() {
         const hBadge = document.getElementById('hidden-status-badge');
         const lBadge = document.getElementById('locked-status-badge');
 
-        if (wRes && hid) {
+        if (wRes && hid && hBadge) {
             if (pollIsHidden) {
                 wRes.classList.add('hidden');
                 hid.classList.remove('hidden');
@@ -421,17 +421,17 @@ function updateVoteBtns() {
             }
         }
 
-        buttons.forEach((btn) => {
-            const optionIndex = parseInt(btn.dataset.option);
-            btn.classList.remove('selected');
+        buttons.forEach((button) => {
+            const optionIndex = parseInt(button.dataset.option, 10);
+            button.classList.remove('selected');
             
             if (myVote !== null) {
-                btn.disabled = true;
-                if (myVote === optionIndex) btn.classList.add('selected');
+                button.disabled = true;
+                if (myVote === optionIndex) button.classList.add('selected');
             } else if (pollIsLocked) {
-                btn.disabled = true;
+                button.disabled = true;
             } else {
-                btn.disabled = false;
+                button.disabled = false;
             }
         });
     }
