@@ -163,9 +163,6 @@ window.logoutUser = async function() {
         if (emailField) emailField.value = '';
         if (passField) passField.value = '';
         showToast("User logged out.");
-        if (window.location.pathname === '/admin') {
-            window.location.href = '/sign-in';
-        }
     } catch (error) {
         console.log("Logout error:", error);
         showToast("Error logging out.");
@@ -191,7 +188,7 @@ function loadTurnstile() {
     // Create the Turnstile widget div
     const turnstileDiv = document.createElement('div');
     turnstileDiv.className = 'cf-turnstile';
-    turnstileDiv.setAttribute('data-sitekey', '0x4AAAAAACp4ciLpxF9JPdqQ'); // Replace with actual Cloudflare Turnstile site key
+    turnstileDiv.setAttribute('data-sitekey', '0x4AAAAAACp4ciLpxF9JPdqQ');
     turnstileDiv.setAttribute('data-callback', 'turnstileComplete');
     document.getElementById('turnstile-container').appendChild(turnstileDiv);
 }
