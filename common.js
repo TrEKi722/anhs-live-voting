@@ -187,6 +187,13 @@ function loadTurnstile() {
     document.head.appendChild(script);
 
     document.getElementById('turnstile-container').style.display = 'flex';
+
+    // Create the Turnstile widget div
+    const turnstileDiv = document.createElement('div');
+    turnstileDiv.className = 'cf-turnstile';
+    turnstileDiv.setAttribute('data-sitekey', '0x4AAAAAACp4ciLpxF9JPdqQ'); // Replace with actual Cloudflare Turnstile site key
+    turnstileDiv.setAttribute('data-callback', 'turnstileComplete');
+    document.getElementById('turnstile-container').appendChild(turnstileDiv);
 }
 
 async function turnstileComplete(cToken) {
