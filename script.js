@@ -57,61 +57,20 @@ async function initAuth(token) {
     await updateAdminUI();
 }
 
-async function checkRole() {
-    try {
-        if (!currentUser) {
-            isAdmin = false;
-            isSuperAdmin = false;
-            return;
-        }
-
-        const response = await fetch(
-            `${SUPABASE_URL}/functions/v1/get-user-role?user_id=${currentUser.id}`,
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        const result = await response.json();
-
-        // Expected format:
-        // { "role": "<role|string|null>" } OR { "error": "" }
-
-        if (!response.ok || result.error) {
-            console.error("Role fetch error:", result.error);
-            isAdmin = false;
-            isSuperAdmin = false;
-            return;
-        }
-
-        isAdmin = result.role === "admin" || result.role === "super_admin" ;
-        isSuperAdmin = result.role === "super_admin";
-
-    } catch (err) {
-        console.error("Error checking super admin:", err);
-        isAdmin = false;
-        isSuperAdmin = false;
-    }
-}
-
 addEventListener("DOMContentLoaded", (event) => {
-    initSupabase();
-});
-
-async function initSupabase() {
     const { data: { session } } = await supabaseC.auth.getSession();
+    const authCon = document.getElementById('auth-container');
 
-    if (session) {
-        initAuth(null);
-    } else if (!isAdmin && window.location.pathname === '/admin') {
+    if (!isAdmin && window.location.pathname === '/admin') {
         logoutUser();
         loadTurnstile();
         document.getElementById('turnstile-container').style.display = 'flex';
+    } else if (session) {
+        initAuth(null);
+    } else {
+        authCon.style.display = 'flex' ? authCon : loadTurnstile();
     }
-}
+});
 
 window.signInWithGoogle = async function() {
     const { error } = await supabaseC.auth.signInWithOAuth({
@@ -148,6 +107,8 @@ function loadTurnstile() {
     script.async = true;
     script.defer = true;
     document.head.appendChild(script);
+
+    document.getElementById('turnstile-container').style.display = 'flex';ßßßß
 }
 
 async function turnstileComplete(cToken) {
@@ -262,6 +223,46 @@ function setupRealtimeSubscriptions() {
             }
         })
         .subscribe();
+}
+
+async function checkRole() {
+    try {
+        if (!currentUser) {
+            isAdmin = false;
+            isSuperAdmin = false;
+            return;
+        }
+
+        const response = await fetch(
+            `${SUPABASE_URL}/functions/v1/get-user-role?user_id=${currentUser.id}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        // Expected format:
+        // { "role": "<role|string|null>" } OR { "error": "" }
+
+        if (!response.ok || result.error) {
+            console.error("Role fetch error:", result.error);
+            isAdmin = false;
+            isSuperAdmin = false;
+            return;
+        }
+
+        isAdmin = result.role === "admin" || result.role === "super_admin" ;
+        isSuperAdmin = result.role === "super_admin";
+
+    } catch (err) {
+        console.error("Error checking role:", err);
+        isAdmin = false;
+        isSuperAdmin = false;
+    }
 }
 
 // ==========================================
