@@ -33,16 +33,6 @@ async function initAuth(token) {
         if (session) {
             currentUser = session.user;
             currentSession = session;
-        } else if (window.location.pathname === '/admin' || window.location.pathname === '/sign-in') {
-            // For admin login routes do not create anonymous user.
-            return;
-        } else {
-            const { data, error } = await supabaseC.auth.signInAnonymously({
-                options: { captchaToken: token }
-            });
-            if (error) throw error;
-            currentUser = data.user;
-            isAdmin = false;
         }
 
         await checkRole();
@@ -51,13 +41,16 @@ async function initAuth(token) {
             console.log("Authenticated as:", currentUser.id, isSuperAdmin ? "(Super Admin)" : isAdmin ? "(Admin)" : "(Voter)");
         }
 
+        initalUIUpdate();
         fetchInitialData();
         setupRealtimeSubscriptions();
 
-        if (window.location.pathname === '/admin' && !isAdmin) {
+        if (window.location.pathname === '/admin' || window.location.pathname === '/wall' && !isAdmin) {
             await logoutUser();
-            showToast("Logged out because you are not an admin.");
-            window.location.href = '/sign-in';
+            showToast("Sending you to sign in page...");
+            setTimeout(() => {
+                window.location.href = '/sign-in';
+            }, 3000);
             return;
         }
 
@@ -72,7 +65,6 @@ async function initAuth(token) {
             showToast("Authentication failed. Check console.");
         }
     }
-    hideCaptcha();
     if (typeof updateAdminUI === 'function') await updateAdminUI();
 }
 
@@ -81,15 +73,13 @@ addEventListener("DOMContentLoaded", async (event) => {
     const authCon = document.getElementById('auth-container');
     const path = window.location.pathname;
 
-    if (path === '/admin') {
-        if (!session) {
-            window.location.href = '/sign-in';
-            return;
-        }
+    // Admin & Wall Routes - send to sign in
+    if (path === '/admin' || path === '/wall') {
         await initAuth(null);
         return;
     }
 
+    // Send to admin if logged in
     if (path === '/sign-in') {
         if (session) {
             await initAuth(null);
@@ -100,20 +90,15 @@ addEventListener("DOMContentLoaded", async (event) => {
             }
             return;
         }
-        if (authCon) {
-            authCon.style.display = 'flex';
-        }
         loadTurnstile();
         return;
     }
 
-    // Voter / wall routes
+    // Voter route
     if (session) {
         await initAuth(null);
     } else if (authCon) {
         authCon.style.display = 'flex';
-    } else {
-        loadTurnstile();
     }
 });
 
@@ -389,6 +374,13 @@ function showToast(message) {
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 3000);
     }
+}
+
+function initalUIUpdate() {
+    updateVoteBtns();
+    updateResults();
+    updateQandA();
+    if (typeof updateAdminUI === 'function') updateAdminUI();
 }
 
 // ==========================================
