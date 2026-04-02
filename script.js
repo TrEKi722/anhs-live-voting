@@ -67,8 +67,10 @@ addEventListener("DOMContentLoaded", async (event) => {
         document.getElementById('turnstile-container').style.display = 'flex';
     } else if (session) {
         initAuth(null);
+    } else if (authCon) {
+        authCon.style.display = 'flex';
     } else {
-        authCon.style.display = 'flex' ? authCon : loadTurnstile();
+        loadTurnstile();
     }
 });
 
@@ -108,7 +110,7 @@ function loadTurnstile() {
     script.defer = true;
     document.head.appendChild(script);
 
-    document.getElementById('turnstile-container').style.display = 'flex';ßßßß
+    document.getElementById('turnstile-container').style.display = 'flex';
 }
 
 async function turnstileComplete(cToken) {
