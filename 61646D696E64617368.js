@@ -135,60 +135,6 @@ async function loadAdminList() {
 // 5.b Admin Actions
 // ==========================================
 
-window.loginUser = async function() {
-    const email = document.getElementById('admin-email').value;
-    const pass = document.getElementById('admin-pass').value;
-
-    if (!email || !pass) return showToast("Please enter an email and password.");
-    if (!token) return showToast("Please complete the CAPTCHA.");
-
-    await supabaseC.auth.signOut();
-
-    try {
-        const { data, error } = await supabaseC.auth.signInWithPassword({
-            email,
-            password: pass,
-            options: { captchaToken: token }
-        });
-
-        if (error) throw error;
-
-        token = null;
-        currentUser = data.user;
-        currentSession = data.session; // <-- store the session directly
-        showToast("User logged in successfully.");
-        fetchInitialData();
-    } catch (error) {
-        showToast("Login failed: " + error.message);
-        token = null;
-    }
-    await checkRole();
-    if (!isAdmin && window.location.pathname === '/admin') {
-        showToast("You do not have admin access. Sending you back to the homepage.");
-        setTimeout(() => {
-            window.location.href = '/';
-        }, 3000);
-    }
-    updateAdminUI();
-}
-
-window.logoutUser = async function() {
-    try {
-        await supabaseC.auth.signOut();
-        isAdmin = false;
-        currentUser = null;
-        const emailField = document.getElementById('admin-email');
-        const passField = document.getElementById('admin-pass');
-        if (emailField) emailField.value = '';
-        if (passField) passField.value = '';
-        showToast("User logged out.");
-        updateAdminUI();
-    } catch (error) {
-        console.log("Logout error:", error);
-        showToast("Error logging out.");
-    }
-}
-
 window.toggleLock = async function() {
     if (!isAdmin || !currentUser) return;
     try {

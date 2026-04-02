@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In | anhs.live</title>
+    <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css"/>
+  </head>
+  <body>
+    <main style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:1rem;">
+      <h1>Sign In</h1>
+      <div id="auth-container" style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;">
+        <p>Sign in to access the admin dashboard.</p>
+        <input type="email" id="admin-email" placeholder="Admin Email" />
+        <input type="password" id="admin-pass" placeholder="Password" />
+        <div id="turnstile-container" style="width:320px;margin:0.5rem auto;"></div>
+        <button class="action-btn btn-primary" onclick="loginUser()">Sign In</button>
+        <a href="/reset-password.html">Forgot password?</a>
+        <hr style="margin: 2rem 0;">
+        <button class="action-btn btn-primary" onclick="signInWithGoogle()" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+              <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px;"> Sign in with Google
+        </button>
+        <button class="action-btn btn-primary" onclick="signInWithMicrosoft()" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; background: #2f6fba;">
+            <img src="https://microsoft.com/favicon.ico" style="width:18px;height:18px;"> Sign in with Microsoft
+        </button>
+      </div>
+
+      <div id="toast">Message goes here</div>
+    </main>
+
+    <script src="common.js"></script>
+  </body>
+</html>

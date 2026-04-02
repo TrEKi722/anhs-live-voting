@@ -29,11 +29,14 @@ let isSuperAdmin = false;
 async function initAuth(token) {
     try {
         const { data: { session } } = await supabaseC.auth.getSession();
-        
+
         if (session) {
             currentUser = session.user;
             currentSession = session;
-        } else if (window.location.pathname !== '/admin') {
+        } else if (window.location.pathname === '/admin' || window.location.pathname === '/sign-in') {
+            // For admin login routes do not create anonymous user.
+            return;
+        } else {
             const { data, error } = await supabaseC.auth.signInAnonymously({
                 options: { captchaToken: token }
             });
@@ -41,14 +44,30 @@ async function initAuth(token) {
             currentUser = data.user;
             isAdmin = false;
         }
-        
+
         await checkRole();
-        
-        console.log("Authenticated as:", currentUser.id, isSuperAdmin ? "(Super Admin)" : isAdmin ? "(Admin)" : "(Voter)");
+
+        if (currentUser) {
+            console.log("Authenticated as:", currentUser.id, isSuperAdmin ? "(Super Admin)" : isAdmin ? "(Admin)" : "(Voter)");
+        }
+
         fetchInitialData();
         setupRealtimeSubscriptions();
+
+        if (window.location.pathname === '/admin' && !isAdmin) {
+            await logoutUser();
+            showToast("Logged out because you are not an admin.");
+            window.location.href = '/sign-in';
+            return;
+        }
+
+        if (window.location.pathname === '/sign-in' && isAdmin) {
+            window.location.href = '/admin';
+            return;
+        }
+
     } catch (error) {
-        if (window.location.pathname !== '/admin') {
+        if (window.location.pathname !== '/admin' && window.location.pathname !== '/sign-in') {
             console.error("Auth error:", error);
             showToast("Authentication failed. Check console.");
         }
@@ -60,13 +79,37 @@ async function initAuth(token) {
 addEventListener("DOMContentLoaded", async (event) => {
     const { data: { session } } = await supabaseC.auth.getSession();
     const authCon = document.getElementById('auth-container');
+    const path = window.location.pathname;
 
-    if (!isAdmin && window.location.pathname === '/admin') {
-        if (typeof logoutUser === 'function') logoutUser();
+    if (path === '/admin') {
+        if (!session) {
+            window.location.href = '/sign-in';
+            return;
+        }
+        await initAuth(null);
+        return;
+    }
+
+    if (path === '/sign-in') {
+        if (session) {
+            await initAuth(null);
+            if (!isAdmin) {
+                await logoutUser();
+                showToast("Logged out because you are not an admin.");
+                if (authCon) authCon.style.display = 'flex';
+            }
+            return;
+        }
+        if (authCon) {
+            authCon.style.display = 'flex';
+        }
         loadTurnstile();
-        document.getElementById('turnstile-container').style.display = 'flex';
-    } else if (session) {
-        initAuth(null);
+        return;
+    }
+
+    // Voter / wall routes
+    if (session) {
+        await initAuth(null);
     } else if (authCon) {
         authCon.style.display = 'flex';
     } else {
@@ -95,6 +138,54 @@ window.signInWithMicrosoft = async function() {
     });
     if (error) showToast("Microsoft sign in failed: " + error.message);
 }
+
+window.loginUser = async function() {
+    const email = document.getElementById('admin-email')?.value;
+    const pass = document.getElementById('admin-pass')?.value;
+
+    if (!email || !pass) return showToast("Please enter an email and password.");
+    if (!token) return showToast("Please complete the CAPTCHA.");
+
+    await supabaseC.auth.signOut();
+
+    try {
+        const { data, error } = await supabaseC.auth.signInWithPassword({
+            email,
+            password: pass,
+            options: { captchaToken: token }
+        });
+
+        if (error) throw error;
+
+        token = null;
+        currentUser = data.user;
+        currentSession = data.session;
+        showToast("User logged in successfully.");
+        await initAuth(null);
+    } catch (error) {
+        showToast("Login failed: " + error.message);
+        token = null;
+    }
+};
+
+window.logoutUser = async function() {
+    try {
+        await supabaseC.auth.signOut();
+        isAdmin = false;
+        currentUser = null;
+        const emailField = document.getElementById('admin-email');
+        const passField = document.getElementById('admin-pass');
+        if (emailField) emailField.value = '';
+        if (passField) passField.value = '';
+        showToast("User logged out.");
+        if (window.location.pathname === '/admin') {
+            window.location.href = '/sign-in';
+        }
+    } catch (error) {
+        console.log("Logout error:", error);
+        showToast("Error logging out.");
+    }
+};
 
 function loadTurnstile() {
     // Preconnect hint
@@ -298,14 +389,6 @@ function showToast(message) {
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 3000);
     }
-}
-
-function hideCaptcha() {
-    if (window.location.pathname !== '/admin') {
-        document.getElementById('turnstile-container').style.display = 'none';
-        document.getElementById('full-page').style.display = 'block';
-    }
-    if (window.location.pathname === '/wall') document.getElementById('full-page').style.display = 'flex';
 }
 
 // ==========================================

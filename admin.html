@@ -25,30 +25,6 @@
             <h1>Admin Dashboard</h1>
             <div>
                 
-                <div id="admin-login-ui" class="admin-login">
-                    <p>Sign in to access controls.</p>
-                    <input type="email" id="admin-email" placeholder="Admin Email">
-                    <input type="password" id="admin-pass" placeholder="Password">
-                    <div id="turnstile-container" class="cf-turnstile"
-                        data-sitekey="0x4AAAAAACp4ciLpxF9JPdqQ"
-                        data-theme="light"
-                        data-size="normal"
-                        data-callback="turnstileComplete">
-                    </div>
-                    <button class="action-btn btn-primary" onclick="loginUser()">Sign In</button>
-                    <a href="/reset-password.html">Forgot password?</a>
-                    <hr style="margin: 2rem 0;">
-                    <button class="action-btn btn-primary" onclick="signInWithGoogle()" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
-                        <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px;"> Sign in with Google
-                    </button>
-                    <button class="action-btn btn-primary" onclick="signInWithMicrosoft()" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; background: #2f6fba;">
-                        <img src="https://microsoft.com/favicon.ico" style="width:18px;height:18px;"> Sign in with Microsoft
-                    </button>
-                    <!-- <button onclick="showAnonymousFallback()" style="background:none; border:none; color:#6b7280; cursor:pointer; font-size:0.85rem; text-decoration:underline;">
-                        Skip (vote anonymously)
-                    </button> -->
-                </div>
-
                 <div id="adminDash" style="display: none; flex-direction: row-reverse; gap: 2rem; align-items: flex-start;">
                     <div class="admin-panel" style="width: 60vw; margin-left: 0;">
                         <div style="margin-bottom: 2rem;">
