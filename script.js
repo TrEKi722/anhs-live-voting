@@ -135,12 +135,6 @@ window.signInWithMicrosoft = async function() {
     if (error) showToast("Microsoft sign in failed: " + error.message);
 }
 
-window.showAnonymousFallback = function() {
-    document.getElementById('auth-container').style.display = 'none';
-    document.getElementById('turnstile-container').style.display = 'block';
-    loadTurnstile();
-}
-
 function loadTurnstile() {
     // Preconnect hint
     const link = document.createElement('link');
@@ -305,7 +299,6 @@ function showToast(message) {
 
 function hideCaptcha() {
     if (window.location.pathname !== '/admin') {
-        document.getElementById('auth-container').style.display = 'none';
         document.getElementById('turnstile-container').style.display = 'none';
         document.getElementById('full-page').style.display = 'block';
     }
@@ -564,7 +557,7 @@ async function loadAdminList() {
 // ==========================================
 // 5. User Actions
 // 
-// 5.a Voting
+// 5.a Voters
 // ==========================================
 
 document.querySelectorAll('.vote-btn').forEach(btn => {
@@ -623,6 +616,12 @@ window.loginUser = async function() {
         token = null;
     }
     await checkRole();
+    if (!isAdmin && window.location.pathname === '/admin') {
+        showToast("You do not have admin access. Sending you back to the homepage.");
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 3000);
+    }
     updateAdminUI();
 }
 
