@@ -41,10 +41,7 @@ async function initAuth(token) {
             console.log("Authenticated as:", currentUser.id, isSuperAdmin ? "(Super Admin)" : isAdmin ? "(Admin)" : "(Voter)");
         }
 
-        initalUIUpdate();
-        fetchInitialData();
-        setupRealtimeSubscriptions();
-
+        // Guard: admin & wall pages require admin role
         if ((window.location.pathname === '/admin' || window.location.pathname === '/wall') && !isAdmin) {
             await logoutUser();
             showToast("Sending you to sign in page...");
@@ -54,10 +51,15 @@ async function initAuth(token) {
             return;
         }
 
+        // If already signed in as admin on sign-in page, redirect
         if (window.location.pathname === '/sign-in' && isAdmin) {
             window.location.href = '/admin';
             return;
         }
+
+        initalUIUpdate();
+        fetchInitialData();
+        setupRealtimeSubscriptions();
 
     } catch (error) {
         if (window.location.pathname !== '/admin' && window.location.pathname !== '/sign-in') {
@@ -73,13 +75,13 @@ addEventListener("DOMContentLoaded", async (event) => {
     const authCon = document.getElementById('auth-container');
     const path = window.location.pathname;
 
-    // Admin & Wall Routes - send to sign in
+    // Admin & Wall Routes - require auth, send to sign-in if missing
     if (path === '/admin' || path === '/wall') {
         await initAuth(null);
         return;
     }
 
-    // Send to admin if logged in
+    // Sign-in route
     if (path === '/sign-in') {
         if (session) {
             await initAuth(null);
@@ -157,12 +159,15 @@ window.logoutUser = async function() {
     try {
         await supabaseC.auth.signOut();
         isAdmin = false;
+        isSuperAdmin = false;
         currentUser = null;
+        currentSession = null;
         const emailField = document.getElementById('admin-email');
         const passField = document.getElementById('admin-pass');
         if (emailField) emailField.value = '';
         if (passField) passField.value = '';
         showToast("User logged out.");
+        if (typeof updateAdminUI === 'function') updateAdminUI();
     } catch (error) {
         console.log("Logout error:", error);
         showToast("Error logging out.");
@@ -215,7 +220,6 @@ async function fetchInitialData() {
         options[1] = configData.option1 || options[1];
         options[2] = configData.option2 || options[2];
         options[3] = configData.option3 || options[3];
-        // reflect values in admin edit inputs if visible
         if (typeof updateAdminOptionInputs === 'function') updateAdminOptionInputs();
     }
 
@@ -224,7 +228,7 @@ async function fetchInitialData() {
             .from('votes')
             .select('option_index')
             .eq('user_id', currentUser.id)
-            .maybeSingle(); // <-- was .single()
+            .maybeSingle();
 
         myVote = myVoteData ? myVoteData.option_index : null;
     }
@@ -327,9 +331,6 @@ async function checkRole() {
 
         const result = await response.json();
 
-        // Expected format:
-        // { "role": "<role|string|null>" } OR { "error": "" }
-
         if (!response.ok || result.error) {
             console.error("Role fetch error:", result.error);
             isAdmin = false;
@@ -337,7 +338,7 @@ async function checkRole() {
             return;
         }
 
-        isAdmin = result.role === "admin" || result.role === "super_admin" ;
+        isAdmin = result.role === "admin" || result.role === "super_admin";
         isSuperAdmin = result.role === "super_admin";
 
     } catch (err) {
@@ -351,20 +352,16 @@ async function checkRole() {
 // 4. UI
 // ==========================================
 
-// Theme application and detection, automatically listens for changes
+// Theme application and detection
 addEventListener("DOMContentLoaded", (event) => {
     const darkModeMql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
     
-    // Function to apply theme
     const applyTheme = (isDark) => {
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     };
     
-    // Apply initial theme
     if (darkModeMql) {
         applyTheme(darkModeMql.matches);
-        
-        // Listen for changes
         darkModeMql.addEventListener('change', (e) => {
             applyTheme(e.matches);
         });
@@ -381,8 +378,23 @@ function showToast(message) {
 }
 
 function initalUIUpdate() {
+    const path = window.location.pathname;
+
+    // Show #full-page for voter and wall routes
     const fPage = document.getElementById('full-page');
-    if (fPage) fPage.style.display = 'block';
+    if (fPage) fPage.style.display = path === '/wall' ? 'flex' : 'block';
+
+    // Show #adminDash for admin route
+    const adminDash = document.getElementById('adminDash');
+    if (adminDash) {
+        if (isAdmin) {
+            adminDash.style.display = 'flex';
+            adminDash.style.flexDirection = 'row-reverse';
+        } else {
+            adminDash.style.display = 'none';
+        }
+    }
+
     updateVoteBtns();
     updateResults();
     updateQandA();
@@ -394,16 +406,29 @@ function initalUIUpdate() {
 // ==========================================
 
 function updateVoteBtns() {
-    const allowedPaths = ['/', '/#'];
-    if (!allowedPaths.includes(window.location.pathname)) {
-        return;
+    // Only update vote buttons on voter route
+    const voterPaths = ['/', '/#'];
+    const isVoterPage = voterPaths.includes(window.location.pathname);
+
+    const lBadge = document.getElementById('locked-status-badge');
+    if (lBadge) {
+        if (pollIsLocked) {
+            lBadge.textContent = '🚫 Voting is locked 🚫';
+            lBadge.classList.add('status-locked');
+            lBadge.classList.remove('status-open');
+        } else {
+            lBadge.textContent = '😎 Voting is open 😎';
+            lBadge.classList.remove('status-locked');
+            lBadge.classList.add('status-open');
+        }
     }
+
+    if (!isVoterPage) return;
 
     const buttons = document.querySelectorAll('.vote-btn');
     const wRes = document.getElementById('resultGrid');
     const hid = document.getElementById('hiddenGrid');
     const hBadge = document.getElementById('hidden-status-badge');
-    const lBadge = document.getElementById('locked-status-badge');
 
     if (wRes && hid && hBadge) {
         if (pollIsHidden) {
@@ -414,18 +439,6 @@ function updateVoteBtns() {
             wRes.classList.remove('hidden');
             hid.classList.add('hidden');
             hBadge.style.display = 'none';
-        }
-    }
-
-    if (lBadge) {
-        if (pollIsLocked) {
-            lBadge.textContent = '🚫 Voting is locked 🚫';
-            lBadge.classList.add('status-locked');
-            lBadge.classList.remove('status-unlocked');
-        } else {
-            lBadge.textContent = '😎 Voting is open 😎';
-            lBadge.classList.remove('status-locked');
-            lBadge.classList.add('status-unlocked');
         }
     }
 
@@ -446,13 +459,13 @@ function updateVoteBtns() {
 
 // Updates live results bars
 function updateResults(counts = [], total = 0) {
-    const total_count= document.getElementById('total-count');
+    const total_count = document.getElementById('total-count');
     if (total_count) total_count.innerText = total;
 
     counts.forEach((count, index) => {
         const barElement = document.getElementById(`bar-${index}`);
         const pctElement = document.getElementById(`pct-${index}`);
-        const colors = ["yellow","green","blue","red"];
+        const colors = ["yellow", "green", "blue", "red"];
         
         if (barElement && pctElement) {
             const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
@@ -464,20 +477,6 @@ function updateResults(counts = [], total = 0) {
             pctElement.innerText = `${percentage}%`;
         }
     });
-
-    const lBadge = document.getElementById('locked-status-badge');
-
-    if (lBadge) {
-        if (pollIsLocked) {
-            lBadge.textContent = '🚫 Voting is locked 🚫';
-            lBadge.classList.add('status-locked');
-            lBadge.classList.remove('status-unlocked');
-        } else {
-            lBadge.textContent = '😎 Voting is open 😎';
-            lBadge.classList.remove('status-locked');
-            lBadge.classList.add('status-unlocked');
-        }
-    }
 
     const hText = document.getElementById('hiddenText');
     const lChart = document.getElementById('live-chart');

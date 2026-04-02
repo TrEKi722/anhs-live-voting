@@ -29,17 +29,13 @@ function updateAdminUI() {
         }
     }
 
-    const loginUI = document.getElementById('admin-login-ui');
-    const controlsUI = document.getElementById('adminDash');
-    
-    if (loginUI && controlsUI) {
+    const adminDash = document.getElementById('adminDash');
+    if (adminDash) {
         if (isAdmin) {
-            loginUI.style.display = 'none';
-            controlsUI.style.display = 'flex';
-            controlsUI.style.flexDirection = 'row-reverse';
+            adminDash.style.display = 'flex';
+            adminDash.style.flexDirection = 'row-reverse';
         } else {
-            loginUI.style.display = 'flex';
-            controlsUI.style.display = 'none';
+            adminDash.style.display = 'none';
         }
     }
 
@@ -51,7 +47,6 @@ function updateAdminUI() {
         superAdminEl.style.display = 'none';
     }
 }
-
 
 // copy current option text into the admin edit fields
 function updateAdminOptionInputs() {
@@ -79,7 +74,7 @@ function openModal(id) {
 function closeModal(id) {
     const modal = document.getElementById(id);
     if (modal) {
-        modal.style.display = 'none ';
+        modal.style.display = 'none'; // FIX: was 'none ' (trailing space) which prevented closing
     }
 }
 
@@ -111,7 +106,7 @@ async function loadAdminList() {
 
         adminList.innerHTML = "";
 
-        const admins = result.users.filter(u => u.role === "admin" || u.role === "super_admin"); // ← filter here
+        const admins = result.users.filter(u => u.role === "admin" || u.role === "super_admin");
 
         if (admins.length === 0) {
             adminList.innerHTML = "<li>No admins found.</li>";
@@ -188,12 +183,18 @@ window.resetPoll = async function() {
     }
 }
 
-window.updateOptions =  async function(optionsIn) {
+window.updateOptions = async function(optionsIn) {
     if (!isAdmin) return showToast("Not an admin.");
     try {
         const { error } = await supabaseC
             .from('poll_config')
-            .update({ question: document.getElementById(optionsIn[0]).value, option0: document.getElementById(optionsIn[1]).value, option1: document.getElementById(optionsIn[2]).value, option2: document.getElementById(optionsIn[3]).value, option3: document.getElementById(optionsIn[4]).value })
+            .update({
+                question: document.getElementById(optionsIn[0]).value,
+                option0: document.getElementById(optionsIn[1]).value,
+                option1: document.getElementById(optionsIn[2]).value,
+                option2: document.getElementById(optionsIn[3]).value,
+                option3: document.getElementById(optionsIn[4]).value
+            })
             .eq('id', 'main');
 
         if (error) throw error;
@@ -253,15 +254,13 @@ window.addAdmin = async function(emailElementId, roleElementId) {
     if (!email) return showToast("Please enter an email.");
     if (!role) return showToast("Please choose a role.");
 
-    inviteUser(email, role);
+    await inviteUser(email, role);
     loadAdminList();
 }
 
-async function inviteUser(email,role) {
+async function inviteUser(email, role) {
     if (!currentUser || !currentSession) {
         console.error("Invite error: No authenticated user or session.");
-        console.log("Current user:", currentUser);
-        console.log("Current session:", currentSession);
         showToast("You must be logged in to invite users.");
         return { success: false };
     }
@@ -272,9 +271,9 @@ async function inviteUser(email,role) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${currentSession.access_token}`, // <-- use stored session
+                "Authorization": `Bearer ${currentSession.access_token}`,
             },
-            body: JSON.stringify({ email : email, role : role}),
+            body: JSON.stringify({ email, role }),
         }
     );
 
