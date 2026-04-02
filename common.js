@@ -106,7 +106,7 @@ window.signInWithGoogle = async function() {
     const { error } = await supabaseC.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: `${window.location.origin}/${window.location.pathname}`,
+            redirectTo: `${window.location.origin}${window.location.pathname.replace(/\/$/, '') || '/'}`,
             scopes: 'openid email profile'
         }
     });
@@ -117,7 +117,7 @@ window.signInWithMicrosoft = async function() {
     const { error } = await supabaseC.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-            redirectTo: `${window.location.origin}/${window.location.pathname}`,
+            redirectTo: `${window.location.origin}${window.location.pathname.replace(/\/$/, '') || '/'}`,
             scopes: 'openid email profile'
         }
     });
@@ -390,7 +390,7 @@ function initalUIUpdate() {
 // ==========================================
 
 function updateVoteBtns() {
-    const allowedPaths = ['/', '//', '//#', '/#'];
+    const allowedPaths = ['/', '/#'];
     if (!allowedPaths.includes(window.location.pathname)) {
         return;
     }
