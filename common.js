@@ -378,7 +378,7 @@ function showToast(message) {
 
 function initalUIUpdate() {
     const fPage = document.getElementById('full-page');
-    if (fPage) fPage.style.display = 'flex';
+    if (fPage) fPage.style.display = 'block';
     updateVoteBtns();
     updateResults();
     updateQandA();
