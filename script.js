@@ -116,16 +116,16 @@ async function initSupabase() {
     }
 }
 
-// window.signInWithGoogle = async function() {
-//     const { error } = await supabaseC.auth.signInWithOAuth({
-//         provider: 'google',
-//         options: {
-//             redirectTo: `${window.location.origin}/`,
-//             scopes: 'email'
-//         }
-//     });
-//     if (error) showToast("Google sign in failed: " + error.message);
-// }
+window.signInWithGoogle = async function() {
+    const { error } = await supabaseC.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: `${window.location.origin}/`,
+            scopes: 'email'
+        }
+    });
+    if (error) showToast("Google sign in failed: " + error.message);
+}
 
 window.signInWithMicrosoft = async function() {
     const { error } = await supabaseC.auth.signInWithOAuth({
