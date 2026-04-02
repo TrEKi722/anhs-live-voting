@@ -313,51 +313,54 @@ function hideCaptcha() {
 // ==========================================
 
 function updateVoteBtns() {
-    if (window.location.pathname === '/') {
-        const buttons = document.querySelectorAll('.vote-btn');
-        const wRes = document.getElementById('resultGrid');
-        const hid = document.getElementById('hiddenGrid');
-        const hBadge = document.getElementById('hidden-status-badge');
-        const lBadge = document.getElementById('locked-status-badge');
-
-        if (wRes && hid && hBadge) {
-            if (pollIsHidden) {
-                wRes.classList.add('hidden');
-                hid.classList.remove('hidden');
-                hBadge.style.display = 'block';
-            } else {
-                wRes.classList.remove('hidden');
-                hid.classList.add('hidden');
-                hBadge.style.display = 'none';
-            }
-        }
-
-        if (lBadge) {
-            if (pollIsLocked) {
-                lBadge.textContent = '🚫 Voting is locked 🚫';
-                lBadge.classList.add('status-locked');
-                lBadge.classList.remove('status-unlocked');
-            } else {
-                lBadge.textContent = '😎 Voting is open 😎';
-                lBadge.classList.remove('status-locked');
-                lBadge.classList.add('status-unlocked');
-            }
-        }
-
-        buttons.forEach((button) => {
-            const optionIndex = parseInt(button.dataset.option, 10);
-            button.classList.remove('selected');
-            
-            if (myVote !== null) {
-                button.disabled = true;
-                if (myVote === optionIndex) button.classList.add('selected');
-            } else if (pollIsLocked) {
-                button.disabled = true;
-            } else {
-                button.disabled = false;
-            }
-        });
+    const allowedPaths = ['/', '/index.html', '/#'];
+    if (!allowedPaths.includes(window.location.pathname)) {
+        return;
     }
+
+    const buttons = document.querySelectorAll('.vote-btn');
+    const wRes = document.getElementById('resultGrid');
+    const hid = document.getElementById('hiddenGrid');
+    const hBadge = document.getElementById('hidden-status-badge');
+    const lBadge = document.getElementById('locked-status-badge');
+
+    if (wRes && hid && hBadge) {
+        if (pollIsHidden) {
+            wRes.classList.add('hidden');
+            hid.classList.remove('hidden');
+            hBadge.style.display = 'block';
+        } else {
+            wRes.classList.remove('hidden');
+            hid.classList.add('hidden');
+            hBadge.style.display = 'none';
+        }
+    }
+
+    if (lBadge) {
+        if (pollIsLocked) {
+            lBadge.textContent = '🚫 Voting is locked 🚫';
+            lBadge.classList.add('status-locked');
+            lBadge.classList.remove('status-unlocked');
+        } else {
+            lBadge.textContent = '😎 Voting is open 😎';
+            lBadge.classList.remove('status-locked');
+            lBadge.classList.add('status-unlocked');
+        }
+    }
+
+    buttons.forEach((button) => {
+        const optionIndex = parseInt(button.dataset.option, 10);
+        button.classList.remove('selected');
+
+        if (myVote !== null) {
+            button.disabled = true;
+            if (myVote === optionIndex) button.classList.add('selected');
+        } else if (pollIsLocked) {
+            button.disabled = true;
+        } else {
+            button.disabled = false;
+        }
+    });
 }
 
 // Updates live results bars
