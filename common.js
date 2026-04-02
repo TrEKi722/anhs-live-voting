@@ -45,7 +45,7 @@ async function initAuth(token) {
         fetchInitialData();
         setupRealtimeSubscriptions();
 
-        if (window.location.pathname === '/admin' || window.location.pathname === '/wall' && !isAdmin) {
+        if ((window.location.pathname === '/admin' || window.location.pathname === '/wall') && !isAdmin) {
             await logoutUser();
             showToast("Sending you to sign in page...");
             setTimeout(() => {
