@@ -97,9 +97,10 @@
                             <button class="action-btn btn-danger" style="background: green; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">✉️ Invite Admin</button>
                             <button class="action-btn btn-danger" style="background: #ef4444; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('removeAdminModal')">🗑️ Remove Admin</button>
                             <div class="modal" id="editRoleModal">
-                               <h1>Enter the admin's email & new role.</h1>
+                               <h1>Enter the user's email & new role.</h1>
                                 <input type="email" id="editEmailInput" placeholder="example@example.com">
                                 <select id="editRoleSelect" style="margin-top: 1rem; padding: 0.5rem;">
+                                    <option value="voter">Voter</option>
                                     <option value="admin">Admin</option>
                                     <option value="super_admin">Super Admin</option>
                                 </select>
@@ -159,7 +160,8 @@
         <div id="toast">Message goes here</div>
 
         <!-- Application Logic -->
-        <script src="script.js"></script>
+        <script src="common.js"></script>
+        <script src="61646D696E64617368.js"></script>
     
     </body>
 </html>
