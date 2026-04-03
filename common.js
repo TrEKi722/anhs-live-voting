@@ -96,9 +96,23 @@ addEventListener("DOMContentLoaded", async (event) => {
         return;
     }
 
-    // Voter route
+    // Vote route - requires auth, redirect to home if not signed in
+    if (path === '/vote' || path === '/vote.html') {
+        if (session) {
+            await initAuth(null);
+        } else {
+            window.location.href = '/';
+        }
+        return;
+    }
+
+    // Index/menu route
     if (session) {
-        await initAuth(null);
+        currentUser = session.user;
+        currentSession = session;
+        const menuCon = document.getElementById('menu-container');
+        if (menuCon) menuCon.style.display = 'flex';
+        if (authCon) authCon.style.display = 'none';
     } else if (authCon) {
         authCon.style.display = 'flex';
     }
@@ -168,6 +182,16 @@ window.logoutUser = async function() {
         if (passField) passField.value = '';
         showToast("User logged out.");
         if (typeof updateAdminUI === 'function') updateAdminUI();
+
+        // On vote page, redirect home; on menu page, swap back to sign-in
+        if (window.location.pathname === '/vote' || window.location.pathname === '/vote.html') {
+            window.location.href = '/';
+            return;
+        }
+        const menuCon = document.getElementById('menu-container');
+        const authCon = document.getElementById('auth-container');
+        if (menuCon) menuCon.style.display = 'none';
+        if (authCon) authCon.style.display = 'flex';
     } catch (error) {
         console.log("Logout error:", error);
         showToast("Error logging out.");
@@ -380,7 +404,7 @@ function showToast(message) {
 function initalUIUpdate() {
     const path = window.location.pathname;
 
-    // Show #full-page for voter and wall routes
+    // Show #full-page for vote and wall routes
     const fPage = document.getElementById('full-page');
     if (fPage) fPage.style.display = path === '/wall' ? 'flex' : 'block';
 
@@ -406,8 +430,8 @@ function initalUIUpdate() {
 // ==========================================
 
 function updateVoteBtns() {
-    // Only update vote buttons on voter route
-    const voterPaths = ['/', '/#'];
+    // Only update vote buttons on vote route
+    const voterPaths = ['/vote', '/vote.html'];
     const isVoterPage = voterPaths.includes(window.location.pathname);
 
     const lBadge = document.getElementById('locked-status-badge');
