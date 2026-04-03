@@ -61,6 +61,31 @@
                         <button class="action-btn btn-danger" onclick="updateOptions(['editTitle','editOption0','editOption1','editOption2','editOption3']);document.getElementById('updateConfirmModal').style.display = 'none';">Yes, Update Poll</button>
                     </div>
 
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
+
+                    <div>
+                        <h3>Hats</h3>
+                        <button id="hats-toggle-btn" class="action-btn btn-primary" onclick="hatsToggleActive()">Activate Round</button>
+                        <button class="action-btn btn-secondary" onclick="openModal('hatsRevealModal')">Reveal Answer</button>
+                        <button class="action-btn btn-danger" style="background: #000;" onclick="openModal('hatsResetModal')">Reset</button>
+
+                        <div class="modal" id="hatsRevealModal">
+                            <h1>Which button is correct?</h1>
+                            <p style="margin-bottom: 20px;">This will reveal the answer to all players immediately.</p>
+                            <button class="action-btn btn-primary" onclick="hatsReveal(1);closeModal('hatsRevealModal');">Button 1</button>
+                            <button class="action-btn btn-primary" onclick="hatsReveal(2);closeModal('hatsRevealModal');">Button 2</button>
+                            <button class="action-btn btn-primary" onclick="hatsReveal(3);closeModal('hatsRevealModal');">Button 3</button>
+                            <button class="action-btn btn-secondary" onclick="closeModal('hatsRevealModal');">Cancel</button>
+                        </div>
+
+                        <div class="modal" id="hatsResetModal">
+                            <h1>Reset the hats round?</h1>
+                            <p style="margin-bottom: 20px;">This will clear all presses and the correct answer.</p>
+                            <button class="action-btn btn-secondary" onclick="closeModal('hatsResetModal');">Cancel</button>
+                            <button class="action-btn btn-danger" onclick="hatsReset();closeModal('hatsResetModal');">Yes, Reset</button>
+                        </div>
+                    </div>
+
                     <div id="superAdminControls" style="display:none;">
                         <h2>Super Admin</h2>
                         <hr style="margin:2rem 0rem;">
