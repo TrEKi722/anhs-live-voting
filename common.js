@@ -612,10 +612,10 @@ async function initHats() {
     if (currentUser) {
         const { data: press } = await supabaseC
             .from('hats_presses')
-            .select('option_pressed')
+            .select('choice')
             .eq('user_id', currentUser.id)
             .maybeSingle();
-        hatsMyPress = press ? press.option_pressed : null;
+        hatsMyPress = press ? press.choice : null;
     }
 
     updateHatsUI();
@@ -717,8 +717,7 @@ window.pressHat = async function(option) {
             .from('hats_presses')
             .insert({
                 user_id: currentUser.id,
-                user_email: currentUser.email,
-                option_pressed: option
+                choice: option
             });
 
         if (error) throw error;
