@@ -1,0 +1,39 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ANHS Live Polling - Hats</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+
+        <div id="full-page" style="display: none;">
+            <div style="text-align: center;">
+                <div id="hats-status-badge" class="status-badge status-locked">Waiting...</div>
+            </div>
+
+            <h1 id="hats-heading" style="text-align: center; margin-top: 1rem;">Pick a hat!</h1>
+
+            <div id="hats-buttons" style="display: flex; justify-content: center; gap: 2rem; margin-top: 2rem;">
+                <button class="hats-btn" id="hats-btn-1" data-option="1" onclick="pressHat(1)">1</button>
+                <button class="hats-btn" id="hats-btn-2" data-option="2" onclick="pressHat(2)">2</button>
+                <button class="hats-btn" id="hats-btn-3" data-option="3" onclick="pressHat(3)">3</button>
+            </div>
+
+            <div id="hats-result" style="display: none; text-align: center; margin-top: 2rem;">
+                <p id="hats-result-text" style="font-size: 1.4rem; font-weight: bold;"></p>
+            </div>
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Application Logic -->
+        <script src="common.js"></script>
+    </body>
+</html>

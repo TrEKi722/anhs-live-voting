@@ -22,6 +22,11 @@ let myVote = null;
 let isAdmin = false;
 let isSuperAdmin = false;
 
+// Hats state
+let hatsIsActive = false;
+let hatsCorrectOption = null;
+let hatsMyPress = null; // option the current user pressed, or null
+
 // ==========================================
 // 2. Authentication & Initialization
 // ==========================================
@@ -96,12 +101,23 @@ addEventListener("DOMContentLoaded", async (event) => {
         return;
     }
 
+    // Hats route - requires auth, redirect to home if not signed in
+    if (path === '/hats' || path === '/hats.html') {
+        if (session) {
+            await initAuth(null);
+            await initHats();
+        } else {
+            window.location.href = '/?redirect=/hats';
+        }
+        return;
+    }
+
     // Vote route - requires auth, redirect to home if not signed in
     if (path === '/vote' || path === '/vote.html') {
         if (session) {
             await initAuth(null);
         } else {
-            window.location.href = '/';
+            window.location.href = '/?redirect=/vote';
         }
         return;
     }
@@ -119,10 +135,12 @@ addEventListener("DOMContentLoaded", async (event) => {
 });
 
 window.signInWithGoogle = async function() {
+    const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+    const redirectPath = redirectParam || window.location.pathname.replace(/\/$/, '') || '/';
     const { error } = await supabaseC.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: `${window.location.origin}${window.location.pathname.replace(/\/$/, '') || '/'}`,
+            redirectTo: `${window.location.origin}${redirectPath}`,
             scopes: 'openid email profile'
         }
     });
@@ -130,10 +148,12 @@ window.signInWithGoogle = async function() {
 }
 
 window.signInWithMicrosoft = async function() {
+    const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+    const redirectPath = redirectParam || window.location.pathname.replace(/\/$/, '') || '/';
     const { error } = await supabaseC.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-            redirectTo: `${window.location.origin}${window.location.pathname.replace(/\/$/, '') || '/'}`,
+            redirectTo: `${window.location.origin}${redirectPath}`,
             scopes: 'openid email profile'
         }
     });
@@ -568,5 +588,146 @@ window.castVote = async function(optionIndex) {
     } catch (error) {
         console.error("Voting error:", error);
         showToast("Error casting vote.");
+    }
+}
+
+// ==========================================
+// 6. Hats
+// ==========================================
+
+async function initHats() {
+    // Fetch config
+    const { data: config } = await supabaseC
+        .from('hats_config')
+        .select('correct_option, is_active')
+        .eq('id', 'main')
+        .single();
+
+    if (config) {
+        hatsIsActive = config.is_active;
+        hatsCorrectOption = config.correct_option;
+    }
+
+    // Fetch this user's press if any
+    if (currentUser) {
+        const { data: press } = await supabaseC
+            .from('hats_presses')
+            .select('option_pressed')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+        hatsMyPress = press ? press.option_pressed : null;
+    }
+
+    updateHatsUI();
+    setupHatsRealtime();
+
+    const fullPage = document.getElementById('full-page');
+    if (fullPage) fullPage.style.display = 'block';
+}
+
+function updateHatsUI() {
+    const badge = document.getElementById('hats-status-badge');
+    const heading = document.getElementById('hats-heading');
+    const resultDiv = document.getElementById('hats-result');
+    const resultText = document.getElementById('hats-result-text');
+    const btns = [1, 2, 3].map(n => document.getElementById(`hats-btn-${n}`));
+
+    if (!badge) return;
+
+    // Status badge
+    if (hatsIsActive) {
+        badge.textContent = 'Round is open — pick a hat!';
+        badge.className = 'status-badge status-open';
+    } else if (hatsCorrectOption !== null) {
+        badge.textContent = 'Round over';
+        badge.className = 'status-badge status-locked';
+    } else {
+        badge.textContent = 'Waiting for round to start...';
+        badge.className = 'status-badge status-locked';
+    }
+
+    // Button states
+    btns.forEach((btn, i) => {
+        const opt = i + 1;
+        btn.classList.remove('hats-selected', 'hats-correct', 'hats-wrong');
+        btn.disabled = false;
+
+        if (hatsCorrectOption !== null) {
+            // Answer revealed
+            btn.disabled = true;
+            if (opt === hatsCorrectOption) {
+                btn.classList.add('hats-correct');
+            } else if (opt === hatsMyPress) {
+                btn.classList.add('hats-wrong');
+            }
+        } else if (hatsMyPress !== null) {
+            // User already pressed, waiting for reveal
+            btn.disabled = true;
+            if (opt === hatsMyPress) btn.classList.add('hats-selected');
+        } else if (!hatsIsActive) {
+            btn.disabled = true;
+        }
+    });
+
+    // Result panel
+    if (hatsCorrectOption !== null && resultDiv && resultText) {
+        resultDiv.style.display = 'block';
+        if (hatsMyPress === hatsCorrectOption) {
+            resultText.textContent = `You got it! Button ${hatsCorrectOption} was correct.`;
+            resultText.style.color = 'var(--success)';
+        } else if (hatsMyPress !== null) {
+            resultText.textContent = `Not quite! The correct button was ${hatsCorrectOption}.`;
+            resultText.style.color = 'var(--danger)';
+        } else {
+            resultText.textContent = `The correct button was ${hatsCorrectOption}.`;
+            resultText.style.color = 'var(--text-color)';
+        }
+    } else if (resultDiv) {
+        if (hatsMyPress !== null && hatsCorrectOption === null) {
+            resultDiv.style.display = 'block';
+            resultText.textContent = `You picked button ${hatsMyPress}. Waiting for the answer...`;
+            resultText.style.color = 'var(--text-color)';
+        } else {
+            resultDiv.style.display = 'none';
+        }
+    }
+}
+
+function setupHatsRealtime() {
+    supabaseC
+        .channel('hats-config-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'hats_config' }, payload => {
+            if (!payload.new) return;
+            hatsIsActive = payload.new.is_active;
+            hatsCorrectOption = payload.new.correct_option ?? null;
+            updateHatsUI();
+            if (typeof updateHatsAdminUI === 'function') updateHatsAdminUI();
+        })
+        .subscribe();
+}
+
+window.pressHat = async function(option) {
+    if (!currentUser) return showToast("Not authenticated.");
+    if (!hatsIsActive) return showToast("Round is not active.");
+    if (hatsMyPress !== null) return showToast("You already picked!");
+    if (hatsCorrectOption !== null) return showToast("Round is already over.");
+
+    try {
+        const { error } = await supabaseC
+            .from('hats_presses')
+            .insert({
+                user_id: currentUser.id,
+                user_email: currentUser.email,
+                option_pressed: option
+            });
+
+        if (error) throw error;
+
+        hatsMyPress = option;
+        updateHatsUI();
+        showToast(`You picked button ${option}!`);
+    } catch (error) {
+        console.error("Hats press error:", error);
+        showToast("Error recording your pick.");
     }
 }

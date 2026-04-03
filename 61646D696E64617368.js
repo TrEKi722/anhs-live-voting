@@ -6,6 +6,7 @@
 // 4.b Admin UI Updates
 // ==========================================
 function updateAdminUI() {
+    updateHatsAdminUI();
     const lockBtn = document.getElementById('toggle-lock-btn');
     const hideBtn = document.getElementById('toggle-hide-btn');
     
@@ -125,8 +126,73 @@ async function loadAdminList() {
 }
 
 // ==========================================
+// Hats Admin
+// ==========================================
+
+function updateHatsAdminUI() {
+    const btn = document.getElementById('hats-toggle-btn');
+    if (!btn) return;
+    if (hatsIsActive) {
+        btn.className = 'action-btn btn-danger';
+        btn.innerText = 'Deactivate Round';
+    } else {
+        btn.className = 'action-btn btn-primary';
+        btn.innerText = 'Activate Round';
+    }
+}
+
+window.hatsToggleActive = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error } = await supabaseC
+            .from('hats_config')
+            .update({ is_active: !hatsIsActive })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast(hatsIsActive ? "Round deactivated." : "Round activated!");
+    } catch (e) {
+        showToast("Error toggling round.");
+    }
+}
+
+window.hatsReveal = async function(option) {
+    if (!isAdmin) return;
+    try {
+        const { error } = await supabaseC
+            .from('hats_config')
+            .update({ correct_option: option, is_active: false })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast(`Answer revealed: button ${option}!`);
+    } catch (e) {
+        showToast("Error revealing answer.");
+    }
+}
+
+window.hatsReset = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error: delErr } = await supabaseC
+            .from('hats_presses')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000');
+        if (delErr) throw delErr;
+
+        const { error: cfgErr } = await supabaseC
+            .from('hats_config')
+            .update({ correct_option: null, is_active: false })
+            .eq('id', 'main');
+        if (cfgErr) throw cfgErr;
+
+        showToast("Hats round reset!");
+    } catch (e) {
+        showToast("Error resetting hats.");
+    }
+}
+
+// ==========================================
 // 5. User Actions
-// 
+//
 // 5.b Admin Actions
 // ==========================================
 
