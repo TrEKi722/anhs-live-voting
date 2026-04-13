@@ -175,7 +175,7 @@ window.hatsReset = async function() {
         const { error: delErr } = await supabaseC
             .from('hats_presses')
             .delete()
-            .neq('id', '00000000-0000-0000-0000-000000000000');
+            .neq('user_id', '00000000-0000-0000-0000-000000000000');
         if (delErr) throw delErr;
 
         const { error: cfgErr } = await supabaseC
