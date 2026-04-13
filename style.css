@@ -306,6 +306,55 @@ button.action-btn:hover { opacity: 0.9; }
     transform: translateX(-50%) translateY(0);
 }
 
+/* Hats Page */
+.hats-btn {
+    width: 120px;
+    height: 120px;
+    font-size: 3rem;
+    font-weight: bold;
+    border: 3px solid #ccc;
+    border-radius: var(--border-radius);
+    background: var(--card-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.hats-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.hats-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.hats-btn.hats-selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+    opacity: 1;
+}
+
+.hats-btn.hats-correct {
+    border-color: var(--success);
+    background: var(--success);
+    color: white;
+    opacity: 1;
+}
+
+.hats-btn.hats-wrong {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: white;
+    opacity: 0.6;
+}
+
 /* MODALS */
 /* The Modal (background) */
 .modal {
