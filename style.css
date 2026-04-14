@@ -534,6 +534,24 @@ button.action-btn:hover { opacity: 0.9; }
     color: var(--text-muted);
 }
 
+.ng-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+}
+
+.ng-wall-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.ng-grid-img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
 #ng-leaderboard tr {
     border-bottom: 1px solid var(--card-border);
 }

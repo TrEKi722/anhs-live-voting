@@ -407,10 +407,14 @@ function updateNGAdminUI() {
         });
     }
 
-    // Pre-fill duration from current config
+    // Pre-fill durations from current config
     const durationInput = document.getElementById('ng-duration-input');
     if (durationInput && ngDurationSeconds) {
         durationInput.value = ngDurationSeconds;
+    }
+    const memorizeDurationInput = document.getElementById('ng-memorize-duration-input');
+    if (memorizeDurationInput && ngMemorizeDurationSeconds) {
+        memorizeDurationInput.value = ngMemorizeDurationSeconds;
     }
 
     if (ngIsActive) {
@@ -445,13 +449,15 @@ function updateNGAdminUI() {
 window.ngPrepareStart = function() {
     const select = document.getElementById('ng-set-select');
     const durationInput = document.getElementById('ng-duration-input');
+    const memorizeDurationInput = document.getElementById('ng-memorize-duration-input');
     if (!select?.value) return;
     const setKey = select.value;
-    const duration = parseInt(durationInput?.value) || 10;
+    const recallDuration = parseInt(durationInput?.value) || 30;
+    const memorizeDuration = parseInt(memorizeDurationInput?.value) || 10;
     const imageCount = NAME_GAME_SETS[setKey]?.images?.length ?? 0;
     const confirmText = document.getElementById('ng-start-confirm-text');
     if (confirmText) {
-        confirmText.textContent = `Set: "${NAME_GAME_SETS[setKey].name}" · ${imageCount} images · ${duration}s`;
+        confirmText.textContent = `Set: "${NAME_GAME_SETS[setKey].name}" · ${imageCount} images · Memorize: ${memorizeDuration}s · Recall: ${recallDuration}s`;
     }
 }
 
@@ -459,10 +465,12 @@ window.ngStartRound = async function() {
     if (!isAdmin) return;
     const select = document.getElementById('ng-set-select');
     const durationInput = document.getElementById('ng-duration-input');
+    const memorizeDurationInput = document.getElementById('ng-memorize-duration-input');
     if (!select || !select.value) return showToast("Please select an image set.");
 
     const setKey = select.value;
-    const duration = parseInt(durationInput?.value) || 10;
+    const duration = parseInt(durationInput?.value) || 30;
+    const memorizeDuration = parseInt(memorizeDurationInput?.value) || 10;
     const imageCount = NAME_GAME_SETS[setKey]?.images?.length ?? 0;
     if (imageCount === 0) return showToast("Selected set has no images.");
 
@@ -481,6 +489,7 @@ window.ngStartRound = async function() {
                 image_set: setKey,
                 image_order: indices,
                 round_duration_seconds: duration,
+                memorize_duration_seconds: memorizeDuration,
                 round_start_time: new Date().toISOString(),
                 round_end_time: null
             })
@@ -537,7 +546,7 @@ window.ngReset = async function() {
 
         const { error: cfgErr } = await supabaseC
             .from('name_game_config')
-            .update({ is_active: false, image_set: null, image_order: null, round_start_time: null, round_end_time: null })
+            .update({ is_active: false, image_set: null, image_order: null, round_start_time: null, round_end_time: null, memorize_duration_seconds: null })
             .eq('id', 'main');
         if (cfgErr) throw cfgErr;
 

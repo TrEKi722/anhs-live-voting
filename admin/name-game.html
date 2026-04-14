@@ -30,10 +30,17 @@
                                 <!-- Populated by updateNGAdminUI() -->
                             </select>
                         </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 0.25rem; font-size: 0.9rem; color: var(--text-muted);">Duration (seconds)</label>
-                            <input type="number" id="ng-duration-input" value="10" min="5" max="300"
-                                style="padding: 0.6rem 1rem; background: rgba(0,0,0,0.4); color: white; border: 1px solid var(--card-border); border-radius: 8px; font-size: 1rem; width: 100px; text-align: center;">
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+                            <div>
+                                <label style="display: block; margin-bottom: 0.25rem; font-size: 0.9rem; color: var(--text-muted);">Memorize (seconds)</label>
+                                <input type="number" id="ng-memorize-duration-input" value="10" min="5" max="120"
+                                    style="padding: 0.6rem 1rem; background: rgba(0,0,0,0.4); color: white; border: 1px solid var(--card-border); border-radius: 8px; font-size: 1rem; width: 100px; text-align: center;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 0.25rem; font-size: 0.9rem; color: var(--text-muted);">Recall (seconds)</label>
+                                <input type="number" id="ng-duration-input" value="30" min="5" max="300"
+                                    style="padding: 0.6rem 1rem; background: rgba(0,0,0,0.4); color: white; border: 1px solid var(--card-border); border-radius: 8px; font-size: 1rem; width: 100px; text-align: center;">
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -33,14 +33,13 @@ let ngIsActive = false;
 let ngImageSet = null;
 let ngImageOrder = [];
 let ngDurationSeconds = 10;
+let ngMemorizeDurationSeconds = 10;
 let ngRoundStartTime = null;
+let ngRoundEndTime = null;
 let ngMyScore = 0;
 let ngCorrectSet = new Set();
-let ngLocalIndex = 0;
-let ngCountdownRaf = null; // requestAnimationFrame handle
-let ngWallCountdownRaf = null; // RAF handle for wall display
-let ngLocalStartTime = null; // per-player timer start (from page load / round join)
-let ngRoundEndTime = null; // admin-set forced end timestamp (for 5s stop countdown)
+let ngCountdownRaf = null;
+let ngWallCountdownRaf = null;
 
 // ==========================================
 // 2. Authentication & Initialization
@@ -837,15 +836,27 @@ async function fetchNameGameConfig() {
         ngImageSet = config.image_set;
         ngImageOrder = config.image_order || [];
         ngDurationSeconds = config.round_duration_seconds || 10;
+        ngMemorizeDurationSeconds = config.memorize_duration_seconds || 10;
         ngRoundStartTime = config.round_start_time ? new Date(config.round_start_time).getTime() : null;
         ngRoundEndTime = config.round_end_time ? new Date(config.round_end_time).getTime() : null;
     }
 }
 
+// Returns current game phase: 'idle' | 'memorize' | 'recall' | 'done'
+function ngGetPhase() {
+    if (!ngIsActive || !ngRoundStartTime) return ngRoundStartTime ? 'done' : 'idle';
+    const now = Date.now();
+    const recallStart = ngRoundStartTime + ngMemorizeDurationSeconds * 1000;
+    let recallEnd = recallStart + ngDurationSeconds * 1000;
+    if (ngRoundEndTime) recallEnd = Math.min(recallEnd, ngRoundEndTime);
+    if (now < recallStart) return 'memorize';
+    if (now < recallEnd) return 'recall';
+    return 'done';
+}
+
 async function initNameGame() {
     await fetchNameGameConfig();
 
-    // Restore existing score if mid-round or round just ended
     if (currentUser) {
         const { data: scoreRow } = await supabaseC
             .from('name_game_scores')
@@ -855,119 +866,90 @@ async function initNameGame() {
         if (scoreRow) ngMyScore = scoreRow.score;
     }
 
-    updateNameGameUI();
-    setupNameGameRealtime();
-
     const fullPage = document.getElementById('full-page');
     if (fullPage) fullPage.style.display = 'flex';
 
-    // Realtime may have fired before init completed; call updateNameGameUI again after load
+    setupNameGameRealtime();
     updateNameGameUI();
 }
 
 function updateNameGameUI() {
-    const inactiveDiv = document.getElementById('ng-inactive');
-    const playDiv = document.getElementById('ng-play');
-    const doneDiv = document.getElementById('ng-done');
+    if (ngCountdownRaf) { cancelAnimationFrame(ngCountdownRaf); ngCountdownRaf = null; }
 
-    if (!inactiveDiv) return;
+    const phase = ngGetPhase();
+    ['ng-idle', 'ng-memorize', 'ng-recall', 'ng-done'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const activeEl = document.getElementById({ idle: 'ng-idle', memorize: 'ng-memorize', recall: 'ng-recall', done: 'ng-done' }[phase]);
+    if (activeEl) activeEl.style.display = 'block';
 
-    // Cancel any running countdown
-    if (ngCountdownRaf) {
-        cancelAnimationFrame(ngCountdownRaf);
-        ngCountdownRaf = null;
-    }
+    const timerSection = document.getElementById('ng-timer-section');
+    if (timerSection) timerSection.style.display = (phase === 'memorize' || phase === 'recall') ? 'block' : 'none';
 
-    if (!ngIsActive || !ngRoundStartTime) {
-        // Check if round just ended and user has a score to show
-        if (!ngIsActive && ngMyScore > 0 && doneDiv) {
-            inactiveDiv.style.display = 'none';
-            if (playDiv) playDiv.style.display = 'none';
-            doneDiv.style.display = 'block';
-            showNGFinalScore();
-            return;
-        }
-        inactiveDiv.style.display = 'block';
-        if (playDiv) playDiv.style.display = 'none';
-        if (doneDiv) doneDiv.style.display = 'none';
-        return;
-    }
-
-    // Check if admin forced the round to end
-    if (ngRoundEndTime && Date.now() >= ngRoundEndTime) {
-        inactiveDiv.style.display = 'none';
-        if (playDiv) playDiv.style.display = 'none';
-        if (doneDiv) { doneDiv.style.display = 'block'; showNGFinalScore(); }
-        return;
-    }
-
-    // Check if this player's own timer has already expired
-    if (ngLocalStartTime && Date.now() - ngLocalStartTime >= ngDurationSeconds * 1000) {
-        inactiveDiv.style.display = 'none';
-        if (playDiv) playDiv.style.display = 'none';
-        if (doneDiv) { doneDiv.style.display = 'block'; showNGFinalScore(); }
-        return;
-    }
-
-    // Show play state — start player's timer on first entry
-    if (!ngLocalStartTime) ngLocalStartTime = Date.now();
-    inactiveDiv.style.display = 'none';
-    if (doneDiv) doneDiv.style.display = 'none';
-    if (playDiv) {
-        playDiv.style.display = 'block';
-        showNGCurrentImage();
-        startNGCountdown();
+    if (phase === 'memorize') {
+        buildNGImageGrid('ng-memorize-grid');
+        startNGCountdown('memorize');
+    } else if (phase === 'recall') {
+        updateNGScoreDisplay();
+        startNGCountdown('recall');
+        const input = document.getElementById('ng-input');
+        if (input) { input.value = ''; input.focus(); }
+    } else if (phase === 'done') {
+        showNGFinalScore();
     }
 }
 
-function showNGCurrentImage() {
-    if (!NAME_GAME_SETS || !ngImageSet || !NAME_GAME_SETS[ngImageSet]) return;
+function buildNGImageGrid(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container || !NAME_GAME_SETS?.[ngImageSet]) return;
+    if (container.dataset.built === ngImageSet) return;
     const images = NAME_GAME_SETS[ngImageSet].images;
-    if (ngLocalIndex >= ngImageOrder.length) {
-        // Finished all images before time ran out — go to done screen
-        ngGameOver();
-        return;
-    }
-    const imgIdx = ngImageOrder[ngLocalIndex];
-    const imgEl = document.getElementById('ng-image');
-    if (imgEl && images[imgIdx]) imgEl.src = images[imgIdx].path;
-
-    const scoreEl = document.getElementById('ng-score-display');
-    if (scoreEl) scoreEl.textContent = `Score: ${ngMyScore}`;
-
-    const input = document.getElementById('ng-input');
-    if (input) { input.value = ''; input.focus(); }
+    container.innerHTML = '';
+    ngImageOrder.forEach(idx => {
+        if (!images[idx]) return;
+        const img = document.createElement('img');
+        img.src = images[idx].path;
+        img.className = 'ng-grid-img';
+        img.alt = '';
+        container.appendChild(img);
+    });
+    container.dataset.built = ngImageSet;
 }
 
-function startNGCountdown() {
+function updateNGScoreDisplay() {
+    const el = document.getElementById('ng-score-display');
+    if (el) el.textContent = `Score: ${ngMyScore}`;
+}
+
+function startNGCountdown(phase) {
     const bar = document.getElementById('ng-timer-bar');
     const timerText = document.getElementById('ng-timer-text');
-    if (!bar || !ngLocalStartTime) return;
+    const badge = document.getElementById('ng-phase-badge');
+    if (!bar || !ngRoundStartTime) return;
+
+    const recallStart = ngRoundStartTime + ngMemorizeDurationSeconds * 1000;
+    const endTime = phase === 'memorize'
+        ? recallStart
+        : Math.min(recallStart + ngDurationSeconds * 1000, ngRoundEndTime || Infinity);
+    const totalMs = phase === 'memorize' ? ngMemorizeDurationSeconds * 1000 : ngDurationSeconds * 1000;
 
     function tick() {
-        const playerElapsed = Date.now() - ngLocalStartTime;
-        let remaining = Math.max(0, ngDurationSeconds * 1000 - playerElapsed);
-
-        // Cap to admin-forced end time if set
-        if (ngRoundEndTime) {
-            const endRemaining = Math.max(0, ngRoundEndTime - Date.now());
-            remaining = Math.min(remaining, endRemaining);
-        }
-
-        const pct = (remaining / (ngDurationSeconds * 1000)) * 100;
+        const remaining = Math.max(0, endTime - Date.now());
+        const pct = (remaining / totalMs) * 100;
 
         bar.style.width = pct + '%';
         bar.classList.remove('ng-timer-warning', 'ng-timer-danger');
-        if (pct <= 20) bar.classList.add('ng-timer-danger');
-        else if (pct <= 40) bar.classList.add('ng-timer-warning');
+        if (phase === 'recall') {
+            if (pct <= 20) bar.classList.add('ng-timer-danger');
+            else if (pct <= 40) bar.classList.add('ng-timer-warning');
+        }
 
         const secs = Math.ceil(remaining / 1000);
         if (timerText) timerText.textContent = secs + 's';
+        if (badge) badge.textContent = phase === 'memorize' ? `Memorize! ${secs}s` : `Recall — ${secs}s left`;
 
-        if (remaining <= 0) {
-            ngGameOver();
-            return;
-        }
+        if (remaining <= 0) { updateNameGameUI(); return; }
         ngCountdownRaf = requestAnimationFrame(tick);
     }
     ngCountdownRaf = requestAnimationFrame(tick);
@@ -975,42 +957,12 @@ function startNGCountdown() {
 
 function ngGameOver() {
     if (ngCountdownRaf) { cancelAnimationFrame(ngCountdownRaf); ngCountdownRaf = null; }
-    const playDiv = document.getElementById('ng-play');
-    const doneDiv = document.getElementById('ng-done');
-    if (playDiv) playDiv.style.display = 'none';
-    if (doneDiv) {
-        doneDiv.style.display = 'block';
-        showNGFinalScore();
-    }
+    updateNameGameUI();
 }
 
-async function showNGFinalScore() {
+function showNGFinalScore() {
     const finalEl = document.getElementById('ng-final-score');
     if (finalEl) finalEl.textContent = `You got ${ngMyScore} right!`;
-
-    const table = document.getElementById('ng-leaderboard');
-    if (!table) return;
-    table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;">Loading...</td></tr>';
-
-    const { data: scores } = await supabaseC
-        .from('name_game_scores')
-        .select('display_name, score')
-        .order('score', { ascending: false })
-        .limit(5);
-
-    if (!scores || scores.length === 0) {
-        table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;">No scores yet.</td></tr>';
-        return;
-    }
-
-    const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
-    table.innerHTML = scores.map((row, i) => `
-        <tr>
-            <td style="font-size:1.3rem;">${medals[i] || (i + 1) + '.'}</td>
-            <td>${row.display_name || 'Anonymous'}</td>
-            <td>${row.score}</td>
-        </tr>
-    `).join('');
 }
 
 function showNGFeedback(type, message) {
@@ -1027,38 +979,32 @@ function showNGFeedback(type, message) {
 function setupNameGameRealtime() {
     supabaseC
         .channel('name-game-config-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'name_game_config' }, async payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'name_game_config' }, payload => {
             if (!payload.new) return;
             const wasActive = ngIsActive;
             const newActive = payload.new.is_active;
             const newSet = payload.new.image_set ?? null;
 
-            // Round reset — clear local state
             if (!newActive && newSet === null) {
                 ngMyScore = 0;
                 ngCorrectSet = new Set();
-                ngLocalIndex = 0;
-                ngLocalStartTime = null;
-                ngRoundEndTime = null;
             }
 
             ngIsActive = newActive;
             ngImageSet = newSet;
             ngImageOrder = payload.new.image_order || [];
             ngDurationSeconds = payload.new.round_duration_seconds || 10;
-            ngRoundStartTime = payload.new.round_start_time
-                ? new Date(payload.new.round_start_time).getTime()
-                : null;
-            ngRoundEndTime = payload.new.round_end_time
-                ? new Date(payload.new.round_end_time).getTime()
-                : null;
+            ngMemorizeDurationSeconds = payload.new.memorize_duration_seconds || 10;
+            ngRoundStartTime = payload.new.round_start_time ? new Date(payload.new.round_start_time).getTime() : null;
+            ngRoundEndTime = payload.new.round_end_time ? new Date(payload.new.round_end_time).getTime() : null;
 
-            // Fresh round start — reset local game state and start player timer
             if (!wasActive && newActive) {
                 ngMyScore = 0;
                 ngCorrectSet = new Set();
-                ngLocalIndex = 0;
-                ngLocalStartTime = Date.now();
+                ['ng-memorize-grid', 'ng-wall-memorize-grid'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) delete el.dataset.built;
+                });
             }
 
             updateNameGameUI();
@@ -1069,9 +1015,7 @@ function setupNameGameRealtime() {
 }
 
 window.submitNGAnswer = async function() {
-    if (!ngIsActive || !ngLocalStartTime) return;
-    if (Date.now() - ngLocalStartTime >= ngDurationSeconds * 1000) return;
-    if (ngRoundEndTime && Date.now() >= ngRoundEndTime) return;
+    if (ngGetPhase() !== 'recall') return;
 
     const input = document.getElementById('ng-input');
     if (!input) return;
@@ -1081,27 +1025,26 @@ window.submitNGAnswer = async function() {
     const images = NAME_GAME_SETS?.[ngImageSet]?.images;
     if (!images) return;
 
-    const imgIdx = ngImageOrder[ngLocalIndex];
-    const imageData = images[imgIdx];
-    if (!imageData) return;
-
-    // Already answered this image correctly (shouldn't normally happen, but guard it)
-    if (ngCorrectSet.has(ngLocalIndex)) {
-        ngLocalIndex++;
-        showNGCurrentImage();
-        return;
+    // Find any unanswered image that matches this answer
+    let matchedIdx = null;
+    for (let i = 0; i < ngImageOrder.length; i++) {
+        const imgIdx = ngImageOrder[i];
+        if (ngCorrectSet.has(imgIdx)) continue;
+        if (images[imgIdx]?.answers.map(a => a.toLowerCase()).includes(answer)) {
+            matchedIdx = imgIdx;
+            break;
+        }
     }
 
-    const isCorrect = imageData.answers
-        .map(a => a.toLowerCase())
-        .includes(answer);
+    input.value = '';
+    input.focus();
 
-    if (isCorrect) {
-        ngCorrectSet.add(ngLocalIndex);
+    if (matchedIdx !== null) {
+        ngCorrectSet.add(matchedIdx);
         ngMyScore++;
         showNGFeedback('correct', '✓ Correct!');
+        updateNGScoreDisplay();
 
-        // Upsert score to DB
         const displayName = currentUser?.user_metadata?.full_name
             || currentUser?.user_metadata?.name
             || currentUser?.email
@@ -1111,20 +1054,8 @@ window.submitNGAnswer = async function() {
             display_name: displayName,
             score: ngMyScore
         });
-
-        const scoreEl = document.getElementById('ng-score-display');
-        if (scoreEl) scoreEl.textContent = `Score: ${ngMyScore}`;
-
-        ngLocalIndex++;
-        if (ngLocalIndex >= ngImageOrder.length) {
-            setTimeout(ngGameOver, 500);
-        } else {
-            setTimeout(showNGCurrentImage, 400);
-        }
     } else {
         showNGFeedback('wrong', '✗ Try again');
-        input.value = '';
-        input.focus();
     }
 }
 
@@ -1179,100 +1110,105 @@ function setupWallCupsRealtime() {
 // 9. Wall — Name Game Display
 // ==========================================
 
+let ngWallScoresChannel = null;
+
 function initWallNG() {
     updateWallNGUI();
 }
 
 function updateWallNGUI() {
     const badge = document.getElementById('ng-wall-badge');
-    const inactiveDiv = document.getElementById('ng-wall-inactive');
-    const activeDiv = document.getElementById('ng-wall-active');
-    const doneDiv = document.getElementById('ng-wall-done');
-
     if (!badge) return;
 
-    if (ngWallCountdownRaf) {
-        cancelAnimationFrame(ngWallCountdownRaf);
-        ngWallCountdownRaf = null;
-    }
+    if (ngWallCountdownRaf) { cancelAnimationFrame(ngWallCountdownRaf); ngWallCountdownRaf = null; }
 
-    if (ngIsActive) {
-        if (ngRoundEndTime && Date.now() < ngRoundEndTime) {
-            // Admin triggered stop — show 5s countdown
-            badge.textContent = 'Ending soon!';
-            badge.className = 'status-badge status-locked';
-            if (inactiveDiv) inactiveDiv.style.display = 'none';
-            if (doneDiv) doneDiv.style.display = 'none';
-            if (activeDiv) {
-                activeDiv.style.display = 'block';
-                startWallNGCountdown();
-            }
-        } else {
-            // Normal active — show max duration as reference
-            badge.textContent = 'Round is live!';
-            badge.className = 'status-badge status-open';
-            if (inactiveDiv) inactiveDiv.style.display = 'none';
-            if (doneDiv) doneDiv.style.display = 'none';
-            if (activeDiv) {
-                activeDiv.style.display = 'block';
-                const bar = document.getElementById('ng-wall-timer-bar');
-                const timerText = document.getElementById('ng-wall-timer-text');
-                if (bar) { bar.style.width = '100%'; bar.classList.remove('ng-timer-warning', 'ng-timer-danger'); }
-                if (timerText) timerText.textContent = ngDurationSeconds + 's';
-            }
-        }
-        return;
-    }
+    const phase = ngGetPhase();
+    const phaseIds = ['ng-wall-idle', 'ng-wall-memorize', 'ng-wall-recall', 'ng-wall-done'];
+    const showId = { idle: 'ng-wall-idle', memorize: 'ng-wall-memorize', recall: 'ng-wall-recall', done: 'ng-wall-done' }[phase];
+    phaseIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = id === showId ? 'block' : 'none';
+    });
 
-    if (!ngIsActive && ngRoundStartTime) {
-        // Round ended — show leaderboard
+    const timerSection = document.getElementById('ng-wall-timer-section');
+
+    if (phase === 'idle') {
+        badge.textContent = 'Waiting for round to start...';
+        badge.className = 'status-badge status-locked';
+        if (timerSection) timerSection.style.display = 'none';
+        if (ngWallScoresChannel) { ngWallScoresChannel.unsubscribe(); ngWallScoresChannel = null; }
+
+    } else if (phase === 'memorize') {
+        badge.textContent = 'Memorize!';
+        badge.className = 'status-badge status-open';
+        if (timerSection) timerSection.style.display = 'block';
+        buildNGImageGrid('ng-wall-memorize-grid');
+        startWallNGCountdown('memorize');
+        if (ngWallScoresChannel) { ngWallScoresChannel.unsubscribe(); ngWallScoresChannel = null; }
+
+    } else if (phase === 'recall') {
+        badge.textContent = ngRoundEndTime ? 'Ending soon!' : 'Recall phase!';
+        badge.className = ngRoundEndTime ? 'status-badge status-locked' : 'status-badge status-open';
+        if (timerSection) timerSection.style.display = 'block';
+        startWallNGCountdown('recall');
+        loadWallNGLeaderboard();
+        setupWallNGScoresRealtime();
+
+    } else if (phase === 'done') {
         badge.textContent = "Time's up!";
         badge.className = 'status-badge status-locked';
-        if (inactiveDiv) inactiveDiv.style.display = 'none';
-        if (activeDiv) activeDiv.style.display = 'none';
-        if (doneDiv) {
-            doneDiv.style.display = 'block';
-            loadWallNGLeaderboard();
-        }
-        return;
+        if (timerSection) timerSection.style.display = 'none';
+        loadWallNGLeaderboard();
+        if (ngWallScoresChannel) { ngWallScoresChannel.unsubscribe(); ngWallScoresChannel = null; }
     }
-
-    // Inactive, no round yet
-    badge.textContent = 'Waiting for round to start...';
-    badge.className = 'status-badge status-locked';
-    if (inactiveDiv) inactiveDiv.style.display = 'block';
-    if (activeDiv) activeDiv.style.display = 'none';
-    if (doneDiv) doneDiv.style.display = 'none';
 }
 
-function startWallNGCountdown() {
+function startWallNGCountdown(phase) {
     const bar = document.getElementById('ng-wall-timer-bar');
     const timerText = document.getElementById('ng-wall-timer-text');
-    if (!bar || !ngRoundEndTime) return;
+    if (!bar || !ngRoundStartTime) return;
 
-    const totalMs = 5000; // always a 5-second stop countdown on wall
+    const recallStart = ngRoundStartTime + ngMemorizeDurationSeconds * 1000;
+    const endTime = phase === 'memorize'
+        ? recallStart
+        : Math.min(recallStart + ngDurationSeconds * 1000, ngRoundEndTime || Infinity);
+    const totalMs = phase === 'memorize' ? ngMemorizeDurationSeconds * 1000 : (ngRoundEndTime ? 5000 : ngDurationSeconds * 1000);
 
     function tick() {
-        const remaining = Math.max(0, ngRoundEndTime - Date.now());
+        const remaining = Math.max(0, endTime - Date.now());
         const pct = (remaining / totalMs) * 100;
 
         bar.style.width = pct + '%';
-        bar.classList.remove('ng-timer-warning');
-        bar.classList.add('ng-timer-danger');
+        bar.classList.remove('ng-timer-warning', 'ng-timer-danger');
+        if (phase === 'recall') {
+            if (ngRoundEndTime || pct <= 20) bar.classList.add('ng-timer-danger');
+            else if (pct <= 40) bar.classList.add('ng-timer-warning');
+        }
 
         const secs = Math.ceil(remaining / 1000);
         if (timerText) timerText.textContent = secs + 's';
 
-        if (remaining <= 0) return; // transition fires via realtime when is_active → false
+        if (remaining <= 0) { updateWallNGUI(); return; }
         ngWallCountdownRaf = requestAnimationFrame(tick);
     }
     ngWallCountdownRaf = requestAnimationFrame(tick);
 }
 
+function setupWallNGScoresRealtime() {
+    if (ngWallScoresChannel) return;
+    ngWallScoresChannel = supabaseC
+        .channel('wall-ng-scores')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'name_game_scores' }, () => {
+            loadWallNGLeaderboard();
+        })
+        .subscribe();
+}
+
 async function loadWallNGLeaderboard() {
-    const table = document.getElementById('ng-wall-leaderboard');
-    if (!table) return;
-    table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">Loading...</td></tr>';
+    const tables = ['ng-wall-leaderboard', 'ng-wall-done-leaderboard']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+    if (!tables.length) return;
 
     const { data: scores } = await supabaseC
         .from('name_game_scores')
@@ -1280,17 +1216,16 @@ async function loadWallNGLeaderboard() {
         .order('score', { ascending: false })
         .limit(5);
 
-    if (!scores || scores.length === 0) {
-        table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">No scores yet.</td></tr>';
-        return;
-    }
-
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
-    table.innerHTML = scores.map((row, i) => `
-        <tr style="border-bottom: 1px solid var(--card-border);">
-            <td style="padding: 0.75rem; font-size: 1.5rem;">${medals[i] || (i + 1) + '.'}</td>
-            <td style="padding: 0.75rem; text-align: left;">${row.display_name || 'Anonymous'}</td>
-            <td style="padding: 0.75rem; font-weight: bold;">${row.score}</td>
-        </tr>
-    `).join('');
+    const html = scores?.length
+        ? scores.map((row, i) => `
+            <tr style="border-bottom: 1px solid var(--card-border);">
+                <td style="padding: 0.75rem; font-size: 1.5rem;">${medals[i] || (i + 1) + '.'}</td>
+                <td style="padding: 0.75rem; text-align: left;">${row.display_name || 'Anonymous'}</td>
+                <td style="padding: 0.75rem; font-weight: bold;">${row.score}</td>
+            </tr>
+        `).join('')
+        : '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">No scores yet.</td></tr>';
+
+    tables.forEach(t => t.innerHTML = html);
 }

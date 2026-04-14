@@ -13,36 +13,48 @@
     </head>
     <body>
 
-        <div id="full-page" style="display: none; flex-direction: row-reverse;">
-            <div style="flex: 1; text-align: center; padding: 2rem;">
-                <div>
-                    <div id="ng-wall-badge" class="status-badge status-locked">Loading...</div>
-                </div>
-                <h1 id="playNow" style="margin-top: 1rem;"></h1>
+        <div id="full-page" style="display: none; flex-direction: column; padding: 2rem; min-height: 100vh; box-sizing: border-box;">
 
-                <!-- Inactive -->
-                <div id="ng-wall-inactive" style="margin-top: 2rem; color: var(--text-muted); font-size: 1.2rem;">
-                    Waiting for round to start...
-                </div>
+            <!-- Header row: badge + title + QR -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; gap: 2rem;">
+                <div style="flex: 1;">
+                    <div id="ng-wall-badge" class="status-badge status-locked" style="margin-bottom: 0.75rem;">Loading...</div>
+                    <h2 id="playNow" style="margin: 0; font-size: 1.4rem;"></h2>
 
-                <!-- Active: big countdown timer -->
-                <div id="ng-wall-active" style="display: none; margin-top: 2rem;">
-                    <div class="ng-timer-track" style="max-width: 600px; margin: 0 auto 1.5rem;">
-                        <div id="ng-wall-timer-bar" class="ng-timer-bar"></div>
+                    <!-- Shared timer bar (shown during memorize + recall) -->
+                    <div id="ng-wall-timer-section" style="display: none; margin-top: 0.75rem;">
+                        <div class="ng-timer-track">
+                            <div id="ng-wall-timer-bar" class="ng-timer-bar"></div>
+                        </div>
+                        <div id="ng-wall-timer-text" style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;"></div>
                     </div>
-                    <div id="ng-wall-timer-text" style="font-size: 4rem; font-weight: bold;"></div>
-                    <p style="margin-top: 1rem; color: var(--text-muted); font-size: 1.2rem;">Name as many images as you can!</p>
                 </div>
-
-                <!-- Done: leaderboard -->
-                <div id="ng-wall-done" style="display: none; margin-top: 2rem;">
-                    <h2 style="margin-bottom: 1.5rem;">🏆 Top 5</h2>
-                    <table id="ng-wall-leaderboard" style="width: 100%; max-width: 500px; margin: 0 auto; border-collapse: collapse; font-size: 1.3rem;"></table>
-                </div>
+                <img src="" id="qr" alt="QR to name game" style="width: 160px; height: 160px; flex-shrink: 0;">
             </div>
-            <img src="" id="qr" alt="QR to name game" style="height: fit-content; margin: 50px; align-self: center;">
+
+            <!-- Idle -->
+            <div id="ng-wall-idle" style="text-align: center; padding: 3rem 0; color: var(--text-muted); font-size: 1.3rem;">
+                Waiting for round to start...
+            </div>
+
+            <!-- Memorize: full image grid -->
+            <div id="ng-wall-memorize" style="display: none;">
+                <div id="ng-wall-memorize-grid" class="ng-image-grid ng-wall-grid"></div>
+            </div>
+
+            <!-- Recall: live leaderboard -->
+            <div id="ng-wall-recall" style="display: none;">
+                <table id="ng-wall-leaderboard" style="width: 100%; border-collapse: collapse; font-size: 1.4rem;"></table>
+            </div>
+
+            <!-- Done: same leaderboard, different header (badge handles the messaging) -->
+            <div id="ng-wall-done" style="display: none;">
+                <table id="ng-wall-done-leaderboard" style="width: 100%; border-collapse: collapse; font-size: 1.4rem;"></table>
+            </div>
+
         </div>
 
+        <script src="../name-game-data.js"></script>
         <script src="../common.js"></script>
         <script>
             addEventListener("DOMContentLoaded", () => {
