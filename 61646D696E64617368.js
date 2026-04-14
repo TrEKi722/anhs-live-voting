@@ -6,7 +6,7 @@
 // 4.b Admin UI Updates
 // ==========================================
 function updateAdminUI() {
-    updateHatsAdminUI();
+    updateCupsAdminUI();
     const lockBtn = document.getElementById('toggle-lock-btn');
     const hideBtn = document.getElementById('toggle-hide-btn');
     
@@ -32,12 +32,7 @@ function updateAdminUI() {
 
     const adminDash = document.getElementById('adminDash');
     if (adminDash) {
-        if (isAdmin) {
-            adminDash.style.display = 'flex';
-            adminDash.style.flexDirection = 'row-reverse';
-        } else {
-            adminDash.style.display = 'none';
-        }
+        adminDash.style.display = isAdmin ? 'flex' : 'none';
     }
 
     const superAdminEl = document.getElementById('superAdminControls');
@@ -126,50 +121,51 @@ async function loadAdminList() {
 }
 
 // ==========================================
-// Hats Admin
+// Cups Admin
 // ==========================================
 
-function updateHatsAdminUI() {
-    const btn = document.getElementById('hats-toggle-btn');
-    if (!btn) return;
-    if (hatsIsActive) {
-        btn.className = 'action-btn btn-danger';
-        btn.innerText = 'Deactivate Round';
+function updateCupsAdminUI() {
+    const startBtn = document.getElementById('cups-start-btn');
+    const endBtn = document.getElementById('cups-end-btn');
+    if (!startBtn) return;
+    if (cupsIsActive) {
+        startBtn.style.display = 'none';
+        endBtn.style.display = 'inline-block';
     } else {
-        btn.className = 'action-btn btn-primary';
-        btn.innerText = 'Activate Round';
+        startBtn.style.display = 'inline-block';
+        endBtn.style.display = 'none';
     }
 }
 
-window.hatsToggleActive = async function() {
+window.cupsStartRound = async function(option) {
     if (!isAdmin) return;
     try {
         const { error } = await supabaseC
             .from('hats_config')
-            .update({ is_active: !hatsIsActive })
+            .update({ correct_option: option, is_active: true })
             .eq('id', 'main');
         if (error) throw error;
-        showToast(hatsIsActive ? "Round deactivated." : "Round activated!");
+        showToast("Cups round started!");
     } catch (e) {
-        showToast("Error toggling round.");
+        showToast("Error starting round.");
     }
 }
 
-window.hatsReveal = async function(option) {
+window.cupsEndRound = async function() {
     if (!isAdmin) return;
     try {
         const { error } = await supabaseC
             .from('hats_config')
-            .update({ correct_option: option, is_active: false })
+            .update({ is_active: false })
             .eq('id', 'main');
         if (error) throw error;
-        showToast(`Answer revealed: button ${option}!`);
+        showToast("Round ended.");
     } catch (e) {
-        showToast("Error revealing answer.");
+        showToast("Error ending round.");
     }
 }
 
-window.hatsReset = async function() {
+window.cupsReset = async function() {
     if (!isAdmin) return;
     try {
         const { error: delErr } = await supabaseC
@@ -184,9 +180,9 @@ window.hatsReset = async function() {
             .eq('id', 'main');
         if (cfgErr) throw cfgErr;
 
-        showToast("Hats round reset!");
+        showToast("Cups round reset!");
     } catch (e) {
-        showToast("Error resetting hats.");
+        showToast("Error resetting cups.");
     }
 }
 

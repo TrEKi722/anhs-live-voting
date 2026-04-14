@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin — Admins</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+
+        <nav>
+            <a href="/admin">← Admin</a>
+        </nav>
+
+        <div id="adminDash" style="display: none; flex-direction: column; align-items: center; margin-top: 5rem; padding-top: 1rem;">
+            <h1>Admin Management</h1>
+            <div class="admin-panel" style="margin-top: 1rem;">
+                <div id="superAdminControls" style="display: none;">
+                    <button class="action-btn btn-danger" style="background: green; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('editRoleModal')">✏️ Edit Role</button>
+                    <button class="action-btn btn-danger" style="background: green; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('addAdminModal')">✉️ Invite Admin</button>
+                    <button class="action-btn btn-danger" style="background: #ef4444; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openModal('removeAdminModal')">🗑️ Remove Admin</button>
+
+                    <div class="modal" id="editRoleModal">
+                        <h1>Enter the user's email & new role.</h1>
+                        <input type="email" id="editEmailInput" placeholder="example@example.com">
+                        <select id="editRoleSelect" style="margin-top: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;">
+                            <option value="voter">Voter</option>
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                        <button class="action-btn btn-secondary" onclick="closeModal('editRoleModal');">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="editRole('editEmailInput','editRoleSelect');closeModal('editRoleModal');">Edit Role</button>
+                    </div>
+
+                    <div class="modal" id="addAdminModal">
+                        <h1>Enter the new admin's email & role.</h1>
+                        <input type="email" id="inviteEmailInput" placeholder="example@example.com">
+                        <select id="inviteRoleSelect" style="margin-top: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;">
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                        <button class="action-btn btn-secondary" onclick="closeModal('addAdminModal');">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="addAdmin('inviteEmailInput','inviteRoleSelect');closeModal('addAdminModal');">Send Invite</button>
+                    </div>
+
+                    <div class="modal" id="removeAdminModal">
+                        <h1>Enter the email of the admin to remove.</h1>
+                        <input type="email" id="removeEmailInput" placeholder="example@example.com">
+                        <button class="action-btn btn-secondary" onclick="closeModal('removeAdminModal');">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="removeAdmin('removeEmailInput');closeModal('removeAdminModal');">Remove Admin</button>
+                    </div>
+
+                    <h3 style="margin-top: 1.5rem;">Current Admins</h3>
+                    <ul id="adminList"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Application Logic -->
+        <script src="../common.js"></script>
+        <script src="../61646D696E64617368.js"></script>
+    </body>
+</html>

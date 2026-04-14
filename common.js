@@ -22,10 +22,11 @@ let myVote = null;
 let isAdmin = false;
 let isSuperAdmin = false;
 
-// Hats state
-let hatsIsActive = false;
-let hatsCorrectOption = null;
-let hatsMyPress = null; // option the current user pressed, or null
+// Cups state
+let cupsIsActive = false;
+let cupsCorrectOption = null;
+let cupsMyPress = null;
+let cupsMyRank = null; // rank among correct presses (1/2/3/4+), null if wrong or no press
 
 // ==========================================
 // 2. Authentication & Initialization
@@ -47,7 +48,8 @@ async function initAuth(token) {
         }
 
         // Guard: admin & wall pages require admin role
-        if ((window.location.pathname === '/admin' || window.location.pathname === '/wall') && !isAdmin) {
+        const _p = window.location.pathname;
+        if ((_p === '/admin' || _p.startsWith('/admin/') || _p === '/wall') && !isAdmin) {
             await logoutUser();
             showToast("Sending you to sign in page...");
             setTimeout(() => {
@@ -67,7 +69,7 @@ async function initAuth(token) {
         setupRealtimeSubscriptions();
 
     } catch (error) {
-        if (window.location.pathname !== '/admin' && window.location.pathname !== '/sign-in') {
+        if (!window.location.pathname.startsWith('/admin') && window.location.pathname !== '/sign-in') {
             console.error("Auth error:", error);
             showToast("Authentication failed. Check console.");
         }
@@ -80,8 +82,31 @@ addEventListener("DOMContentLoaded", async (event) => {
     const authCon = document.getElementById('auth-container');
     const path = window.location.pathname;
 
-    // Admin & Wall Routes - require auth, send to sign-in if missing
-    if (path === '/admin' || path === '/wall') {
+    // /admin menu — auth required, no admin JS loaded here
+    if (path === '/admin') {
+        await initAuth(null);
+        if (isAdmin) {
+            const adminMenu = document.getElementById('admin-menu');
+            if (adminMenu) adminMenu.style.display = 'flex';
+            const adminsBtn = document.getElementById('adminMenuAdmins');
+            if (adminsBtn && isSuperAdmin) adminsBtn.style.display = 'inline-block';
+        }
+        return;
+    }
+
+    // /admin/* sub-pages — auth + admin JS loaded by each page
+    if (path.startsWith('/admin/')) {
+        await initAuth(null);
+        if (path === '/admin/cups') {
+            await fetchCupsConfig();
+            setupCupsRealtime();
+            if (typeof updateCupsAdminUI === 'function') updateCupsAdminUI();
+        }
+        return;
+    }
+
+    // Wall route
+    if (path === '/wall') {
         await initAuth(null);
         return;
     }
@@ -101,13 +126,13 @@ addEventListener("DOMContentLoaded", async (event) => {
         return;
     }
 
-    // Hats route - requires auth, redirect to home if not signed in
-    if (path === '/hats' || path === '/hats.html') {
+    // Cups route - requires auth, redirect to home if not signed in
+    if (path === '/cups' || path === '/cups.html') {
         if (session) {
             await initAuth(null);
-            await initHats();
+            await initCups();
         } else {
-            window.location.href = '/?redirect=/hats';
+            window.location.href = '/?redirect=/cups';
         }
         return;
     }
@@ -396,21 +421,6 @@ async function checkRole() {
 // 4. UI
 // ==========================================
 
-// Theme application and detection
-addEventListener("DOMContentLoaded", (event) => {
-    const darkModeMql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const applyTheme = (isDark) => {
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    };
-    
-    if (darkModeMql) {
-        applyTheme(darkModeMql.matches);
-        darkModeMql.addEventListener('change', (e) => {
-            applyTheme(e.matches);
-        });
-    }
-});
 
 function showToast(message) {
     const toast = document.getElementById('toast');
@@ -428,12 +438,11 @@ function initalUIUpdate() {
     const fPage = document.getElementById('full-page');
     if (fPage) fPage.style.display = path === '/wall' ? 'flex' : 'block';
 
-    // Show #adminDash for admin route
+    // Show #adminDash for admin sub-pages
     const adminDash = document.getElementById('adminDash');
     if (adminDash) {
         if (isAdmin) {
             adminDash.style.display = 'flex';
-            adminDash.style.flexDirection = 'row-reverse';
         } else {
             adminDash.style.display = 'none';
         }
@@ -592,141 +601,168 @@ window.castVote = async function(optionIndex) {
 }
 
 // ==========================================
-// 6. Hats
+// 6. Cups
 // ==========================================
 
-async function initHats() {
-    // Fetch config
+async function fetchCupsConfig() {
     const { data: config } = await supabaseC
         .from('hats_config')
         .select('correct_option, is_active')
         .eq('id', 'main')
         .single();
-
     if (config) {
-        hatsIsActive = config.is_active;
-        hatsCorrectOption = config.correct_option;
+        cupsIsActive = config.is_active;
+        cupsCorrectOption = config.correct_option;
     }
+}
 
-    // Fetch this user's press if any
+async function initCups() {
+    await fetchCupsConfig();
+
     if (currentUser) {
         const { data: press } = await supabaseC
             .from('hats_presses')
-            .select('choice')
+            .select('choice, created_at')
             .eq('user_id', currentUser.id)
             .maybeSingle();
-        hatsMyPress = press ? press.choice : null;
+
+        if (press) {
+            cupsMyPress = press.choice;
+            if (cupsCorrectOption !== null && press.choice === cupsCorrectOption) {
+                const { count } = await supabaseC
+                    .from('hats_presses')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('choice', cupsCorrectOption)
+                    .lte('created_at', press.created_at);
+                cupsMyRank = count;
+            }
+        }
     }
 
-    updateHatsUI();
-    setupHatsRealtime();
+    updateCupsUI();
+    setupCupsRealtime();
 
     const fullPage = document.getElementById('full-page');
     if (fullPage) fullPage.style.display = 'block';
 }
 
-function updateHatsUI() {
-    const badge = document.getElementById('hats-status-badge');
-    const heading = document.getElementById('hats-heading');
-    const resultDiv = document.getElementById('hats-result');
-    const resultText = document.getElementById('hats-result-text');
-    const btns = [1, 2, 3].map(n => document.getElementById(`hats-btn-${n}`));
+function updateCupsUI() {
+    const badge = document.getElementById('cups-status-badge');
+    const pickDiv = document.getElementById('cups-pick');
+    const inactiveDiv = document.getElementById('cups-inactive');
+    const resultDiv = document.getElementById('cups-result');
 
     if (!badge) return;
 
-    // Status badge
-    if (hatsIsActive) {
-        badge.textContent = 'Round is open — pick a hat!';
-        badge.className = 'status-badge status-open';
-    } else if (hatsCorrectOption !== null) {
+    if (cupsMyPress !== null) {
+        // User has submitted — show result, hide everything else
+        if (pickDiv) pickDiv.style.display = 'none';
+        if (inactiveDiv) inactiveDiv.style.display = 'none';
+        if (resultDiv) {
+            resultDiv.style.display = 'block';
+            const isCorrect = cupsMyPress === cupsCorrectOption;
+            const isTopThree = isCorrect && cupsMyRank !== null && cupsMyRank <= 3;
+
+            if (isTopThree) {
+                const emoji = ['', '🥇', '🥈', '🥉'][cupsMyRank];
+                const place = ['', '1st Place!', '2nd Place!', '3rd Place!'][cupsMyRank];
+                resultDiv.innerHTML = `
+                    <div class="cups-result-card cups-result-win">
+                        <div class="cups-result-emoji">${emoji}</div>
+                        <h2>${place}</h2>
+                        <p>You picked the right cup!</p>
+                    </div>`;
+            } else {
+                const heading = isCorrect ? "Didn't place" : "Wrong answer";
+                const sub = isCorrect
+                    ? "You got it right, but didn't place in the top 3."
+                    : "Better luck next time!";
+                resultDiv.innerHTML = `
+                    <div class="cups-result-card cups-result-neutral">
+                        <h2>${heading}</h2>
+                        <p>${sub}</p>
+                    </div>`;
+            }
+        }
         badge.textContent = 'Round over';
         badge.className = 'status-badge status-locked';
+    } else if (cupsIsActive) {
+        if (pickDiv) pickDiv.style.display = 'block';
+        if (inactiveDiv) inactiveDiv.style.display = 'none';
+        if (resultDiv) resultDiv.style.display = 'none';
+        badge.textContent = 'Round is open — pick a cup!';
+        badge.className = 'status-badge status-open';
     } else {
+        if (pickDiv) pickDiv.style.display = 'none';
+        if (inactiveDiv) inactiveDiv.style.display = 'block';
+        if (resultDiv) resultDiv.style.display = 'none';
         badge.textContent = 'Waiting for round to start...';
         badge.className = 'status-badge status-locked';
     }
-
-    // Button states
-    btns.forEach((btn, i) => {
-        const opt = i + 1;
-        btn.classList.remove('hats-selected', 'hats-correct', 'hats-wrong');
-        btn.disabled = false;
-
-        if (hatsCorrectOption !== null) {
-            // Answer revealed
-            btn.disabled = true;
-            if (opt === hatsCorrectOption) {
-                btn.classList.add('hats-correct');
-            } else if (opt === hatsMyPress) {
-                btn.classList.add('hats-wrong');
-            }
-        } else if (hatsMyPress !== null) {
-            // User already pressed, waiting for reveal
-            btn.disabled = true;
-            if (opt === hatsMyPress) btn.classList.add('hats-selected');
-        } else if (!hatsIsActive) {
-            btn.disabled = true;
-        }
-    });
-
-    // Result panel
-    if (hatsCorrectOption !== null && resultDiv && resultText) {
-        resultDiv.style.display = 'block';
-        if (hatsMyPress === hatsCorrectOption) {
-            resultText.textContent = `You got it! Button ${hatsCorrectOption} was correct.`;
-            resultText.style.color = 'var(--success)';
-        } else if (hatsMyPress !== null) {
-            resultText.textContent = `Not quite! The correct button was ${hatsCorrectOption}.`;
-            resultText.style.color = 'var(--danger)';
-        } else {
-            resultText.textContent = `The correct button was ${hatsCorrectOption}.`;
-            resultText.style.color = 'var(--text-color)';
-        }
-    } else if (resultDiv) {
-        if (hatsMyPress !== null && hatsCorrectOption === null) {
-            resultDiv.style.display = 'block';
-            resultText.textContent = `You picked button ${hatsMyPress}. Waiting for the answer...`;
-            resultText.style.color = 'var(--text-color)';
-        } else {
-            resultDiv.style.display = 'none';
-        }
-    }
 }
 
-function setupHatsRealtime() {
+function setupCupsRealtime() {
     supabaseC
-        .channel('hats-config-channel')
+        .channel('cups-config-channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'hats_config' }, payload => {
             if (!payload.new) return;
-            hatsIsActive = payload.new.is_active;
-            hatsCorrectOption = payload.new.correct_option ?? null;
-            updateHatsUI();
-            if (typeof updateHatsAdminUI === 'function') updateHatsAdminUI();
+            const newCorrectOption = payload.new.correct_option ?? null;
+
+            // Round was reset — clear local press state so UI returns to inactive
+            if (newCorrectOption === null && cupsCorrectOption !== null) {
+                cupsMyPress = null;
+                cupsMyRank = null;
+            }
+
+            cupsIsActive = payload.new.is_active;
+            cupsCorrectOption = newCorrectOption;
+            updateCupsUI();
+            if (typeof updateCupsAdminUI === 'function') updateCupsAdminUI();
         })
         .subscribe();
 }
 
-window.pressHat = async function(option) {
+window.pressCup = async function(option) {
     if (!currentUser) return showToast("Not authenticated.");
-    if (!hatsIsActive) return showToast("Round is not active.");
-    if (hatsMyPress !== null) return showToast("You already picked!");
-    if (hatsCorrectOption !== null) return showToast("Round is already over.");
+    if (!cupsIsActive) return showToast("Round is not active.");
+    if (cupsMyPress !== null) return showToast("You already picked!");
+    if (cupsCorrectOption === null) return showToast("Round not configured.");
+
+    // Disable buttons immediately to prevent double-tap
+    [1, 2, 3].forEach(n => {
+        const btn = document.getElementById(`cups-btn-${n}`);
+        if (btn) btn.disabled = true;
+    });
 
     try {
-        const { error } = await supabaseC
+        const { data: myPress, error } = await supabaseC
             .from('hats_presses')
-            .insert({
-                user_id: currentUser.id,
-                choice: option
-            });
+            .insert({ user_id: currentUser.id, choice: option })
+            .select('created_at')
+            .single();
 
         if (error) throw error;
 
-        hatsMyPress = option;
-        updateHatsUI();
-        showToast(`You picked button ${option}!`);
+        cupsMyPress = option;
+
+        if (option === cupsCorrectOption) {
+            const { count } = await supabaseC
+                .from('hats_presses')
+                .select('*', { count: 'exact', head: true })
+                .eq('choice', cupsCorrectOption)
+                .lte('created_at', myPress.created_at);
+            cupsMyRank = count;
+        } else {
+            cupsMyRank = null;
+        }
+
+        updateCupsUI();
     } catch (error) {
-        console.error("Hats press error:", error);
+        console.error("Cups press error:", error);
         showToast("Error recording your pick.");
+        [1, 2, 3].forEach(n => {
+            const btn = document.getElementById(`cups-btn-${n}`);
+            if (btn) btn.disabled = false;
+        });
     }
 }

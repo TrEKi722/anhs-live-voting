@@ -1,23 +1,11 @@
 :root {
-    --bg-color: #f4f4f9;
-    --card-bg: #ffffff;
-    --text-color: #333;
-    --primary: #00857D;
-    --primary-hover: #4338ca;
-    --chosen: #00857D;
-    --danger: #ef4444;
-    --danger-hover: #dc2626;
-    --success: #10b981;
-    --border-radius: 12px;
-}
-
-:root[data-theme="dark"] {
-    --bg-color: #1a1a1a;
-    --card-bg: #2d2d2d;
-    --text-color: #e0e0e0;
+    --card-bg: rgba(0, 0, 0, 0.55);
+    --card-border: rgba(255, 255, 255, 0.12);
+    --text-color: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.7);
     --primary: #00857D;
     --primary-hover: #00a99d;
-    --chosen: #00a99d;
+    --chosen: #00857D;
     --danger: #ff6b6b;
     --danger-hover: #ff5252;
     --success: #51cf66;
@@ -38,7 +26,7 @@
 }
 
 body {
-    background-color: var(--bg-color);
+    background-color: #111;
     background-image: url('/media/background.jpg');
     background-size: cover;
     background-position: center;
@@ -94,11 +82,16 @@ li {
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: all 0.2s;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-color);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .vote-btn:hover:not(:disabled) {
     border-color: var(--primary);
-    background: #eef2ff;
+    background: rgba(0, 133, 125, 0.3);
     transform: translateY(-2px);
 }
 
@@ -124,8 +117,8 @@ li {
     font-size: 0.875rem;
 }
 
-.status-open { background: #d1fae5; color: #065f46; }
-.status-locked { background: #fee2e2; color: #991b1b; }
+.status-open { background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+.status-locked { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
 
 /* Toast Message */
 #toast {
@@ -150,9 +143,12 @@ li {
 /* Projector Page Styles */
 .chart-container {
     background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
     padding: 1rem;
     border-radius: var(--border-radius);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     max-width: 800px;
     display: flex;
     width: 90vw;
@@ -177,7 +173,7 @@ li {
 }
 
 .bar-track {
-    background: #e5e7eb;
+    background: rgba(255, 255, 255, 0.15);
     height: 32px;
     border-radius: 16px;
     overflow: hidden;
@@ -202,11 +198,12 @@ li {
 /* Navigation */
 nav {
     background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--card-border);
     padding: 1rem 0;
-    /* display: flex; */
     justify-content: center;
     gap: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     position: absolute;
     top: 0;
     z-index: 10;
@@ -231,9 +228,12 @@ nav a:hover, nav a.active {
 /* Admin Page Specific */
 .admin-panel {
     background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
     padding: 2rem;
     border-radius: var(--border-radius);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     text-align: center;
     max-width: 800px;
     margin: 0 auto;
@@ -262,10 +262,12 @@ input[type="email"],
 input[type="password"],
 input[type="text"] {
     padding: 0.75rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--card-border);
     border-radius: 8px;
     font-size: 1rem;
     margin: 0.25rem;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--text-color);
 }
 
 button.action-btn {
@@ -306,21 +308,69 @@ button.action-btn:hover { opacity: 0.9; }
     transform: translateX(-50%) translateY(0);
 }
 
-/* Hats Page */
-.hats-btn {
+/* Cups Page */
+.cups-result-card {
+    padding: 2.5rem 3rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    display: inline-block;
+    min-width: 260px;
+}
+
+.cups-result-win {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.cups-result-win .cups-result-emoji {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+}
+
+.cups-result-win h2 {
+    font-size: 2rem;
+    color: #6ee7b7;
+    margin-bottom: 0.5rem;
+}
+
+.cups-result-win p {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.cups-result-neutral {
+    background: rgba(107, 114, 128, 0.3);
+    border-color: rgba(107, 114, 128, 0.4);
+}
+
+.cups-result-neutral h2 {
+    font-size: 1.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.5rem;
+}
+
+.cups-result-neutral p {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.cups-btn {
     width: 120px;
     height: 120px;
     font-size: 3rem;
     font-weight: bold;
-    border: 3px solid #ccc;
+    border: 2px solid var(--card-border);
     border-radius: var(--border-radius);
     background: var(--card-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: var(--text-color);
     cursor: pointer;
     transition: all 0.15s;
 }
 
-.hats-btn:hover:not(:disabled) {
+.cups-btn:hover:not(:disabled) {
     border-color: var(--primary);
     background: var(--primary);
     color: white;
@@ -328,27 +378,27 @@ button.action-btn:hover { opacity: 0.9; }
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
-.hats-btn:disabled {
+.cups-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
     transform: none;
 }
 
-.hats-btn.hats-selected {
+.cups-btn.hats-selected {
     border-color: var(--primary);
     background: var(--primary);
     color: white;
     opacity: 1;
 }
 
-.hats-btn.hats-correct {
+.cups-btn.hats-correct {
     border-color: var(--success);
     background: var(--success);
     color: white;
     opacity: 1;
 }
 
-.hats-btn.hats-wrong {
+.cups-btn.hats-wrong {
     border-color: var(--danger);
     background: var(--danger);
     color: white;
@@ -358,24 +408,28 @@ button.action-btn:hover { opacity: 0.9; }
 /* MODALS */
 /* The Modal (background) */
 .modal {
-  display: none; /* Hidden by default */
-  position: fixed; /* Stay in place */
-  z-index: 1; /* Sit on top */
-  padding-top: 100px; /* Location of the box */
+  display: none;
+  position: fixed;
+  z-index: 1;
+  padding-top: 100px;
   left: 0;
   top: 0;
-  width: 100%; /* Full width */
-  height: 100%; /* Full height */
-  overflow: auto; /* Enable scroll if needed */
-  background-color: var(--bg-color); /* Fallback color */
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* Modal Content */
 .modal-content {
-  background-color: #fefefe;
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid var(--card-border);
+  color: var(--text-color);
   margin: auto;
   padding: 20px;
-  border: 1px solid #888;
+  border-radius: var(--border-radius);
   width: 80%;
 }
 

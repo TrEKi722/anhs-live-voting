@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin — Cups</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+
+        <nav>
+            <a href="/admin">← Admin</a>
+        </nav>
+
+        <div id="adminDash" style="display: none; flex-direction: column; align-items: center; margin-top: 5rem; padding-top: 1rem;">
+            <h1>Cups</h1>
+            <div class="admin-panel" style="margin-top: 1rem;">
+                <h3>Game Controls</h3>
+                <button id="cups-start-btn" class="action-btn btn-primary" onclick="openModal('cupsStartModal')">Start Round</button>
+                <button id="cups-end-btn" class="action-btn btn-danger" onclick="cupsEndRound()" style="display: none;">End Round</button>
+                <button class="action-btn btn-danger" style="background: #000;" onclick="openModal('cupsResetModal')">Reset</button>
+
+                <div class="modal" id="cupsStartModal">
+                    <h1>Start Cups round</h1>
+                    <p style="margin-bottom: 20px;">Choose the correct cup. The round will open immediately.</p>
+                    <button class="action-btn btn-primary" onclick="cupsStartRound(1);closeModal('cupsStartModal');">Cup 1</button>
+                    <button class="action-btn btn-primary" onclick="cupsStartRound(2);closeModal('cupsStartModal');">Cup 2</button>
+                    <button class="action-btn btn-primary" onclick="cupsStartRound(3);closeModal('cupsStartModal');">Cup 3</button>
+                    <button class="action-btn btn-secondary" onclick="closeModal('cupsStartModal');">Cancel</button>
+                </div>
+
+                <div class="modal" id="cupsResetModal">
+                    <h1>Reset the cups round?</h1>
+                    <p style="margin-bottom: 20px;">This will clear all presses and the correct answer.</p>
+                    <button class="action-btn btn-secondary" onclick="closeModal('cupsResetModal');">Cancel</button>
+                    <button class="action-btn btn-danger" onclick="cupsReset();closeModal('cupsResetModal');">Yes, Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Application Logic -->
+        <script src="../common.js"></script>
+        <script src="../61646D696E64617368.js"></script>
+    </body>
+</html>
