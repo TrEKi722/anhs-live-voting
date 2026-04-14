@@ -585,6 +585,7 @@ function updateResults(counts = [], total = 0) {
         }
     });
 
+    const hText = document.getElementById('hidden-text');
     const lChart = document.getElementById('live-chart');
 
     if (hText && lChart) {
