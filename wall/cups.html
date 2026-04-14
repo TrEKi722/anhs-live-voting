@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Wall — Cups</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+
+        <div id="full-page" style="display: none; flex-direction: row-reverse;">
+            <div style="flex: 1; text-align: center; padding: 2rem;">
+                <div>
+                    <div id="cups-wall-badge" class="status-badge status-locked">Loading...</div>
+                </div>
+                <h1 id="playNow" style="margin-top: 1rem;"></h1>
+                <h1>Pick the right cup!</h1>
+
+                <div id="cups-wall-inactive" style="margin-top: 2rem; color: var(--text-muted); font-size: 1.2rem;">
+                    Waiting for round to start...
+                </div>
+
+                <div id="cups-wall-active" style="display: none; margin-top: 2rem;">
+                    <p style="font-size: 1.2rem; color: var(--text-muted);">Round is live — pick fast!</p>
+                    <div style="font-size: 5rem; font-weight: bold; margin: 1rem 0;" id="cups-wall-count">0</div>
+                    <p style="color: var(--text-muted); font-size: 1.1rem;">correct guesses so far</p>
+                </div>
+            </div>
+            <img src="" id="qr" alt="QR to cups game" style="height: fit-content; margin: 50px; align-self: center;">
+        </div>
+
+        <script src="../common.js"></script>
+        <script>
+            addEventListener("DOMContentLoaded", () => {
+                document.getElementById('playNow').textContent = 'Play @ ' + window.location.hostname;
+                document.getElementById('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' + window.location.hostname + '%2Fcups&size=500x500&color=fff&bgcolor=00000000&qzone=1';
+            });
+        </script>
+    </body>
+</html>

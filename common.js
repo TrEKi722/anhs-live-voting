@@ -38,6 +38,7 @@ let ngMyScore = 0;
 let ngCorrectSet = new Set();
 let ngLocalIndex = 0;
 let ngCountdownRaf = null; // requestAnimationFrame handle
+let ngWallCountdownRaf = null; // RAF handle for wall display
 
 // ==========================================
 // 2. Authentication & Initialization
@@ -60,7 +61,7 @@ async function initAuth(token) {
 
         // Guard: admin & wall pages require admin role
         const _p = window.location.pathname;
-        if ((_p === '/admin' || _p.startsWith('/admin/') || _p === '/wall') && !isAdmin) {
+        if ((_p === '/admin' || _p.startsWith('/admin/') || _p === '/wall' || _p.startsWith('/wall/')) && !isAdmin) {
             await logoutUser();
             showToast("Sending you to sign in page...");
             setTimeout(() => {
@@ -121,9 +122,30 @@ addEventListener("DOMContentLoaded", async (event) => {
         return;
     }
 
-    // Wall route
+    // Wall menu
     if (path === '/wall') {
         await initAuth(null);
+        if (isAdmin) {
+            const wallMenu = document.getElementById('wall-menu');
+            if (wallMenu) wallMenu.style.display = 'flex';
+        }
+        return;
+    }
+
+    // Wall sub-pages
+    if (path.startsWith('/wall/')) {
+        await initAuth(null);
+        if (path === '/wall/cups') {
+            await fetchCupsConfig();
+            setupCupsRealtime();
+            await initWallCups();
+        }
+        if (path === '/wall/ng') {
+            await fetchNameGameConfig();
+            setupNameGameRealtime();
+            initWallNG();
+        }
+        // /wall/vote uses fetchInitialData + setupRealtimeSubscriptions already called via initAuth
         return;
     }
 
@@ -461,9 +483,10 @@ function showToast(message) {
 function initalUIUpdate() {
     const path = window.location.pathname;
 
-    // Show #full-page for vote and wall routes
+    // Show #full-page for vote and wall sub-page routes
     const fPage = document.getElementById('full-page');
-    if (fPage) fPage.style.display = path === '/wall' ? 'flex' : 'block';
+    const wallFlexPaths = ['/wall/vote', '/wall/cups', '/wall/ng'];
+    if (fPage) fPage.style.display = wallFlexPaths.includes(path) ? 'flex' : 'block';
 
     // Show #adminDash for admin sub-pages
     const adminDash = document.getElementById('adminDash');
@@ -745,6 +768,7 @@ function setupCupsRealtime() {
             cupsCorrectOption = newCorrectOption;
             updateCupsUI();
             if (typeof updateCupsAdminUI === 'function') updateCupsAdminUI();
+            if (typeof updateWallCupsUI === 'function') updateWallCupsUI();
         })
         .subscribe();
 }
@@ -1019,6 +1043,7 @@ function setupNameGameRealtime() {
 
             updateNameGameUI();
             if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
+            if (typeof updateWallNGUI === 'function') updateWallNGUI();
         })
         .subscribe();
 }
@@ -1080,4 +1105,164 @@ window.submitNGAnswer = async function() {
         input.value = '';
         input.focus();
     }
+}
+
+// ==========================================
+// 8. Wall — Cups Display
+// ==========================================
+
+async function initWallCups() {
+    await updateWallCupsUI();
+    setupWallCupsRealtime();
+}
+
+async function updateWallCupsUI() {
+    const badge = document.getElementById('cups-wall-badge');
+    const inactiveDiv = document.getElementById('cups-wall-inactive');
+    const activeDiv = document.getElementById('cups-wall-active');
+    const countEl = document.getElementById('cups-wall-count');
+
+    if (!badge) return;
+
+    if (cupsIsActive) {
+        badge.textContent = 'Round is live!';
+        badge.className = 'status-badge status-open';
+        if (inactiveDiv) inactiveDiv.style.display = 'none';
+        if (activeDiv) activeDiv.style.display = 'block';
+
+        if (cupsCorrectOption !== null && countEl) {
+            const { count } = await supabaseC
+                .from('hats_presses')
+                .select('*', { count: 'exact', head: true })
+                .eq('choice', cupsCorrectOption);
+            countEl.textContent = count || 0;
+        }
+    } else {
+        badge.textContent = 'Waiting for round to start...';
+        badge.className = 'status-badge status-locked';
+        if (inactiveDiv) inactiveDiv.style.display = 'block';
+        if (activeDiv) activeDiv.style.display = 'none';
+    }
+}
+
+function setupWallCupsRealtime() {
+    supabaseC
+        .channel('wall-cups-presses')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hats_presses' }, () => {
+            updateWallCupsUI();
+        })
+        .subscribe();
+}
+
+// ==========================================
+// 9. Wall — Name Game Display
+// ==========================================
+
+function initWallNG() {
+    updateWallNGUI();
+}
+
+function updateWallNGUI() {
+    const badge = document.getElementById('ng-wall-badge');
+    const inactiveDiv = document.getElementById('ng-wall-inactive');
+    const activeDiv = document.getElementById('ng-wall-active');
+    const doneDiv = document.getElementById('ng-wall-done');
+
+    if (!badge) return;
+
+    if (ngWallCountdownRaf) {
+        cancelAnimationFrame(ngWallCountdownRaf);
+        ngWallCountdownRaf = null;
+    }
+
+    if (ngIsActive && ngRoundStartTime) {
+        const elapsed = Date.now() - ngRoundStartTime;
+        const totalMs = ngDurationSeconds * 1000;
+
+        if (elapsed < totalMs) {
+            badge.textContent = 'Round is live!';
+            badge.className = 'status-badge status-open';
+            if (inactiveDiv) inactiveDiv.style.display = 'none';
+            if (doneDiv) doneDiv.style.display = 'none';
+            if (activeDiv) {
+                activeDiv.style.display = 'block';
+                startWallNGCountdown();
+            }
+            return;
+        }
+    }
+
+    if (!ngIsActive && ngRoundStartTime) {
+        // Round ended — show leaderboard
+        badge.textContent = "Time's up!";
+        badge.className = 'status-badge status-locked';
+        if (inactiveDiv) inactiveDiv.style.display = 'none';
+        if (activeDiv) activeDiv.style.display = 'none';
+        if (doneDiv) {
+            doneDiv.style.display = 'block';
+            loadWallNGLeaderboard();
+        }
+        return;
+    }
+
+    // Inactive, no round yet
+    badge.textContent = 'Waiting for round to start...';
+    badge.className = 'status-badge status-locked';
+    if (inactiveDiv) inactiveDiv.style.display = 'block';
+    if (activeDiv) activeDiv.style.display = 'none';
+    if (doneDiv) doneDiv.style.display = 'none';
+}
+
+function startWallNGCountdown() {
+    const bar = document.getElementById('ng-wall-timer-bar');
+    const timerText = document.getElementById('ng-wall-timer-text');
+    if (!bar) return;
+
+    function tick() {
+        const elapsed = Date.now() - ngRoundStartTime;
+        const totalMs = ngDurationSeconds * 1000;
+        const remaining = Math.max(0, totalMs - elapsed);
+        const pct = (remaining / totalMs) * 100;
+
+        bar.style.width = pct + '%';
+        bar.classList.remove('ng-timer-warning', 'ng-timer-danger');
+        if (pct <= 20) bar.classList.add('ng-timer-danger');
+        else if (pct <= 40) bar.classList.add('ng-timer-warning');
+
+        const secs = Math.ceil(remaining / 1000);
+        if (timerText) timerText.textContent = secs + 's';
+
+        if (remaining <= 0) {
+            updateWallNGUI();
+            return;
+        }
+        ngWallCountdownRaf = requestAnimationFrame(tick);
+    }
+    ngWallCountdownRaf = requestAnimationFrame(tick);
+}
+
+async function loadWallNGLeaderboard() {
+    const table = document.getElementById('ng-wall-leaderboard');
+    if (!table) return;
+    table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">Loading...</td></tr>';
+
+    const { data: scores } = await supabaseC
+        .from('name_game_scores')
+        .select('display_name, score')
+        .order('score', { ascending: false })
+        .limit(5);
+
+    if (!scores || scores.length === 0) {
+        table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">No scores yet.</td></tr>';
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+    table.innerHTML = scores.map((row, i) => `
+        <tr style="border-bottom: 1px solid var(--card-border);">
+            <td style="padding: 0.75rem; font-size: 1.5rem;">${medals[i] || (i + 1) + '.'}</td>
+            <td style="padding: 0.75rem; text-align: left;">${row.display_name || 'Anonymous'}</td>
+            <td style="padding: 0.75rem; font-weight: bold;">${row.score}</td>
+        </tr>
+    `).join('');
 }

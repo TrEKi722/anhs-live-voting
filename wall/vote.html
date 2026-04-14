@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Wall — Vote</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+
+        <div id="full-page" style="display: none; flex-direction: row-reverse;">
+            <div>
+                <div style="text-align: center;">
+                    <div id="locked-status-badge" class="status-badge status-open">Loading status...</div>
+                </div>
+                <h1 id="voteNow">Vote now @ *domain*</h1>
+                <h1 id="question">Loading...</h1>
+                <div class="chart-container" id="live-chart">
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option1">SOPHOMORES</span> <span id="pct-1">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-1"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option2">JUNIORS</span> <span id="pct-2">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-2"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span id="option3">SENIORS</span> <span id="pct-3">0%</span></div>
+                        <div class="bar-track"><div class="bar-fill" id="bar-3"></div></div>
+                    </div>
+
+                    <div class="total-participants">
+                        Total Votes: <span id="total-count">0</span>
+                    </div>
+                </div>
+                <h1 id="hiddenText" style="display:none;">🙈 RESULTS HIDDEN 🙈</h1>
+            </div>
+            <img src="" id="qr" alt="QR to voting site" style="height: fit-content; margin: 50px; align-self: center;">
+        </div>
+
+        <script src="../common.js"></script>
+        <script>
+            addEventListener("DOMContentLoaded", () => {
+                document.getElementById('voteNow').textContent = 'Vote now @ ' + window.location.hostname;
+                document.getElementById('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' + window.location.hostname + '&size=500x500&color=fff&bgcolor=00000000&qzone=1';
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Wall — Name Game</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+
+        <div id="full-page" style="display: none; flex-direction: row-reverse;">
+            <div style="flex: 1; text-align: center; padding: 2rem;">
+                <div>
+                    <div id="ng-wall-badge" class="status-badge status-locked">Loading...</div>
+                </div>
+                <h1 id="playNow" style="margin-top: 1rem;"></h1>
+
+                <!-- Inactive -->
+                <div id="ng-wall-inactive" style="margin-top: 2rem; color: var(--text-muted); font-size: 1.2rem;">
+                    Waiting for round to start...
+                </div>
+
+                <!-- Active: big countdown timer -->
+                <div id="ng-wall-active" style="display: none; margin-top: 2rem;">
+                    <div class="ng-timer-track" style="max-width: 600px; margin: 0 auto 1.5rem;">
+                        <div id="ng-wall-timer-bar" class="ng-timer-bar"></div>
+                    </div>
+                    <div id="ng-wall-timer-text" style="font-size: 4rem; font-weight: bold;"></div>
+                    <p style="margin-top: 1rem; color: var(--text-muted); font-size: 1.2rem;">Name as many images as you can!</p>
+                </div>
+
+                <!-- Done: leaderboard -->
+                <div id="ng-wall-done" style="display: none; margin-top: 2rem;">
+                    <h2 style="margin-bottom: 1.5rem;">🏆 Top 5</h2>
+                    <table id="ng-wall-leaderboard" style="width: 100%; max-width: 500px; margin: 0 auto; border-collapse: collapse; font-size: 1.3rem;"></table>
+                </div>
+            </div>
+            <img src="" id="qr" alt="QR to name game" style="height: fit-content; margin: 50px; align-self: center;">
+        </div>
+
+        <script src="../common.js"></script>
+        <script>
+            addEventListener("DOMContentLoaded", () => {
+                document.getElementById('playNow').textContent = 'Play @ ' + window.location.hostname;
+                document.getElementById('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' + window.location.hostname + '%2Fname-game&size=500x500&color=fff&bgcolor=00000000&qzone=1';
+            });
+        </script>
+    </body>
+</html>
