@@ -622,7 +622,7 @@ async function initCups() {
     if (currentUser) {
         const { data: press } = await supabaseC
             .from('hats_presses')
-            .select('choice, created_at')
+            .select('choice, timestamp')
             .eq('user_id', currentUser.id)
             .maybeSingle();
 
@@ -633,7 +633,7 @@ async function initCups() {
                     .from('hats_presses')
                     .select('*', { count: 'exact', head: true })
                     .eq('choice', cupsCorrectOption)
-                    .lte('created_at', press.created_at);
+                    .lte('timestamp', press.timestamp);
                 cupsMyRank = count;
             }
         }
@@ -738,7 +738,7 @@ window.pressCup = async function(option) {
         const { data: myPress, error } = await supabaseC
             .from('hats_presses')
             .insert({ user_id: currentUser.id, choice: option })
-            .select('created_at')
+            .select('timestamp')
             .single();
 
         if (error) throw error;
@@ -750,7 +750,7 @@ window.pressCup = async function(option) {
                 .from('hats_presses')
                 .select('*', { count: 'exact', head: true })
                 .eq('choice', cupsCorrectOption)
-                .lte('created_at', myPress.created_at);
+                .lte('timestamp', myPress.timestamp);
             cupsMyRank = count;
         } else {
             cupsMyRank = null;
