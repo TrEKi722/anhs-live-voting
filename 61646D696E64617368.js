@@ -387,12 +387,8 @@ window.removeAdmin = async function(emailElementId) {
 // Name Game Admin
 // ==========================================
 
-let ngStopTimer = null;
-let ngStopCountdownInterval = null;
-
 function updateNGAdminUI() {
     const startBtn = document.getElementById('ng-start-btn');
-    const stopBtn = document.getElementById('ng-stop-btn');
     const setup = document.getElementById('ng-setup');
     if (!startBtn) return;
 
@@ -419,29 +415,10 @@ function updateNGAdminUI() {
 
     if (ngIsActive) {
         startBtn.style.display = 'none';
-        if (stopBtn) stopBtn.style.display = 'inline-block';
         if (setup) setup.style.opacity = '0.5';
-
-        if (ngRoundEndTime) {
-            // Stop was triggered — show countdown and resume timeout if needed
-            const remaining = Math.max(0, Math.ceil((ngRoundEndTime - Date.now()) / 1000));
-            if (stopBtn) { stopBtn.textContent = `Ending in ${remaining}s...`; stopBtn.disabled = true; }
-
-            if (!ngStopTimer) {
-                const ms = Math.max(0, ngRoundEndTime - Date.now());
-                ngStopTimer = setTimeout(_ngFinishStop, ms);
-                if (!ngStopCountdownInterval) {
-                    ngStopCountdownInterval = setInterval(updateNGAdminUI, 1000);
-                }
-            }
-        } else {
-            if (stopBtn) { stopBtn.textContent = 'Stop Round'; stopBtn.disabled = false; }
-        }
     } else {
         startBtn.style.display = 'inline-block';
-        if (stopBtn) stopBtn.style.display = 'none';
         if (setup) setup.style.opacity = '1';
-        if (ngStopCountdownInterval) { clearInterval(ngStopCountdownInterval); ngStopCountdownInterval = null; }
     }
 }
 
@@ -501,36 +478,6 @@ window.ngStartRound = async function() {
     }
 }
 
-window.ngStopRound = async function() {
-    if (!isAdmin) return;
-    const endTime = new Date(Date.now() + 5000).toISOString();
-    try {
-        const { error } = await supabaseC
-            .from('name_game_config')
-            .update({ round_end_time: endTime })
-            .eq('id', 'main');
-        if (error) throw error;
-        showToast("Stopping in 5 seconds...");
-        ngStopTimer = setTimeout(_ngFinishStop, 5000);
-        ngStopCountdownInterval = setInterval(updateNGAdminUI, 1000);
-    } catch (e) {
-        showToast("Error stopping round.");
-    }
-}
-
-async function _ngFinishStop() {
-    clearInterval(ngStopCountdownInterval);
-    ngStopCountdownInterval = null;
-    ngStopTimer = null;
-    try {
-        await supabaseC
-            .from('name_game_config')
-            .update({ is_active: false, round_end_time: null })
-            .eq('id', 'main');
-    } catch (e) {
-        console.error("Error finishing stop:", e);
-    }
-}
 
 window.ngReset = async function() {
     if (!isAdmin) return;
@@ -540,9 +487,6 @@ window.ngReset = async function() {
             .delete()
             .neq('user_id', '00000000-0000-0000-0000-000000000000');
         if (scoresErr) throw scoresErr;
-
-        if (ngStopTimer) { clearTimeout(ngStopTimer); ngStopTimer = null; }
-        if (ngStopCountdownInterval) { clearInterval(ngStopCountdownInterval); ngStopCountdownInterval = null; }
 
         const { error: cfgErr } = await supabaseC
             .from('name_game_config')
