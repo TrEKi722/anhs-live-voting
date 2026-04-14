@@ -28,6 +28,17 @@ let cupsCorrectOption = null;
 let cupsMyPress = null;
 let cupsMyRank = null; // rank among correct presses (1/2/3/4+), null if wrong or no press
 
+// Name Game state
+let ngIsActive = false;
+let ngImageSet = null;
+let ngImageOrder = [];
+let ngDurationSeconds = 10;
+let ngRoundStartTime = null;
+let ngMyScore = 0;
+let ngCorrectSet = new Set();
+let ngLocalIndex = 0;
+let ngCountdownRaf = null; // requestAnimationFrame handle
+
 // ==========================================
 // 2. Authentication & Initialization
 // ==========================================
@@ -102,6 +113,11 @@ addEventListener("DOMContentLoaded", async (event) => {
             setupCupsRealtime();
             if (typeof updateCupsAdminUI === 'function') updateCupsAdminUI();
         }
+        if (path === '/admin/name-game') {
+            await fetchNameGameConfig();
+            setupNameGameRealtime();
+            if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
+        }
         return;
     }
 
@@ -133,6 +149,17 @@ addEventListener("DOMContentLoaded", async (event) => {
             await initCups();
         } else {
             window.location.href = '/?redirect=/cups';
+        }
+        return;
+    }
+
+    // Name Game route - requires auth, redirect to home if not signed in
+    if (path === '/name-game' || path === '/name-game.html') {
+        if (session) {
+            await initAuth(null);
+            await initNameGame();
+        } else {
+            window.location.href = '/?redirect=/name-game';
         }
         return;
     }
@@ -764,5 +791,293 @@ window.pressCup = async function(option) {
             const btn = document.getElementById(`cups-btn-${n}`);
             if (btn) btn.disabled = false;
         });
+    }
+}
+
+// ==========================================
+// 7. Name Game
+// ==========================================
+
+async function fetchNameGameConfig() {
+    const { data: config } = await supabaseC
+        .from('name_game_config')
+        .select('*')
+        .eq('id', 'main')
+        .single();
+    if (config) {
+        ngIsActive = config.is_active;
+        ngImageSet = config.image_set;
+        ngImageOrder = config.image_order || [];
+        ngDurationSeconds = config.round_duration_seconds || 10;
+        ngRoundStartTime = config.round_start_time ? new Date(config.round_start_time).getTime() : null;
+    }
+}
+
+async function initNameGame() {
+    await fetchNameGameConfig();
+
+    // Restore existing score if mid-round or round just ended
+    if (currentUser) {
+        const { data: scoreRow } = await supabaseC
+            .from('name_game_scores')
+            .select('score')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+        if (scoreRow) ngMyScore = scoreRow.score;
+    }
+
+    updateNameGameUI();
+    setupNameGameRealtime();
+
+    const fullPage = document.getElementById('full-page');
+    if (fullPage) fullPage.style.display = 'flex';
+
+    // Realtime may have fired before init completed; call updateNameGameUI again after load
+    updateNameGameUI();
+}
+
+function updateNameGameUI() {
+    const inactiveDiv = document.getElementById('ng-inactive');
+    const playDiv = document.getElementById('ng-play');
+    const doneDiv = document.getElementById('ng-done');
+
+    if (!inactiveDiv) return;
+
+    // Cancel any running countdown
+    if (ngCountdownRaf) {
+        cancelAnimationFrame(ngCountdownRaf);
+        ngCountdownRaf = null;
+    }
+
+    if (!ngIsActive || !ngRoundStartTime) {
+        // Check if round just ended and user has a score to show
+        if (!ngIsActive && ngMyScore > 0 && doneDiv) {
+            inactiveDiv.style.display = 'none';
+            if (playDiv) playDiv.style.display = 'none';
+            doneDiv.style.display = 'block';
+            showNGFinalScore();
+            return;
+        }
+        inactiveDiv.style.display = 'block';
+        if (playDiv) playDiv.style.display = 'none';
+        if (doneDiv) doneDiv.style.display = 'none';
+        return;
+    }
+
+    const elapsed = Date.now() - ngRoundStartTime;
+    const totalMs = ngDurationSeconds * 1000;
+
+    if (elapsed >= totalMs) {
+        // Time already up
+        inactiveDiv.style.display = 'none';
+        if (playDiv) playDiv.style.display = 'none';
+        if (doneDiv) {
+            doneDiv.style.display = 'block';
+            showNGFinalScore();
+        }
+        return;
+    }
+
+    // Show play state
+    inactiveDiv.style.display = 'none';
+    if (doneDiv) doneDiv.style.display = 'none';
+    if (playDiv) {
+        playDiv.style.display = 'block';
+        showNGCurrentImage();
+        startNGCountdown();
+    }
+}
+
+function showNGCurrentImage() {
+    if (!NAME_GAME_SETS || !ngImageSet || !NAME_GAME_SETS[ngImageSet]) return;
+    const images = NAME_GAME_SETS[ngImageSet].images;
+    if (ngLocalIndex >= ngImageOrder.length) {
+        // Finished all images before time ran out — go to done screen
+        ngGameOver();
+        return;
+    }
+    const imgIdx = ngImageOrder[ngLocalIndex];
+    const imgEl = document.getElementById('ng-image');
+    if (imgEl && images[imgIdx]) imgEl.src = images[imgIdx].path;
+
+    const scoreEl = document.getElementById('ng-score-display');
+    if (scoreEl) scoreEl.textContent = `Score: ${ngMyScore}`;
+
+    const input = document.getElementById('ng-input');
+    if (input) { input.value = ''; input.focus(); }
+}
+
+function startNGCountdown() {
+    const bar = document.getElementById('ng-timer-bar');
+    const timerText = document.getElementById('ng-timer-text');
+    if (!bar) return;
+
+    function tick() {
+        const elapsed = Date.now() - ngRoundStartTime;
+        const totalMs = ngDurationSeconds * 1000;
+        const remaining = Math.max(0, totalMs - elapsed);
+        const pct = (remaining / totalMs) * 100;
+
+        bar.style.width = pct + '%';
+        bar.classList.remove('ng-timer-warning', 'ng-timer-danger');
+        if (pct <= 20) bar.classList.add('ng-timer-danger');
+        else if (pct <= 40) bar.classList.add('ng-timer-warning');
+
+        const secs = Math.ceil(remaining / 1000);
+        if (timerText) timerText.textContent = secs + 's';
+
+        if (remaining <= 0) {
+            ngGameOver();
+            return;
+        }
+        ngCountdownRaf = requestAnimationFrame(tick);
+    }
+    ngCountdownRaf = requestAnimationFrame(tick);
+}
+
+function ngGameOver() {
+    if (ngCountdownRaf) { cancelAnimationFrame(ngCountdownRaf); ngCountdownRaf = null; }
+    const playDiv = document.getElementById('ng-play');
+    const doneDiv = document.getElementById('ng-done');
+    if (playDiv) playDiv.style.display = 'none';
+    if (doneDiv) {
+        doneDiv.style.display = 'block';
+        showNGFinalScore();
+    }
+}
+
+async function showNGFinalScore() {
+    const finalEl = document.getElementById('ng-final-score');
+    if (finalEl) finalEl.textContent = `You got ${ngMyScore} right!`;
+
+    const table = document.getElementById('ng-leaderboard');
+    if (!table) return;
+    table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;">Loading...</td></tr>';
+
+    const { data: scores } = await supabaseC
+        .from('name_game_scores')
+        .select('display_name, score')
+        .order('score', { ascending: false })
+        .limit(5);
+
+    if (!scores || scores.length === 0) {
+        table.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;">No scores yet.</td></tr>';
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+    table.innerHTML = scores.map((row, i) => `
+        <tr>
+            <td style="font-size:1.3rem;">${medals[i] || (i + 1) + '.'}</td>
+            <td>${row.display_name || 'Anonymous'}</td>
+            <td>${row.score}</td>
+        </tr>
+    `).join('');
+}
+
+function showNGFeedback(type, message) {
+    const el = document.getElementById('ng-feedback');
+    if (!el) return;
+    el.textContent = message;
+    el.className = `ng-feedback ng-feedback-show ng-${type}`;
+    clearTimeout(el._timeout);
+    el._timeout = setTimeout(() => {
+        el.classList.remove('ng-feedback-show');
+    }, type === 'correct' ? 600 : 1000);
+}
+
+function setupNameGameRealtime() {
+    supabaseC
+        .channel('name-game-config-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'name_game_config' }, async payload => {
+            if (!payload.new) return;
+            const wasActive = ngIsActive;
+            const newActive = payload.new.is_active;
+            const newSet = payload.new.image_set ?? null;
+
+            // Round reset — clear local state
+            if (!newActive && newSet === null) {
+                ngMyScore = 0;
+                ngCorrectSet = new Set();
+                ngLocalIndex = 0;
+            }
+
+            ngIsActive = newActive;
+            ngImageSet = newSet;
+            ngImageOrder = payload.new.image_order || [];
+            ngDurationSeconds = payload.new.round_duration_seconds || 10;
+            ngRoundStartTime = payload.new.round_start_time
+                ? new Date(payload.new.round_start_time).getTime()
+                : null;
+
+            // Fresh round start — reset local game state
+            if (!wasActive && newActive) {
+                ngMyScore = 0;
+                ngCorrectSet = new Set();
+                ngLocalIndex = 0;
+            }
+
+            updateNameGameUI();
+            if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
+        })
+        .subscribe();
+}
+
+window.submitNGAnswer = async function() {
+    if (!ngIsActive || !ngRoundStartTime) return;
+    if (Date.now() - ngRoundStartTime >= ngDurationSeconds * 1000) return;
+
+    const input = document.getElementById('ng-input');
+    if (!input) return;
+    const answer = input.value.trim().toLowerCase();
+    if (!answer) return;
+
+    const images = NAME_GAME_SETS?.[ngImageSet]?.images;
+    if (!images) return;
+
+    const imgIdx = ngImageOrder[ngLocalIndex];
+    const imageData = images[imgIdx];
+    if (!imageData) return;
+
+    // Already answered this image correctly (shouldn't normally happen, but guard it)
+    if (ngCorrectSet.has(ngLocalIndex)) {
+        ngLocalIndex++;
+        showNGCurrentImage();
+        return;
+    }
+
+    const isCorrect = imageData.answers
+        .map(a => a.toLowerCase())
+        .includes(answer);
+
+    if (isCorrect) {
+        ngCorrectSet.add(ngLocalIndex);
+        ngMyScore++;
+        showNGFeedback('correct', '✓ Correct!');
+
+        // Upsert score to DB
+        const displayName = currentUser?.user_metadata?.full_name
+            || currentUser?.user_metadata?.name
+            || currentUser?.email
+            || 'Anonymous';
+        await supabaseC.from('name_game_scores').upsert({
+            user_id: currentUser.id,
+            display_name: displayName,
+            score: ngMyScore
+        });
+
+        const scoreEl = document.getElementById('ng-score-display');
+        if (scoreEl) scoreEl.textContent = `Score: ${ngMyScore}`;
+
+        ngLocalIndex++;
+        if (ngLocalIndex >= ngImageOrder.length) {
+            setTimeout(ngGameOver, 500);
+        } else {
+            setTimeout(showNGCurrentImage, 400);
+        }
+    } else {
+        showNGFeedback('wrong', '✗ Try again');
+        input.value = '';
+        input.focus();
     }
 }

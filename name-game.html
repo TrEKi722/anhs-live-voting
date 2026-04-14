@@ -1,0 +1,81 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ANHS Live Polling - Name Game</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+
+        <div id="full-page" style="display: none; flex-direction: column; width: 100%; max-width: 600px;">
+
+            <!-- State 1: Waiting -->
+            <div id="ng-inactive" style="text-align: center; padding: 2rem;">
+                <div class="status-badge status-locked">Waiting for round to start...</div>
+                <p style="margin-top: 1.5rem; color: var(--text-muted); font-size: 1.1rem;">Get ready to name as many images as you can!</p>
+            </div>
+
+            <!-- State 2: Playing -->
+            <div id="ng-play" style="display: none; text-align: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div class="status-badge status-open" style="margin: 0;">Round active</div>
+                    <span id="ng-score-display" style="font-weight: bold; font-size: 1rem;">Score: 0</span>
+                </div>
+
+                <!-- Timer bar -->
+                <div class="ng-timer-track">
+                    <div id="ng-timer-bar" class="ng-timer-bar"></div>
+                </div>
+                <div id="ng-timer-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;"></div>
+
+                <!-- Image -->
+                <div class="ng-image-container">
+                    <img id="ng-image" src="" alt="Name this!" />
+                </div>
+
+                <!-- Feedback -->
+                <div id="ng-feedback" class="ng-feedback"></div>
+
+                <!-- Input -->
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <input
+                        type="text"
+                        id="ng-input"
+                        class="ng-input"
+                        placeholder="Type your answer..."
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        onkeydown="if(event.key==='Enter') submitNGAnswer()"
+                    >
+                    <button class="action-btn btn-primary" onclick="submitNGAnswer()" style="white-space: nowrap;">Submit</button>
+                </div>
+            </div>
+
+            <!-- State 3: Done -->
+            <div id="ng-done" style="display: none; text-align: center;">
+                <div class="status-badge status-locked" style="margin-bottom: 1rem;">Time's up!</div>
+                <h2 id="ng-final-score" style="font-size: 2rem; margin-bottom: 0.5rem;"></h2>
+                <p style="color: var(--text-muted); margin-bottom: 2rem;">Great effort!</p>
+                <div class="admin-panel" style="padding: 1.5rem;">
+                    <h3 style="margin-bottom: 1rem;">🏆 Top 5</h3>
+                    <table id="ng-leaderboard" style="width: 100%; border-collapse: collapse;"></table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Application Logic -->
+        <script src="name-game-data.js"></script>
+        <script src="common.js"></script>
+    </body>
+</html>

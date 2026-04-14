@@ -7,6 +7,7 @@
 // ==========================================
 function updateAdminUI() {
     updateCupsAdminUI();
+    if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
     const lockBtn = document.getElementById('toggle-lock-btn');
     const hideBtn = document.getElementById('toggle-hide-btn');
     
@@ -379,5 +380,128 @@ window.removeAdmin = async function(emailElementId) {
     } catch (err) {
         console.error("Error removing admin:", err);
         showToast("Error removing admin. Check console.");
+    }
+}
+
+// ==========================================
+// Name Game Admin
+// ==========================================
+
+function updateNGAdminUI() {
+    const startBtn = document.getElementById('ng-start-btn');
+    const endBtn = document.getElementById('ng-end-btn');
+    const setup = document.getElementById('ng-setup');
+    if (!startBtn) return;
+
+    // Populate set select if empty
+    const select = document.getElementById('ng-set-select');
+    if (select && select.options.length === 0 && typeof NAME_GAME_SETS !== 'undefined') {
+        Object.entries(NAME_GAME_SETS).forEach(([key, set]) => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = set.name;
+            select.appendChild(opt);
+        });
+    }
+
+    // Pre-fill duration from current config
+    const durationInput = document.getElementById('ng-duration-input');
+    if (durationInput && ngDurationSeconds) {
+        durationInput.value = ngDurationSeconds;
+    }
+
+    if (ngIsActive) {
+        startBtn.style.display = 'none';
+        endBtn.style.display = 'inline-block';
+        if (setup) setup.style.opacity = '0.5';
+    } else {
+        startBtn.style.display = 'inline-block';
+        endBtn.style.display = 'none';
+        if (setup) setup.style.opacity = '1';
+    }
+}
+
+// Called when admin clicks "Start Round" to populate the confirm modal
+window.ngPrepareStart = function() {
+    const select = document.getElementById('ng-set-select');
+    const durationInput = document.getElementById('ng-duration-input');
+    if (!select?.value) return;
+    const setKey = select.value;
+    const duration = parseInt(durationInput?.value) || 10;
+    const imageCount = NAME_GAME_SETS[setKey]?.images?.length ?? 0;
+    const confirmText = document.getElementById('ng-start-confirm-text');
+    if (confirmText) {
+        confirmText.textContent = `Set: "${NAME_GAME_SETS[setKey].name}" · ${imageCount} images · ${duration}s`;
+    }
+}
+
+window.ngStartRound = async function() {
+    if (!isAdmin) return;
+    const select = document.getElementById('ng-set-select');
+    const durationInput = document.getElementById('ng-duration-input');
+    if (!select || !select.value) return showToast("Please select an image set.");
+
+    const setKey = select.value;
+    const duration = parseInt(durationInput?.value) || 10;
+    const imageCount = NAME_GAME_SETS[setKey]?.images?.length ?? 0;
+    if (imageCount === 0) return showToast("Selected set has no images.");
+
+    // Fisher-Yates shuffle
+    const indices = Array.from({ length: imageCount }, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+
+    try {
+        const { error } = await supabaseC
+            .from('name_game_config')
+            .update({
+                is_active: true,
+                image_set: setKey,
+                image_order: indices,
+                round_duration_seconds: duration,
+                round_start_time: new Date().toISOString()
+            })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast("Name Game round started!");
+    } catch (e) {
+        showToast("Error starting round.");
+    }
+}
+
+window.ngEndRound = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error } = await supabaseC
+            .from('name_game_config')
+            .update({ is_active: false })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast("Round ended.");
+    } catch (e) {
+        showToast("Error ending round.");
+    }
+}
+
+window.ngReset = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error: scoresErr } = await supabaseC
+            .from('name_game_scores')
+            .delete()
+            .neq('user_id', '00000000-0000-0000-0000-000000000000');
+        if (scoresErr) throw scoresErr;
+
+        const { error: cfgErr } = await supabaseC
+            .from('name_game_config')
+            .update({ is_active: false, image_set: null, image_order: null, round_start_time: null })
+            .eq('id', 'main');
+        if (cfgErr) throw cfgErr;
+
+        showToast("Name Game reset!");
+    } catch (e) {
+        showToast("Error resetting Name Game.");
     }
 }

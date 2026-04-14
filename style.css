@@ -447,3 +447,104 @@ button.action-btn:hover { opacity: 0.9; }
   text-decoration: none;
   cursor: pointer;
 }
+
+/* Name Game */
+.ng-timer-track {
+    width: 100%;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+
+.ng-timer-bar {
+    height: 100%;
+    width: 100%;
+    background: var(--primary);
+    border-radius: 999px;
+    transition: background 0.3s;
+}
+
+.ng-timer-bar.ng-timer-warning {
+    background: #f59e0b;
+}
+
+.ng-timer-bar.ng-timer-danger {
+    background: var(--danger);
+}
+
+.ng-image-container {
+    width: 100%;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    max-height: 60vh;
+}
+
+#ng-image {
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    display: block;
+}
+
+.ng-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+.ng-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.ng-feedback {
+    min-height: 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-top: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.ng-feedback.ng-feedback-show {
+    opacity: 1;
+}
+
+.ng-feedback.ng-correct {
+    color: var(--success);
+}
+
+.ng-feedback.ng-wrong {
+    color: var(--danger);
+}
+
+.ng-feedback.ng-timeout {
+    color: var(--text-muted);
+}
+
+#ng-leaderboard tr {
+    border-bottom: 1px solid var(--card-border);
+}
+
+#ng-leaderboard td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+#ng-leaderboard td:last-child {
+    text-align: right;
+    font-weight: bold;
+    color: var(--primary);
+}
