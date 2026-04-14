@@ -39,6 +39,8 @@ let ngCorrectSet = new Set();
 let ngLocalIndex = 0;
 let ngCountdownRaf = null; // requestAnimationFrame handle
 let ngWallCountdownRaf = null; // RAF handle for wall display
+let ngLocalStartTime = null; // per-player timer start (from page load / round join)
+let ngRoundEndTime = null; // admin-set forced end timestamp (for 5s stop countdown)
 
 // ==========================================
 // 2. Authentication & Initialization
@@ -93,6 +95,9 @@ addEventListener("DOMContentLoaded", async (event) => {
     const { data: { session } } = await supabaseC.auth.getSession();
     const authCon = document.getElementById('auth-container');
     const path = window.location.pathname;
+
+    // random background every page load
+    document.body.style.backgroundImage = "url('/media/backgrounds/' + Math.floor(Math.random() * 10 + 1) + '.jpg')";
 
     // /admin menu — auth required, no admin JS loaded here
     if (path === '/admin') {
@@ -581,7 +586,6 @@ function updateResults(counts = [], total = 0) {
         }
     });
 
-    const hText = document.getElementById('hiddenText');
     const lChart = document.getElementById('live-chart');
 
     if (hText && lChart) {
@@ -834,6 +838,7 @@ async function fetchNameGameConfig() {
         ngImageOrder = config.image_order || [];
         ngDurationSeconds = config.round_duration_seconds || 10;
         ngRoundStartTime = config.round_start_time ? new Date(config.round_start_time).getTime() : null;
+        ngRoundEndTime = config.round_end_time ? new Date(config.round_end_time).getTime() : null;
     }
 }
 
@@ -888,21 +893,24 @@ function updateNameGameUI() {
         return;
     }
 
-    const elapsed = Date.now() - ngRoundStartTime;
-    const totalMs = ngDurationSeconds * 1000;
-
-    if (elapsed >= totalMs) {
-        // Time already up
+    // Check if admin forced the round to end
+    if (ngRoundEndTime && Date.now() >= ngRoundEndTime) {
         inactiveDiv.style.display = 'none';
         if (playDiv) playDiv.style.display = 'none';
-        if (doneDiv) {
-            doneDiv.style.display = 'block';
-            showNGFinalScore();
-        }
+        if (doneDiv) { doneDiv.style.display = 'block'; showNGFinalScore(); }
         return;
     }
 
-    // Show play state
+    // Check if this player's own timer has already expired
+    if (ngLocalStartTime && Date.now() - ngLocalStartTime >= ngDurationSeconds * 1000) {
+        inactiveDiv.style.display = 'none';
+        if (playDiv) playDiv.style.display = 'none';
+        if (doneDiv) { doneDiv.style.display = 'block'; showNGFinalScore(); }
+        return;
+    }
+
+    // Show play state — start player's timer on first entry
+    if (!ngLocalStartTime) ngLocalStartTime = Date.now();
     inactiveDiv.style.display = 'none';
     if (doneDiv) doneDiv.style.display = 'none';
     if (playDiv) {
@@ -934,13 +942,19 @@ function showNGCurrentImage() {
 function startNGCountdown() {
     const bar = document.getElementById('ng-timer-bar');
     const timerText = document.getElementById('ng-timer-text');
-    if (!bar) return;
+    if (!bar || !ngLocalStartTime) return;
 
     function tick() {
-        const elapsed = Date.now() - ngRoundStartTime;
-        const totalMs = ngDurationSeconds * 1000;
-        const remaining = Math.max(0, totalMs - elapsed);
-        const pct = (remaining / totalMs) * 100;
+        const playerElapsed = Date.now() - ngLocalStartTime;
+        let remaining = Math.max(0, ngDurationSeconds * 1000 - playerElapsed);
+
+        // Cap to admin-forced end time if set
+        if (ngRoundEndTime) {
+            const endRemaining = Math.max(0, ngRoundEndTime - Date.now());
+            remaining = Math.min(remaining, endRemaining);
+        }
+
+        const pct = (remaining / (ngDurationSeconds * 1000)) * 100;
 
         bar.style.width = pct + '%';
         bar.classList.remove('ng-timer-warning', 'ng-timer-danger');
@@ -1024,6 +1038,8 @@ function setupNameGameRealtime() {
                 ngMyScore = 0;
                 ngCorrectSet = new Set();
                 ngLocalIndex = 0;
+                ngLocalStartTime = null;
+                ngRoundEndTime = null;
             }
 
             ngIsActive = newActive;
@@ -1033,12 +1049,16 @@ function setupNameGameRealtime() {
             ngRoundStartTime = payload.new.round_start_time
                 ? new Date(payload.new.round_start_time).getTime()
                 : null;
+            ngRoundEndTime = payload.new.round_end_time
+                ? new Date(payload.new.round_end_time).getTime()
+                : null;
 
-            // Fresh round start — reset local game state
+            // Fresh round start — reset local game state and start player timer
             if (!wasActive && newActive) {
                 ngMyScore = 0;
                 ngCorrectSet = new Set();
                 ngLocalIndex = 0;
+                ngLocalStartTime = Date.now();
             }
 
             updateNameGameUI();
@@ -1049,8 +1069,9 @@ function setupNameGameRealtime() {
 }
 
 window.submitNGAnswer = async function() {
-    if (!ngIsActive || !ngRoundStartTime) return;
-    if (Date.now() - ngRoundStartTime >= ngDurationSeconds * 1000) return;
+    if (!ngIsActive || !ngLocalStartTime) return;
+    if (Date.now() - ngLocalStartTime >= ngDurationSeconds * 1000) return;
+    if (ngRoundEndTime && Date.now() >= ngRoundEndTime) return;
 
     const input = document.getElementById('ng-input');
     if (!input) return;
@@ -1175,21 +1196,32 @@ function updateWallNGUI() {
         ngWallCountdownRaf = null;
     }
 
-    if (ngIsActive && ngRoundStartTime) {
-        const elapsed = Date.now() - ngRoundStartTime;
-        const totalMs = ngDurationSeconds * 1000;
-
-        if (elapsed < totalMs) {
-            badge.textContent = 'Round is live!';
-            badge.className = 'status-badge status-open';
+    if (ngIsActive) {
+        if (ngRoundEndTime && Date.now() < ngRoundEndTime) {
+            // Admin triggered stop — show 5s countdown
+            badge.textContent = 'Ending soon!';
+            badge.className = 'status-badge status-locked';
             if (inactiveDiv) inactiveDiv.style.display = 'none';
             if (doneDiv) doneDiv.style.display = 'none';
             if (activeDiv) {
                 activeDiv.style.display = 'block';
                 startWallNGCountdown();
             }
-            return;
+        } else {
+            // Normal active — show max duration as reference
+            badge.textContent = 'Round is live!';
+            badge.className = 'status-badge status-open';
+            if (inactiveDiv) inactiveDiv.style.display = 'none';
+            if (doneDiv) doneDiv.style.display = 'none';
+            if (activeDiv) {
+                activeDiv.style.display = 'block';
+                const bar = document.getElementById('ng-wall-timer-bar');
+                const timerText = document.getElementById('ng-wall-timer-text');
+                if (bar) { bar.style.width = '100%'; bar.classList.remove('ng-timer-warning', 'ng-timer-danger'); }
+                if (timerText) timerText.textContent = ngDurationSeconds + 's';
+            }
         }
+        return;
     }
 
     if (!ngIsActive && ngRoundStartTime) {
@@ -1216,26 +1248,22 @@ function updateWallNGUI() {
 function startWallNGCountdown() {
     const bar = document.getElementById('ng-wall-timer-bar');
     const timerText = document.getElementById('ng-wall-timer-text');
-    if (!bar) return;
+    if (!bar || !ngRoundEndTime) return;
+
+    const totalMs = 5000; // always a 5-second stop countdown on wall
 
     function tick() {
-        const elapsed = Date.now() - ngRoundStartTime;
-        const totalMs = ngDurationSeconds * 1000;
-        const remaining = Math.max(0, totalMs - elapsed);
+        const remaining = Math.max(0, ngRoundEndTime - Date.now());
         const pct = (remaining / totalMs) * 100;
 
         bar.style.width = pct + '%';
-        bar.classList.remove('ng-timer-warning', 'ng-timer-danger');
-        if (pct <= 20) bar.classList.add('ng-timer-danger');
-        else if (pct <= 40) bar.classList.add('ng-timer-warning');
+        bar.classList.remove('ng-timer-warning');
+        bar.classList.add('ng-timer-danger');
 
         const secs = Math.ceil(remaining / 1000);
         if (timerText) timerText.textContent = secs + 's';
 
-        if (remaining <= 0) {
-            updateWallNGUI();
-            return;
-        }
+        if (remaining <= 0) return; // transition fires via realtime when is_active → false
         ngWallCountdownRaf = requestAnimationFrame(tick);
     }
     ngWallCountdownRaf = requestAnimationFrame(tick);
