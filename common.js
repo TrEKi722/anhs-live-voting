@@ -522,8 +522,7 @@ function initalUIUpdate() {
 
     // Show #full-page for vote and wall sub-page routes
     const fPage = document.getElementById('full-page');
-    const wallFlexPaths = ['/wall/vote', '/wall/cups', '/wall/ng', '/wall/yearbook'];
-    if (fPage) fPage.style.display = wallFlexPaths.includes(path) ? 'flex' : 'block';
+    if (fPage) fPage.style.display = 'flex';
 
     // Show #adminDash for admin sub-pages
     const adminDash = document.getElementById('adminDash');
@@ -730,7 +729,7 @@ async function initCups() {
     setupCupsRealtime();
 
     const fullPage = document.getElementById('full-page');
-    if (fullPage) fullPage.style.display = 'block';
+    if (fullPage) fullPage.style.display = 'flex';
 }
 
 function updateCupsUI() {
@@ -1307,7 +1306,7 @@ async function initYearbook() {
     }
 
     const fullPage = document.getElementById('full-page');
-    if (fullPage) fullPage.style.display = 'block';
+    if (fullPage) fullPage.style.display = 'flex';
 
     setupYearbookRealtime();
     updateYearbookUI();
