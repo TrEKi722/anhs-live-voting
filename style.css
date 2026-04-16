@@ -783,15 +783,15 @@ button.action-btn:hover { opacity: 0.9; }
     padding: 0.6rem 0.75rem;
 }
 
-/* Wall pages — unified layout */
-.wall-page {
+/* Shared page layout (game pages + wall pages) */
+.page-layout {
     display: flex;
     flex-direction: column;
     width: 100%;
     gap: 1.5rem;
 }
 
-.wall-header {
+.page-header {
     background: var(--card-bg);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -802,18 +802,19 @@ button.action-btn:hover { opacity: 0.9; }
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.wall-header h1 {
+.page-header h1 {
     font-size: 2rem;
     margin: 0.5rem 0 0;
 }
 
-.wall-header h2 {
+.page-header h2 {
     font-size: 1.25rem;
     margin-top: 0.4rem;
     font-weight: 500;
     color: var(--text-muted);
 }
 
+/* Wall-specific: QR + content side by side */
 .wall-body {
     display: flex;
     gap: 1.5rem;
@@ -828,7 +829,7 @@ button.action-btn:hover { opacity: 0.9; }
     flex-shrink: 0;
 }
 
-.wall-content-panel {
+.content-panel {
     background: var(--card-bg);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);

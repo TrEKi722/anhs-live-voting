@@ -13,53 +13,59 @@
     </head>
     <body>
 
-        <div id="full-page" style="display: none; flex-direction: column; width: 100%; max-width: 600px;">
+        <div id="full-page" class="page-layout" style="display: none;">
 
-            <!-- Shared timer (shown during memorize + recall phases) -->
-            <div id="ng-timer-section" style="display: none; margin-bottom: 0.75rem;">
-                <div id="ng-phase-badge" class="status-badge status-open" style="margin-bottom: 0.75rem;"></div>
-                <div class="ng-timer-track">
-                    <div id="ng-timer-bar" class="ng-timer-bar"></div>
+            <!-- Header: status + title + timer -->
+            <div class="page-header">
+                <div id="ng-phase-badge" class="status-badge status-locked">Waiting for round to start...</div>
+                <h1>Name Game</h1>
+                <div id="ng-timer-section" style="display: none; margin-top: 0.75rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+                    <div class="ng-timer-track">
+                        <div id="ng-timer-bar" class="ng-timer-bar"></div>
+                    </div>
+                    <div id="ng-timer-text" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;"></div>
                 </div>
-                <div id="ng-timer-text" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;"></div>
             </div>
 
-            <!-- Idle -->
-            <div id="ng-idle" style="text-align: center; padding: 2rem;">
-                <div class="status-badge status-locked">Waiting for round to start...</div>
-                <p style="margin-top: 1.5rem; color: var(--text-muted); font-size: 1.1rem;">Get ready to memorize as many images as you can!</p>
-            </div>
+            <!-- Content: game phases -->
+            <div class="content-panel">
 
-            <!-- Memorize: image grid -->
-            <div id="ng-memorize" style="display: none;">
-                <p style="text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0.75rem;">Study these images — you'll name them from memory!</p>
-                <div id="ng-memorize-grid" class="ng-image-grid"></div>
-            </div>
+                <!-- Idle -->
+                <div id="ng-idle" style="text-align: center; padding: 2rem 0;">
+                    <p style="color: var(--text-muted); font-size: 1.1rem;">Get ready to memorize as many images as you can!</p>
+                </div>
 
-            <!-- Recall: text input -->
-            <div id="ng-recall" style="display: none; text-align: center;">
-                <div id="ng-score-display" style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem;">Score: 0</div>
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">Type any image name you remember and press Enter!</p>
-                <input
-                    type="text"
-                    id="ng-input"
-                    class="ng-input"
-                    placeholder="Type a name..."
-                    autocomplete="off"
-                    autocorrect="off"
-                    autocapitalize="off"
-                    spellcheck="false"
-                    onkeydown="if(event.key==='Enter') submitNGAnswer()"
-                    style="width: 100%; box-sizing: border-box;"
-                >
-                <div id="ng-feedback" class="ng-feedback"></div>
-            </div>
+                <!-- Memorize: image grid -->
+                <div id="ng-memorize" style="display: none;">
+                    <p style="text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0.75rem;">Study these images — you'll name them from memory!</p>
+                    <div id="ng-memorize-grid" class="ng-image-grid"></div>
+                </div>
 
-            <!-- Done -->
-            <div id="ng-done" style="display: none; text-align: center; padding: 2rem;">
-                <div class="status-badge status-locked" style="margin-bottom: 1rem;">Time's up!</div>
-                <h2 id="ng-final-score" style="font-size: 2.5rem; margin-bottom: 0.5rem;"></h2>
-                <p style="color: var(--text-muted);">Great effort!</p>
+                <!-- Recall: text input -->
+                <div id="ng-recall" style="display: none; text-align: center;">
+                    <div id="ng-score-display" style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem;">Score: 0</div>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">Type any image name you remember and press Enter!</p>
+                    <input
+                        type="text"
+                        id="ng-input"
+                        class="ng-input"
+                        placeholder="Type a name..."
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        onkeydown="if(event.key==='Enter') submitNGAnswer()"
+                        style="width: 100%; box-sizing: border-box;"
+                    >
+                    <div id="ng-feedback" class="ng-feedback"></div>
+                </div>
+
+                <!-- Done -->
+                <div id="ng-done" style="display: none; text-align: center; padding: 2rem 0;">
+                    <h2 id="ng-final-score" style="font-size: 2.5rem; margin-bottom: 0.5rem;"></h2>
+                    <p style="color: var(--text-muted);">Great effort!</p>
+                </div>
+
             </div>
 
         </div>

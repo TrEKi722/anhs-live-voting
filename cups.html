@@ -12,30 +12,38 @@
     </head>
     <body>
 
-        <div id="full-page" style="display: none; text-align: center;">
-            <div>
+        <div id="full-page" class="page-layout" style="display: none;">
+
+            <!-- Header: status + title -->
+            <div class="page-header">
                 <div id="cups-status-badge" class="status-badge status-locked">Waiting...</div>
+                <h1>Cups</h1>
+                <h2>Pick the right cup!</h2>
             </div>
 
-            <!-- Active round: pick a cup -->
-            <div id="cups-pick" style="display: none;">
-                <h1 style="margin-top: 1rem;">Pick a cup!</h1>
-                <div id="cups-buttons" style="display: flex; justify-content: center; gap: 2rem; margin-top: 2rem;">
-                    <button class="cups-btn" id="cups-btn-1" onclick="pressCup(1)">1</button>
-                    <button class="cups-btn" id="cups-btn-2" onclick="pressCup(2)">2</button>
-                    <button class="cups-btn" id="cups-btn-3" onclick="pressCup(3)">3</button>
+            <!-- Content: game states -->
+            <div class="content-panel" style="text-align: center;">
+
+                <!-- Active round: pick a cup -->
+                <div id="cups-pick" style="display: none;">
+                    <div id="cups-buttons" style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
+                        <button class="cups-btn" id="cups-btn-1" onclick="pressCup(1)">1</button>
+                        <button class="cups-btn" id="cups-btn-2" onclick="pressCup(2)">2</button>
+                        <button class="cups-btn" id="cups-btn-3" onclick="pressCup(3)">3</button>
+                    </div>
                 </div>
+
+                <!-- Game not active -->
+                <div id="cups-inactive" style="display: none; padding: 2rem 0;">
+                    <p style="font-size: 1.2rem; color: var(--text-muted);">This game isn't active right now.</p>
+                </div>
+
+                <!-- Result screen (filled dynamically) -->
+                <div id="cups-result" style="display: none; padding: 1rem 0;">
+                </div>
+
             </div>
 
-            <!-- Game not active, no prior press -->
-            <div id="cups-inactive" style="display: none; margin-top: 2rem;">
-                <p style="font-size: 1.2rem; color: var(--text-muted);">This game isn't active right now.</p>
-            </div>
-
-            <!-- Result screen (shown after submitting) -->
-            <div id="cups-result" style="display: none; margin-top: 2rem;">
-                <!-- Filled dynamically by updateCupsUI() -->
-            </div>
         </div>
 
         <!-- Custom Toast Message -->

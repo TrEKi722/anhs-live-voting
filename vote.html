@@ -12,19 +12,19 @@
     </head>
     <body>
 
-        <div id="full-page" style="display: none;">
+        <div id="full-page" class="page-layout" style="display: none;">
 
-            <div id="view-vote" class="view">
-                <div style="text-align: center;">
-                    <div id="locked-status-badge" class="status-badge status-open">Loading status...</div>
-                </div>
-                <div id="hidden-status-badge" style="text-align: center; display: none;">
-                    <div class="status-badge status-locked">🙈 Results Hidden 🙈</div>
+            <!-- Header: status + question -->
+            <div class="page-header" id="view-vote">
+                <div id="locked-status-badge" class="status-badge status-open">Loading status...</div>
+                <div id="hidden-status-badge" style="display: none; margin-top: 0.5rem;">
+                    <div class="status-badge status-locked">Results Hidden</div>
                 </div>
                 <h1 id="question">WHICH VIDEO WAS THE BEST?!</h1>
             </div>
 
-            <div class="chart-container">
+            <!-- Content: vote options -->
+            <div class="content-panel">
                 <div class="options-grid" id="resultGrid">
                     <button class="vote-btn" data-option="0">
                         <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>
@@ -58,6 +58,7 @@
                     </button>
                 </div>
             </div>
+
         </div>
 
         <!-- Custom Toast Message -->

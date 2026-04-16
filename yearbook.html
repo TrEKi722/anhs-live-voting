@@ -13,42 +13,48 @@
     </head>
     <body>
 
-        <div id="full-page" style="display: none; text-align: center;">
+        <div id="full-page" class="page-layout" style="display: none;">
 
-            <div style="margin-bottom: 1rem;">
+            <!-- Header: status + title -->
+            <div class="page-header">
                 <span id="yb-status-badge" class="status-badge status-locked">Loading...</span>
+                <h1>Guess That Teacher!</h1>
             </div>
 
-            <!-- Phase: waiting -->
-            <div id="yb-waiting">
-                <h1 style="margin-bottom: 0.5rem;">Guess That Teacher!</h1>
-                <p style="color: var(--text-muted); font-size: 1.1rem;">Stand by — the next round is about to start.</p>
-            </div>
+            <!-- Content: game phases -->
+            <div class="content-panel" style="text-align: center;">
 
-            <!-- Phase: guessing -->
-            <div id="yb-guessing" style="display: none;">
-                <h1 style="margin-bottom: 1rem;">Who is this?</h1>
-                <div class="yb-throwback-card">
-                    <img id="yb-throwback-img" src="" alt="Who is this teacher?">
+                <!-- Phase: waiting -->
+                <div id="yb-waiting" style="padding: 2rem 0;">
+                    <p style="color: var(--text-muted); font-size: 1.1rem;">Stand by — the next round is about to start.</p>
                 </div>
-                <div id="yb-options-grid" class="yb-options-grid"></div>
-            </div>
 
-            <!-- Phase: reveal -->
-            <div id="yb-reveal" style="display: none;">
-                <span id="yb-result-chip" class="yb-result-chip"></span>
-                <h2 id="yb-reveal-name" style="font-size: 1.75rem; margin-bottom: 1rem;"></h2>
-                <div class="yb-reveal-photos">
-                    <div class="yb-reveal-photo">
-                        <img id="yb-reveal-throwback" src="" alt="Then">
-                        <p>Then</p>
+                <!-- Phase: guessing -->
+                <div id="yb-guessing" style="display: none;">
+                    <h2 style="margin-bottom: 1rem;">Who is this?</h2>
+                    <div class="yb-throwback-card">
+                        <img id="yb-throwback-img" src="" alt="Who is this teacher?">
                     </div>
-                    <div class="yb-reveal-photo">
-                        <img id="yb-reveal-current" src="" alt="Now">
-                        <p>Now</p>
-                    </div>
+                    <div id="yb-options-grid" class="yb-options-grid"></div>
                 </div>
-                <div id="yb-vote-bars" style="max-width: 480px; margin: 1rem auto 0;"></div>
+
+                <!-- Phase: reveal -->
+                <div id="yb-reveal" style="display: none;">
+                    <span id="yb-result-chip" class="yb-result-chip"></span>
+                    <h2 id="yb-reveal-name" style="font-size: 1.75rem; margin-bottom: 1rem;"></h2>
+                    <div class="yb-reveal-photos">
+                        <div class="yb-reveal-photo">
+                            <img id="yb-reveal-throwback" src="" alt="Then">
+                            <p>Then</p>
+                        </div>
+                        <div class="yb-reveal-photo">
+                            <img id="yb-reveal-current" src="" alt="Now">
+                            <p>Now</p>
+                        </div>
+                    </div>
+                    <div id="yb-vote-bars" style="max-width: 480px; margin: 1rem auto 0;"></div>
+                </div>
+
             </div>
 
         </div>
