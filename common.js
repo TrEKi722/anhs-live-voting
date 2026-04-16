@@ -1335,7 +1335,7 @@ function renderYBOptions() {
     // Throwback photo
     const img = document.getElementById('yb-throwback-img');
     if (img && ybTeacherIndex !== null) {
-        img.src = `media/teachers/throwbacks/${ybTeacherIndex}.${YEARBOOK_TEACHERS[ybTeacherIndex]?.ext || 'jpg'}`;
+        img.src = `../media/teachers/throwbacks/${ybTeacherIndex}.${YEARBOOK_TEACHERS[ybTeacherIndex]?.ext || 'jpg'}`;
         img.alt = 'Who is this teacher?';
     }
 
@@ -1369,8 +1369,8 @@ async function renderYBReveal() {
     const currentImg = document.getElementById('yb-reveal-current');
     const correctName = document.getElementById('yb-reveal-name');
     const teacher = YEARBOOK_TEACHERS[ybTeacherIndex];
-    if (throwbackImg) throwbackImg.src = `media/teachers/throwbacks/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
-    if (currentImg) currentImg.src = `media/teachers/current/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
+    if (throwbackImg) throwbackImg.src = `../media/teachers/throwbacks/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
+    if (currentImg) currentImg.src = `../media/teachers/current/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
     if (correctName) correctName.textContent = teacher?.name || '';
 
     // Personal result chip
@@ -1546,7 +1546,7 @@ function renderWallYBOptions() {
     if (!YEARBOOK_TEACHERS || !ybOptionIndices.length) return;
     const img = document.getElementById('yb-wall-throwback');
     if (img && ybTeacherIndex !== null) {
-        img.src = `media/teachers/throwbacks/${ybTeacherIndex}.${YEARBOOK_TEACHERS[ybTeacherIndex]?.ext || 'jpg'}`;
+        img.src = `../media/teachers/throwbacks/${ybTeacherIndex}.${YEARBOOK_TEACHERS[ybTeacherIndex]?.ext || 'jpg'}`;
     }
     const grid = document.getElementById('yb-wall-options');
     if (!grid) return;
@@ -1593,8 +1593,8 @@ function renderWallYBReveal() {
     const throwbackImg = document.getElementById('yb-wall-reveal-throwback');
     const currentImg = document.getElementById('yb-wall-reveal-current');
     const nameEl = document.getElementById('yb-wall-reveal-name');
-    if (throwbackImg) throwbackImg.src = `media/teachers/throwbacks/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
-    if (currentImg) currentImg.src = `media/teachers/current/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
+    if (throwbackImg) throwbackImg.src = `../media/teachers/throwbacks/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
+    if (currentImg) currentImg.src = `../media/teachers/current/${ybTeacherIndex}.${teacher?.ext || 'jpg'}`;
     if (nameEl) nameEl.textContent = teacher?.name || '';
 }
 
