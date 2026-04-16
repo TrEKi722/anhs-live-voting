@@ -8,6 +8,7 @@
 function updateAdminUI() {
     updateCupsAdminUI();
     if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
+    if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
     const lockBtn = document.getElementById('toggle-lock-btn');
     const hideBtn = document.getElementById('toggle-hide-btn');
     
@@ -478,6 +479,137 @@ window.ngStartRound = async function() {
     }
 }
 
+
+// ==========================================
+// Yearbook Admin
+// ==========================================
+
+function updateYBAdminUI() {
+    const startBtn = document.getElementById('yb-start-btn');
+    const revealBtn = document.getElementById('yb-reveal-btn');
+    const resetBtn = document.getElementById('yb-reset-btn');
+    if (!startBtn) return;
+
+    if (ybPhase === 'waiting') {
+        startBtn.style.display = 'inline-block';
+        revealBtn.style.display = 'none';
+        resetBtn.style.display = 'none';
+    } else if (ybPhase === 'guessing') {
+        startBtn.style.display = 'none';
+        revealBtn.style.display = 'inline-block';
+        resetBtn.style.display = 'inline-block';
+    } else if (ybPhase === 'reveal') {
+        startBtn.style.display = 'inline-block';
+        revealBtn.style.display = 'none';
+        resetBtn.style.display = 'inline-block';
+    }
+
+    // Populate teacher select if empty
+    const select = document.getElementById('yb-teacher-select');
+    if (select && select.options.length <= 1 && typeof YEARBOOK_TEACHERS !== 'undefined') {
+        select.innerHTML = '<option value="">— Pick a teacher —</option>';
+        YEARBOOK_TEACHERS.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            select.appendChild(opt);
+        });
+    }
+
+    // Show current round info
+    const infoEl = document.getElementById('yb-round-info');
+    if (infoEl) {
+        if (ybTeacherIndex !== null && window.YEARBOOK_TEACHERS) {
+            const teacher = YEARBOOK_TEACHERS[ybTeacherIndex];
+            infoEl.textContent = `Current: ${teacher?.name || '?'} — Phase: ${ybPhase}`;
+        } else {
+            infoEl.textContent = 'No active round.';
+        }
+    }
+}
+
+window.ybStartRound = async function() {
+    if (!isAdmin) return;
+    const select = document.getElementById('yb-teacher-select');
+    const teacherIdx = parseInt(select?.value);
+    if (isNaN(teacherIdx)) return showToast("Please select a teacher.");
+    if (!window.YEARBOOK_TEACHERS || !YEARBOOK_TEACHERS[teacherIdx]) return showToast("Invalid teacher.");
+
+    // Pick 3 unique decoys
+    const allIndices = YEARBOOK_TEACHERS.map(t => t.id).filter(i => i !== teacherIdx);
+    for (let i = allIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allIndices[i], allIndices[j]] = [allIndices[j], allIndices[i]];
+    }
+    const decoys = allIndices.slice(0, 3);
+    const options = [teacherIdx, ...decoys];
+    // Shuffle options so correct isn't always first
+    for (let i = options.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [options[i], options[j]] = [options[j], options[i]];
+    }
+
+    const newRoundId = (ybRoundId || 0) + 1;
+
+    try {
+        const { error } = await supabaseC
+            .from('yearbook_config')
+            .update({
+                phase: 'guessing',
+                teacher_index: teacherIdx,
+                option_indices: options,
+                round_id: newRoundId
+            })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast("Yearbook round started!");
+    } catch (e) {
+        console.error(e);
+        showToast("Error starting round.");
+    }
+}
+
+window.ybReveal = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error } = await supabaseC
+            .from('yearbook_config')
+            .update({ phase: 'reveal' })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast("Answer revealed!");
+    } catch (e) {
+        showToast("Error revealing answer.");
+    }
+}
+
+window.ybResetRound = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error } = await supabaseC
+            .from('yearbook_config')
+            .update({ phase: 'waiting', teacher_index: null, option_indices: null })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast("Round reset.");
+    } catch (e) {
+        showToast("Error resetting round.");
+    }
+}
+
+window.ybResetScores = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error } = await supabaseC
+            .from('yearbook_scores')
+            .delete()
+            .neq('user_id', '00000000-0000-0000-0000-000000000000');
+        if (error) throw error;
+        showToast("Scores cleared!");
+    } catch (e) {
+        showToast("Error clearing scores.");
+    }
+}
 
 window.ngReset = async function() {
     if (!isAdmin) return;

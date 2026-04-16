@@ -566,3 +566,219 @@ button.action-btn:hover { opacity: 0.9; }
     font-weight: bold;
     color: var(--primary);
 }
+
+/* Yearbook Game */
+.yb-throwback-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    max-width: 340px;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.yb-throwback-card img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    max-height: 320px;
+}
+
+.yb-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.yb-option-btn {
+    padding: 1rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid var(--card-border);
+    border-radius: var(--border-radius);
+    background: var(--card-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.yb-option-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    opacity: 0.9;
+}
+
+.yb-option-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.yb-option-btn.yb-option-selected {
+    color: white;
+    opacity: 1;
+}
+
+.yb-result-chip {
+    display: none;
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.yb-chip-correct {
+    background: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.yb-chip-wrong {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.yb-reveal-photos {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin: 1rem auto;
+    max-width: 600px;
+}
+
+.yb-reveal-photo {
+    flex: 1;
+    max-width: 260px;
+}
+
+.yb-reveal-photo img {
+    width: 100%;
+    border-radius: var(--border-radius);
+    object-fit: cover;
+    max-height: 260px;
+    border: 1px solid var(--card-border);
+}
+
+.yb-reveal-photo p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+}
+
+.yb-vote-row {
+    margin-bottom: 0.75rem;
+}
+
+.yb-vote-row.yb-vote-correct .yb-vote-label span:first-child {
+    color: #6ee7b7;
+    font-weight: bold;
+}
+
+.yb-vote-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+    font-size: 0.95rem;
+}
+
+.yb-vote-track {
+    background: rgba(255,255,255,0.12);
+    height: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.yb-vote-bar {
+    height: 100%;
+    border-radius: 12px;
+    width: 0%;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Yearbook wall styles */
+.yb-wall-throwback {
+    max-width: 100%;
+    max-height: 55vh;
+    object-fit: contain;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--card-border);
+}
+
+.yb-wall-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 1.5rem auto 0;
+}
+
+.yb-wall-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border: 2px solid var(--card-border);
+    border-radius: var(--border-radius);
+    background: var(--card-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.yb-wall-count {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.yb-wall-reveal-photos {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin: 1rem auto;
+    max-width: 700px;
+}
+
+.yb-wall-reveal-photo {
+    flex: 1;
+    max-width: 300px;
+    text-align: center;
+}
+
+.yb-wall-reveal-photo img {
+    width: 100%;
+    border-radius: var(--border-radius);
+    object-fit: cover;
+    max-height: 300px;
+    border: 1px solid var(--card-border);
+}
+
+.yb-wall-reveal-photo p {
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.yb-leaderboard {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+
+.yb-leaderboard tr {
+    border-bottom: 1px solid var(--card-border);
+}
+
+.yb-leaderboard td {
+    padding: 0.6rem 0.75rem;
+}

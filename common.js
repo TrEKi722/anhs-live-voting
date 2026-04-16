@@ -28,6 +28,16 @@ let cupsCorrectOption = null;
 let cupsMyPress = null;
 let cupsMyRank = null; // rank among correct presses (1/2/3/4+), null if wrong or no press
 
+// Yearbook state
+let ybPhase = 'waiting';       // 'waiting' | 'guessing' | 'reveal'
+let ybTeacherIndex = null;     // index into YEARBOOK_TEACHERS
+let ybOptionIndices = [];      // array of 4 teacher indices (first is correct)
+let ybRoundId = null;          // increments each round
+let ybMyVote = null;           // teacher index I voted for (null = not voted)
+let ybMyScore = 0;
+let ybScoredRoundId = null;    // round_id for which score has been awarded locally
+let ybVoteCounts = {};         // { teacherIndex: count } populated during reveal
+
 // Name Game state
 let ngIsActive = false;
 let ngImageSet = null;
@@ -123,6 +133,11 @@ addEventListener("DOMContentLoaded", async (event) => {
             setupNameGameRealtime();
             if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
         }
+        if (path === '/admin/yearbook') {
+            await fetchYearbookConfig();
+            setupYearbookRealtime();
+            if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
+        }
         return;
     }
 
@@ -148,6 +163,11 @@ addEventListener("DOMContentLoaded", async (event) => {
             await fetchNameGameConfig();
             setupNameGameRealtime();
             initWallNG();
+        }
+        if (path === '/wall/yearbook') {
+            await fetchYearbookConfig();
+            setupYearbookRealtime();
+            await initWallYearbook();
         }
         // /wall/vote uses fetchInitialData + setupRealtimeSubscriptions already called via initAuth
         return;
@@ -175,6 +195,17 @@ addEventListener("DOMContentLoaded", async (event) => {
             await initCups();
         } else {
             window.location.href = '/?redirect=/cups';
+        }
+        return;
+    }
+
+    // Yearbook route - requires auth, redirect to home if not signed in
+    if (path === '/yearbook' || path === '/yearbook.html') {
+        if (session) {
+            await initAuth(null);
+            await initYearbook();
+        } else {
+            window.location.href = '/?redirect=/yearbook';
         }
         return;
     }
@@ -489,7 +520,7 @@ function initalUIUpdate() {
 
     // Show #full-page for vote and wall sub-page routes
     const fPage = document.getElementById('full-page');
-    const wallFlexPaths = ['/wall/vote', '/wall/cups', '/wall/ng'];
+    const wallFlexPaths = ['/wall/vote', '/wall/cups', '/wall/ng', '/wall/yearbook'];
     if (fPage) fPage.style.display = wallFlexPaths.includes(path) ? 'flex' : 'block';
 
     // Show #adminDash for admin sub-pages
@@ -1224,6 +1255,372 @@ async function loadWallNGLeaderboard() {
                 <td style="padding: 0.75rem; font-size: 1.5rem;">${medals[i] || (i + 1) + '.'}</td>
                 <td style="padding: 0.75rem; text-align: left;">${row.display_name || 'Anonymous'}</td>
                 <td style="padding: 0.75rem; font-weight: bold;">${row.score}</td>
+            </tr>
+        `).join('')
+        : '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">No scores yet.</td></tr>';
+
+    tables.forEach(t => t.innerHTML = html);
+}
+
+// ==========================================
+// 10. Yearbook
+// ==========================================
+
+async function fetchYearbookConfig() {
+    const { data: config } = await supabaseC
+        .from('yearbook_config')
+        .select('*')
+        .eq('id', 'main')
+        .single();
+    if (config) {
+        ybPhase = config.phase || 'waiting';
+        ybTeacherIndex = config.teacher_index ?? null;
+        ybOptionIndices = config.option_indices || [];
+        ybRoundId = config.round_id ?? null;
+    }
+}
+
+async function initYearbook() {
+    await fetchYearbookConfig();
+
+    if (currentUser) {
+        if (ybRoundId !== null) {
+            const { data: vote } = await supabaseC
+                .from('yearbook_votes')
+                .select('teacher_index')
+                .eq('user_id', currentUser.id)
+                .eq('round_id', ybRoundId)
+                .maybeSingle();
+            if (vote) ybMyVote = vote.teacher_index;
+        }
+
+        const { data: scoreRow } = await supabaseC
+            .from('yearbook_scores')
+            .select('score')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+        if (scoreRow) ybMyScore = scoreRow.score;
+    }
+
+    const fullPage = document.getElementById('full-page');
+    if (fullPage) fullPage.style.display = 'block';
+
+    setupYearbookRealtime();
+    updateYearbookUI();
+}
+
+function updateYearbookUI() {
+    ['yb-waiting', 'yb-guessing', 'yb-reveal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    const activeEl = document.getElementById(`yb-${ybPhase}`);
+    if (activeEl) activeEl.style.display = 'block';
+
+    if (ybPhase === 'guessing') {
+        renderYBOptions();
+    } else if (ybPhase === 'reveal') {
+        renderYBReveal();
+    }
+}
+
+function renderYBOptions() {
+    if (!window.YEARBOOK_TEACHERS || !ybOptionIndices.length) return;
+
+    // Throwback photo
+    const img = document.getElementById('yb-throwback-img');
+    if (img && ybTeacherIndex !== null) {
+        img.src = `media/teachers/throwbacks/${ybTeacherIndex}.jpg`;
+        img.alt = 'Who is this teacher?';
+    }
+
+    // Answer buttons
+    const grid = document.getElementById('yb-options-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+    ybOptionIndices.forEach((teacherIdx, i) => {
+        const teacher = YEARBOOK_TEACHERS[teacherIdx];
+        if (!teacher) return;
+        const btn = document.createElement('button');
+        btn.className = 'yb-option-btn';
+        btn.style.borderColor = colors[i];
+        btn.textContent = teacher.name;
+        btn.disabled = ybMyVote !== null;
+        if (ybMyVote === teacherIdx) {
+            btn.classList.add('yb-option-selected');
+            btn.style.background = colors[i];
+        }
+        btn.onclick = () => submitYearbookVote(teacherIdx);
+        grid.appendChild(btn);
+    });
+}
+
+async function renderYBReveal() {
+    if (!window.YEARBOOK_TEACHERS || ybTeacherIndex === null) return;
+
+    // Photos
+    const throwbackImg = document.getElementById('yb-reveal-throwback');
+    const currentImg = document.getElementById('yb-reveal-current');
+    const correctName = document.getElementById('yb-reveal-name');
+    const teacher = YEARBOOK_TEACHERS[ybTeacherIndex];
+    if (throwbackImg) throwbackImg.src = `media/teachers/throwbacks/${ybTeacherIndex}.jpg`;
+    if (currentImg) currentImg.src = `media/teachers/current/${ybTeacherIndex}.jpg`;
+    if (correctName) correctName.textContent = teacher?.name || '';
+
+    // Personal result chip
+    const chip = document.getElementById('yb-result-chip');
+    if (chip && ybMyVote !== null) {
+        const correct = ybMyVote === ybTeacherIndex;
+        chip.textContent = correct ? 'Correct! +1 point' : 'Wrong answer';
+        chip.className = `yb-result-chip ${correct ? 'yb-chip-correct' : 'yb-chip-wrong'}`;
+        chip.style.display = 'inline-block';
+    }
+
+    // Fetch vote counts
+    if (ybOptionIndices.length && ybRoundId !== null) {
+        const { data: votes } = await supabaseC
+            .from('yearbook_votes')
+            .select('teacher_index')
+            .eq('round_id', ybRoundId);
+
+        ybVoteCounts = {};
+        (votes || []).forEach(v => {
+            ybVoteCounts[v.teacher_index] = (ybVoteCounts[v.teacher_index] || 0) + 1;
+        });
+        renderYBVoteBars();
+    }
+
+    // Award score if correct and not yet scored this round
+    if (currentUser && ybMyVote === ybTeacherIndex && ybScoredRoundId !== ybRoundId) {
+        ybScoredRoundId = ybRoundId;
+        ybMyScore++;
+        const displayName = currentUser?.user_metadata?.full_name
+            || currentUser?.user_metadata?.name
+            || currentUser?.email
+            || 'Anonymous';
+        await supabaseC.from('yearbook_scores').upsert({
+            user_id: currentUser.id,
+            display_name: displayName,
+            score: ybMyScore
+        });
+    }
+}
+
+function renderYBVoteBars() {
+    const grid = document.getElementById('yb-vote-bars');
+    if (!grid || !window.YEARBOOK_TEACHERS) return;
+    grid.innerHTML = '';
+
+    const total = Object.values(ybVoteCounts).reduce((a, b) => a + b, 0);
+    const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+
+    ybOptionIndices.forEach((teacherIdx, i) => {
+        const teacher = YEARBOOK_TEACHERS[teacherIdx];
+        if (!teacher) return;
+        const count = ybVoteCounts[teacherIdx] || 0;
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+        const isCorrect = teacherIdx === ybTeacherIndex;
+
+        const row = document.createElement('div');
+        row.className = `yb-vote-row${isCorrect ? ' yb-vote-correct' : ''}`;
+        row.innerHTML = `
+            <div class="yb-vote-label">
+                <span>${isCorrect ? '✓ ' : ''}${teacher.name}</span>
+                <span>${pct}% (${count})</span>
+            </div>
+            <div class="yb-vote-track">
+                <div class="yb-vote-bar" style="width:${pct}%; background:${isCorrect ? '#10b981' : colors[i]};"></div>
+            </div>`;
+        grid.appendChild(row);
+    });
+}
+
+function setupYearbookRealtime() {
+    supabaseC
+        .channel('yearbook-config-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'yearbook_config' }, async payload => {
+            if (!payload.new) return;
+            const prevRoundId = ybRoundId;
+            const prevPhase = ybPhase;
+
+            ybPhase = payload.new.phase || 'waiting';
+            ybTeacherIndex = payload.new.teacher_index ?? null;
+            ybOptionIndices = payload.new.option_indices || [];
+            ybRoundId = payload.new.round_id ?? null;
+
+            // New round started — clear local vote state
+            if (ybRoundId !== prevRoundId) {
+                ybMyVote = null;
+                ybVoteCounts = {};
+            }
+
+            updateYearbookUI();
+            if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
+            if (typeof updateWallYearbookUI === 'function') updateWallYearbookUI();
+        })
+        .subscribe();
+}
+
+window.submitYearbookVote = async function(teacherIdx) {
+    if (!currentUser) return showToast("Not authenticated.");
+    if (ybPhase !== 'guessing') return showToast("Voting is not open.");
+    if (ybMyVote !== null) return showToast("You already voted!");
+    if (ybRoundId === null) return showToast("No active round.");
+
+    // Disable all buttons immediately
+    document.querySelectorAll('.yb-option-btn').forEach(b => b.disabled = true);
+
+    try {
+        const { error } = await supabaseC
+            .from('yearbook_votes')
+            .insert({ user_id: currentUser.id, round_id: ybRoundId, teacher_index: teacherIdx });
+        if (error) throw error;
+
+        ybMyVote = teacherIdx;
+        renderYBOptions();
+        showToast("Vote submitted!");
+    } catch (e) {
+        console.error("Yearbook vote error:", e);
+        showToast("Error submitting vote.");
+        document.querySelectorAll('.yb-option-btn').forEach(b => b.disabled = false);
+    }
+}
+
+// ==========================================
+// 11. Wall — Yearbook Display
+// ==========================================
+
+let ybWallScoresChannel = null;
+
+async function initWallYearbook() {
+    const fullPage = document.getElementById('full-page');
+    if (fullPage) fullPage.style.display = 'flex';
+    await updateWallYearbookUI();
+}
+
+async function updateWallYearbookUI() {
+    const badge = document.getElementById('yb-wall-badge');
+    if (!badge) return;
+
+    ['yb-wall-waiting', 'yb-wall-guessing', 'yb-wall-reveal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    if (ybPhase === 'waiting') {
+        badge.textContent = 'Get Ready!';
+        badge.className = 'status-badge status-locked';
+        const el = document.getElementById('yb-wall-waiting');
+        if (el) el.style.display = 'block';
+        if (ybWallScoresChannel) { ybWallScoresChannel.unsubscribe(); ybWallScoresChannel = null; }
+
+    } else if (ybPhase === 'guessing') {
+        badge.textContent = 'Round is live!';
+        badge.className = 'status-badge status-open';
+        const el = document.getElementById('yb-wall-guessing');
+        if (el) el.style.display = 'block';
+        renderWallYBOptions();
+        await updateWallYBVoteCounts();
+        setupWallYBVotesRealtime();
+
+    } else if (ybPhase === 'reveal') {
+        badge.textContent = 'Reveal!';
+        badge.className = 'status-badge status-open';
+        const el = document.getElementById('yb-wall-reveal');
+        if (el) el.style.display = 'block';
+        renderWallYBReveal();
+        await loadYBLeaderboard();
+        setupWallYBScoresRealtime();
+    }
+}
+
+function renderWallYBOptions() {
+    if (!window.YEARBOOK_TEACHERS || !ybOptionIndices.length) return;
+    const img = document.getElementById('yb-wall-throwback');
+    if (img && ybTeacherIndex !== null) {
+        img.src = `media/teachers/throwbacks/${ybTeacherIndex}.jpg`;
+    }
+    const grid = document.getElementById('yb-wall-options');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+    ybOptionIndices.forEach((teacherIdx, i) => {
+        const teacher = YEARBOOK_TEACHERS[teacherIdx];
+        if (!teacher) return;
+        const div = document.createElement('div');
+        div.className = 'yb-wall-option';
+        div.style.borderColor = colors[i];
+        div.innerHTML = `<span>${teacher.name}</span><span class="yb-wall-count" id="yb-wall-count-${teacherIdx}">0</span>`;
+        grid.appendChild(div);
+    });
+}
+
+async function updateWallYBVoteCounts() {
+    if (ybRoundId === null || !ybOptionIndices.length) return;
+    const { data: votes } = await supabaseC
+        .from('yearbook_votes')
+        .select('teacher_index')
+        .eq('round_id', ybRoundId);
+
+    const counts = {};
+    (votes || []).forEach(v => { counts[v.teacher_index] = (counts[v.teacher_index] || 0) + 1; });
+    ybOptionIndices.forEach(idx => {
+        const el = document.getElementById(`yb-wall-count-${idx}`);
+        if (el) el.textContent = counts[idx] || 0;
+    });
+}
+
+function setupWallYBVotesRealtime() {
+    supabaseC
+        .channel('wall-yb-votes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'yearbook_votes' }, () => {
+            updateWallYBVoteCounts();
+        })
+        .subscribe();
+}
+
+function renderWallYBReveal() {
+    if (!window.YEARBOOK_TEACHERS || ybTeacherIndex === null) return;
+    const teacher = YEARBOOK_TEACHERS[ybTeacherIndex];
+    const throwbackImg = document.getElementById('yb-wall-reveal-throwback');
+    const currentImg = document.getElementById('yb-wall-reveal-current');
+    const nameEl = document.getElementById('yb-wall-reveal-name');
+    if (throwbackImg) throwbackImg.src = `media/teachers/throwbacks/${ybTeacherIndex}.jpg`;
+    if (currentImg) currentImg.src = `media/teachers/current/${ybTeacherIndex}.jpg`;
+    if (nameEl) nameEl.textContent = teacher?.name || '';
+}
+
+function setupWallYBScoresRealtime() {
+    if (ybWallScoresChannel) return;
+    ybWallScoresChannel = supabaseC
+        .channel('wall-yb-scores')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'yearbook_scores' }, () => {
+            loadYBLeaderboard();
+        })
+        .subscribe();
+}
+
+async function loadYBLeaderboard() {
+    const tables = ['yb-wall-leaderboard', 'yb-wall-done-leaderboard']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+    if (!tables.length) return;
+
+    const { data: scores } = await supabaseC
+        .from('yearbook_scores')
+        .select('display_name, score')
+        .order('score', { ascending: false })
+        .limit(5);
+
+    const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+    const html = scores?.length
+        ? scores.map((row, i) => `
+            <tr>
+                <td style="padding: 0.75rem; font-size: 1.5rem;">${medals[i] || (i + 1) + '.'}</td>
+                <td style="padding: 0.75rem; text-align: left;">${row.display_name || 'Anonymous'}</td>
+                <td style="padding: 0.75rem; font-weight: bold; color: var(--primary);">${row.score}</td>
             </tr>
         `).join('')
         : '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">No scores yet.</td></tr>';

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin — Yearbook</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+
+        <nav>
+            <a href="/admin">← Admin</a>
+        </nav>
+
+        <div id="adminDash" style="display: none; flex-direction: column; align-items: center; margin-top: 5rem; padding-top: 1rem;">
+            <h1>Yearbook</h1>
+
+            <div class="admin-panel" style="margin-top: 1rem;">
+                <h3>Game Controls</h3>
+
+                <p id="yb-round-info" style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.95rem;">No active round.</p>
+
+                <!-- Teacher picker (shown when in waiting or reveal phase) -->
+                <div id="yb-teacher-picker" style="margin-bottom: 1rem;">
+                    <select id="yb-teacher-select" style="padding: 0.65rem 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: var(--text-color); font-size: 1rem; margin-bottom: 0.5rem;">
+                        <option value="">— Pick a teacher —</option>
+                    </select>
+                </div>
+
+                <button id="yb-start-btn" class="action-btn btn-primary" onclick="openModal('ybStartModal')">Start Round</button>
+                <button id="yb-reveal-btn" class="action-btn btn-success" onclick="ybReveal()" style="display: none;">Reveal Answer</button>
+                <button id="yb-reset-btn" class="action-btn btn-danger" style="background: #555; display: none;" onclick="openModal('ybResetModal')">Reset Round</button>
+                <button class="action-btn btn-danger" style="background: #000;" onclick="openModal('ybScoresModal')">Reset All Scores</button>
+
+                <!-- Confirm start modal -->
+                <div class="modal" id="ybStartModal">
+                    <div class="modal-content" style="max-width: 400px; text-align: center;">
+                        <h2>Start Yearbook Round?</h2>
+                        <p id="yb-start-confirm-text" style="color: var(--text-muted); margin: 1rem 0;">Students will see the throwback photo and four choices.</p>
+                        <button class="action-btn btn-primary" onclick="ybStartRound(); closeModal('ybStartModal');">Start</button>
+                        <button class="action-btn btn-secondary" onclick="closeModal('ybStartModal')">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Confirm reset round modal -->
+                <div class="modal" id="ybResetModal">
+                    <div class="modal-content" style="max-width: 400px; text-align: center;">
+                        <h2>Reset Round?</h2>
+                        <p style="color: var(--text-muted); margin: 1rem 0;">This clears the current round. Scores are kept.</p>
+                        <button class="action-btn btn-secondary" onclick="closeModal('ybResetModal')">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="ybResetRound(); closeModal('ybResetModal')">Yes, Reset</button>
+                    </div>
+                </div>
+
+                <!-- Confirm reset scores modal -->
+                <div class="modal" id="ybScoresModal">
+                    <div class="modal-content" style="max-width: 400px; text-align: center;">
+                        <h2>Reset All Scores?</h2>
+                        <p style="color: var(--text-muted); margin: 1rem 0;">This permanently clears every player's score.</p>
+                        <button class="action-btn btn-secondary" onclick="closeModal('ybScoresModal')">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="ybResetScores(); closeModal('ybScoresModal')">Yes, Clear Scores</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Data + Logic -->
+        <script src="../yearbook-data.js"></script>
+        <script src="../common.js"></script>
+        <script src="../61646D696E64617368.js"></script>
+    </body>
+</html>

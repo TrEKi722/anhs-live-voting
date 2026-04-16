@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ANHS Live — Yearbook</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+
+        <div id="full-page" style="display: none; text-align: center;">
+
+            <div style="margin-bottom: 1rem;">
+                <span id="yb-status-badge" class="status-badge status-locked">Loading...</span>
+            </div>
+
+            <!-- Phase: waiting -->
+            <div id="yb-waiting">
+                <h1 style="margin-bottom: 0.5rem;">Guess That Teacher!</h1>
+                <p style="color: var(--text-muted); font-size: 1.1rem;">Stand by — the next round is about to start.</p>
+            </div>
+
+            <!-- Phase: guessing -->
+            <div id="yb-guessing" style="display: none;">
+                <h1 style="margin-bottom: 1rem;">Who is this?</h1>
+                <div class="yb-throwback-card">
+                    <img id="yb-throwback-img" src="" alt="Who is this teacher?">
+                </div>
+                <div id="yb-options-grid" class="yb-options-grid"></div>
+            </div>
+
+            <!-- Phase: reveal -->
+            <div id="yb-reveal" style="display: none;">
+                <span id="yb-result-chip" class="yb-result-chip"></span>
+                <h2 id="yb-reveal-name" style="font-size: 1.75rem; margin-bottom: 1rem;"></h2>
+                <div class="yb-reveal-photos">
+                    <div class="yb-reveal-photo">
+                        <img id="yb-reveal-throwback" src="" alt="Then">
+                        <p>Then</p>
+                    </div>
+                    <div class="yb-reveal-photo">
+                        <img id="yb-reveal-current" src="" alt="Now">
+                        <p>Now</p>
+                    </div>
+                </div>
+                <div id="yb-vote-bars" style="max-width: 480px; margin: 1rem auto 0;"></div>
+            </div>
+
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Data + Logic -->
+        <script src="yearbook-data.js"></script>
+        <script src="common.js"></script>
+    </body>
+</html>
