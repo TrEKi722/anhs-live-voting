@@ -13,14 +13,21 @@
     </head>
     <body>
 
-        <div id="full-page" style="display: none; flex-direction:column;">
-            <div style="text-align: center;">
+        <div id="full-page" class="wall-page" style="display: none;">
+
+            <!-- Header: status + domain + question -->
+            <div class="wall-header">
                 <div id="locked-status-badge" class="status-badge status-open">Loading status...</div>
+                <h1 id="voteNow">Vote now @ *domain*</h1>
+                <h2 id="question">Loading...</h2>
             </div>
-            <h1 id="voteNow">Vote now @ *domain*</h1>
-            <h1 id="question">Loading...</h1>
-            <div style="display:flex; flex-direction: row-reverse; justify-content: center;">
-                <div class="chart-container" id="live-chart">
+
+            <!-- Body: QR + live chart -->
+            <div class="wall-body">
+                <div class="wall-qr-panel">
+                    <img src="" id="qr" alt="QR to voting site" style="width: 400px; height: 400px; border-radius: 8px;">
+                </div>
+                <div class="wall-content-panel" id="live-chart">
                     <div class="bar-group">
                         <div class="bar-label"><span id="option0">FRESHMEN</span> <span id="pct-0">0%</span></div>
                         <div class="bar-track"><div class="bar-fill" id="bar-0"></div></div>
@@ -41,8 +48,8 @@
                         Total Votes: <span id="total-count">0</span>
                     </div>
                 </div>
-                <img src="" id="qr" alt="QR to voting site" style="height: fit-content; margin: 50px; align-self: center;">
             </div>
+
         </div>
 
         <script src="../common.js"></script>

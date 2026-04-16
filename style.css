@@ -782,3 +782,60 @@ button.action-btn:hover { opacity: 0.9; }
 .yb-leaderboard td {
     padding: 0.6rem 0.75rem;
 }
+
+/* Wall pages — unified layout */
+.wall-page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 1.5rem;
+}
+
+.wall-header {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    padding: 1.25rem 2rem;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.wall-header h1 {
+    font-size: 2rem;
+    margin: 0.5rem 0 0;
+}
+
+.wall-header h2 {
+    font-size: 1.25rem;
+    margin-top: 0.4rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.wall-body {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.wall-qr-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.wall-content-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    padding: 1.5rem 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    flex: 1;
+    min-width: 0;
+}

@@ -13,43 +13,48 @@
     </head>
     <body>
 
-        <div id="full-page" style="display: none; flex-direction: column; padding: 2rem; min-height: 100vh; box-sizing: border-box;">
+        <div id="full-page" class="wall-page" style="display: none;">
 
-            <!-- Header row: badge + title + QR -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; gap: 2rem;">
-                <div style="flex: 1;">
-                    <div id="ng-wall-badge" class="status-badge status-locked" style="margin-bottom: 0.75rem;">Loading...</div>
-                    <h2 id="playNow" style="margin: 0; font-size: 1.4rem;"></h2>
-
-                    <!-- Shared timer bar (shown during memorize + recall) -->
-                    <div id="ng-wall-timer-section" style="display: none; margin-top: 0.75rem;">
-                        <div class="ng-timer-track">
-                            <div id="ng-wall-timer-bar" class="ng-timer-bar"></div>
-                        </div>
-                        <div id="ng-wall-timer-text" style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;"></div>
+            <!-- Header: status + domain + timer -->
+            <div class="wall-header">
+                <div id="ng-wall-badge" class="status-badge status-locked">Loading...</div>
+                <h1 id="playNow"></h1>
+                <div id="ng-wall-timer-section" style="display: none; margin-top: 0.75rem; max-width: 480px; margin-left: auto; margin-right: auto;">
+                    <div class="ng-timer-track">
+                        <div id="ng-wall-timer-bar" class="ng-timer-bar"></div>
                     </div>
+                    <div id="ng-wall-timer-text" style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;"></div>
                 </div>
-                <img src="" id="qr" alt="QR to name game" style="width: 160px; height: 160px; flex-shrink: 0;">
             </div>
 
-            <!-- Idle -->
-            <div id="ng-wall-idle" style="text-align: center; padding: 3rem 0; color: var(--text-muted); font-size: 1.3rem;">
-                Waiting for round to start...
-            </div>
+            <!-- Body: QR + game content -->
+            <div class="wall-body">
+                <div class="wall-qr-panel">
+                    <img src="" id="qr" alt="QR to name game" style="width: 400px; height: 400px; border-radius: 8px; flex-shrink: 0;">
+                </div>
+                <div class="wall-content-panel">
 
-            <!-- Memorize: full image grid -->
-            <div id="ng-wall-memorize" style="display: none;">
-                <div id="ng-wall-memorize-grid" class="ng-image-grid ng-wall-grid"></div>
-            </div>
+                    <!-- Idle -->
+                    <div id="ng-wall-idle" style="text-align: center; padding: 3rem 0; color: var(--text-muted); font-size: 1.3rem;">
+                        Waiting for round to start...
+                    </div>
 
-            <!-- Recall: live leaderboard -->
-            <div id="ng-wall-recall" style="display: none;">
-                <table id="ng-wall-leaderboard" style="width: 100%; border-collapse: collapse; font-size: 1.4rem;"></table>
-            </div>
+                    <!-- Memorize: full image grid -->
+                    <div id="ng-wall-memorize" style="display: none;">
+                        <div id="ng-wall-memorize-grid" class="ng-image-grid ng-wall-grid"></div>
+                    </div>
 
-            <!-- Done: same leaderboard, different header (badge handles the messaging) -->
-            <div id="ng-wall-done" style="display: none;">
-                <table id="ng-wall-done-leaderboard" style="width: 100%; border-collapse: collapse; font-size: 1.4rem;"></table>
+                    <!-- Recall: live leaderboard -->
+                    <div id="ng-wall-recall" style="display: none;">
+                        <table id="ng-wall-leaderboard" style="width: 100%; border-collapse: collapse; font-size: 1.4rem;"></table>
+                    </div>
+
+                    <!-- Done: final leaderboard -->
+                    <div id="ng-wall-done" style="display: none;">
+                        <table id="ng-wall-done-leaderboard" style="width: 100%; border-collapse: collapse; font-size: 1.4rem;"></table>
+                    </div>
+
+                </div>
             </div>
 
         </div>
