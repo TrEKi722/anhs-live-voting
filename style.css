@@ -575,16 +575,16 @@ button.action-btn:hover { opacity: 0.9; }
     border: 1px solid var(--card-border);
     border-radius: var(--border-radius);
     overflow: hidden;
-    max-width: 340px;
+    width: 400px;
     margin: 0 auto 1.5rem;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 
 .yb-throwback-card img {
-    width: 100%;
+    width: 400px;
+    height: 400px;
     display: block;
     object-fit: cover;
-    max-height: 320px;
 }
 
 .yb-options-grid {
@@ -652,20 +652,19 @@ button.action-btn:hover { opacity: 0.9; }
     gap: 1.5rem;
     justify-content: center;
     margin: 1rem auto;
-    max-width: 600px;
 }
 
 .yb-reveal-photo {
-    flex: 1;
-    max-width: 260px;
+    flex: none;
 }
 
 .yb-reveal-photo img {
-    width: 100%;
+    width: 400px;
+    height: 400px;
     border-radius: var(--border-radius);
     object-fit: cover;
-    max-height: 260px;
     border: 1px solid var(--card-border);
+    display: block;
 }
 
 .yb-reveal-photo p {
@@ -706,9 +705,9 @@ button.action-btn:hover { opacity: 0.9; }
 
 /* Yearbook wall styles */
 .yb-wall-throwback {
-    max-width: 100%;
-    max-height: 55vh;
-    object-fit: contain;
+    width: 400px;
+    height: 400px;
+    object-fit: cover;
     border-radius: var(--border-radius);
     border: 1px solid var(--card-border);
 }
@@ -745,20 +744,22 @@ button.action-btn:hover { opacity: 0.9; }
     display: flex;
     gap: 2rem;
     justify-content: center;
+    flex-wrap: wrap;
     margin: 1rem auto;
     max-width: 700px;
 }
 
 .yb-wall-reveal-photo {
-    flex: 1;
-    max-width: 300px;
+    flex: none;
     text-align: center;
 }
 
 .yb-wall-reveal-photo img {
-    width: 100%;
+    width: 400px;
+    height: 400px;
     border-radius: var(--border-radius);
     object-fit: cover;
+    display: block;
     max-height: 300px;
     border: 1px solid var(--card-border);
 }
