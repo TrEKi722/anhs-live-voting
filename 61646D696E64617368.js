@@ -552,8 +552,11 @@ function updateYBAdminUI() {
 }
 
 function ybBuildOptions(teacherIdx) {
-    // Pick 3 unique decoys, shuffle all 4
-    const allIndices = YEARBOOK_TEACHERS.map(t => t.id).filter(i => i !== teacherIdx);
+    // Pick 3 unique decoys of the same gender, shuffle all 4
+    const targetGender = YEARBOOK_TEACHERS.find(t => t.id === teacherIdx)?.gender;
+    const allIndices = YEARBOOK_TEACHERS
+        .map(t => t.id)
+        .filter(i => i !== teacherIdx && (!targetGender || !YEARBOOK_TEACHERS.find(t => t.id === i)?.gender || YEARBOOK_TEACHERS.find(t => t.id === i)?.gender === targetGender));
     for (let i = allIndices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [allIndices[i], allIndices[j]] = [allIndices[j], allIndices[i]];
