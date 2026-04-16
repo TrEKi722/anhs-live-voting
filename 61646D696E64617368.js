@@ -487,68 +487,97 @@ window.ngStartRound = async function() {
 function updateYBAdminUI() {
     const startBtn = document.getElementById('yb-start-btn');
     const revealBtn = document.getElementById('yb-reveal-btn');
+    const nextBtn = document.getElementById('yb-next-btn');
     const resetBtn = document.getElementById('yb-reset-btn');
+    const pickerSection = document.getElementById('yb-teacher-picker');
     if (!startBtn) return;
+
+    const hasNext = ybTeacherQueue.length > 0 && ybQueuePosition < ybTeacherQueue.length - 1;
 
     if (ybPhase === 'waiting') {
         startBtn.style.display = 'inline-block';
         revealBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
         resetBtn.style.display = 'none';
+        if (pickerSection) pickerSection.style.opacity = '1';
     } else if (ybPhase === 'guessing') {
         startBtn.style.display = 'none';
         revealBtn.style.display = 'inline-block';
+        nextBtn.style.display = 'none';
         resetBtn.style.display = 'inline-block';
+        if (pickerSection) pickerSection.style.opacity = '0.4';
     } else if (ybPhase === 'reveal') {
-        startBtn.style.display = 'inline-block';
+        startBtn.style.display = 'none';
         revealBtn.style.display = 'none';
+        nextBtn.style.display = hasNext ? 'inline-block' : 'none';
         resetBtn.style.display = 'inline-block';
+        if (pickerSection) pickerSection.style.opacity = '0.4';
     }
 
-    // Populate teacher select if empty
-    const select = document.getElementById('yb-teacher-select');
-    if (select && select.options.length <= 1 && typeof YEARBOOK_TEACHERS !== 'undefined') {
-        select.innerHTML = '<option value="">— Pick a teacher —</option>';
+    // Populate teacher checkboxes if not yet built
+    const checkboxList = document.getElementById('yb-teacher-checkboxes');
+    if (checkboxList && checkboxList.children.length === 0 && typeof YEARBOOK_TEACHERS !== 'undefined') {
         YEARBOOK_TEACHERS.forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t.id;
-            opt.textContent = t.name;
-            select.appendChild(opt);
+            const label = document.createElement('label');
+            label.className = 'yb-checkbox-label';
+            label.innerHTML = `<input type="checkbox" value="${t.id}"> ${t.name}`;
+            checkboxList.appendChild(label);
         });
     }
 
-    // Show current round info
+    // Queue progress
+    const progressEl = document.getElementById('yb-queue-progress');
+    if (progressEl) {
+        if (ybTeacherQueue.length > 0 && ybPhase !== 'waiting') {
+            progressEl.textContent = `Teacher ${ybQueuePosition + 1} of ${ybTeacherQueue.length}`;
+            progressEl.style.display = 'inline-block';
+        } else {
+            progressEl.style.display = 'none';
+        }
+    }
+
+    // Round info
     const infoEl = document.getElementById('yb-round-info');
     if (infoEl) {
         if (ybTeacherIndex !== null && window.YEARBOOK_TEACHERS) {
             const teacher = YEARBOOK_TEACHERS[ybTeacherIndex];
-            infoEl.textContent = `Current: ${teacher?.name || '?'} — Phase: ${ybPhase}`;
+            infoEl.textContent = `Now showing: ${teacher?.name || '?'}`;
         } else {
             infoEl.textContent = 'No active round.';
         }
     }
 }
 
-window.ybStartRound = async function() {
-    if (!isAdmin) return;
-    const select = document.getElementById('yb-teacher-select');
-    const teacherIdx = parseInt(select?.value);
-    if (isNaN(teacherIdx)) return showToast("Please select a teacher.");
-    if (!window.YEARBOOK_TEACHERS || !YEARBOOK_TEACHERS[teacherIdx]) return showToast("Invalid teacher.");
-
-    // Pick 3 unique decoys
+function ybBuildOptions(teacherIdx) {
+    // Pick 3 unique decoys, shuffle all 4
     const allIndices = YEARBOOK_TEACHERS.map(t => t.id).filter(i => i !== teacherIdx);
     for (let i = allIndices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [allIndices[i], allIndices[j]] = [allIndices[j], allIndices[i]];
     }
-    const decoys = allIndices.slice(0, 3);
-    const options = [teacherIdx, ...decoys];
-    // Shuffle options so correct isn't always first
+    const options = [teacherIdx, ...allIndices.slice(0, 3)];
     for (let i = options.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [options[i], options[j]] = [options[j], options[i]];
     }
+    return options;
+}
 
+window.ybStartRound = async function() {
+    if (!isAdmin) return;
+    if (!window.YEARBOOK_TEACHERS) return;
+
+    // Read selected checkboxes
+    const checked = Array.from(document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]:checked'))
+        .map(cb => parseInt(cb.value));
+    if (checked.length === 0) return showToast("Select at least one teacher.");
+    if (checked.length > YEARBOOK_TEACHERS.length - 3) {
+        return showToast("Need at least 3 un-selected teachers to use as decoys.");
+    }
+
+    const queue = checked; // keep the order the admin selected them
+    const firstTeacher = queue[0];
+    const options = ybBuildOptions(firstTeacher);
     const newRoundId = (ybRoundId || 0) + 1;
 
     try {
@@ -556,16 +585,46 @@ window.ybStartRound = async function() {
             .from('yearbook_config')
             .update({
                 phase: 'guessing',
-                teacher_index: teacherIdx,
+                teacher_index: firstTeacher,
                 option_indices: options,
-                round_id: newRoundId
+                round_id: newRoundId,
+                teacher_queue: queue,
+                queue_position: 0
             })
             .eq('id', 'main');
         if (error) throw error;
-        showToast("Yearbook round started!");
+        showToast("Yearbook started!");
     } catch (e) {
         console.error(e);
         showToast("Error starting round.");
+    }
+}
+
+window.ybNextTeacher = async function() {
+    if (!isAdmin) return;
+    if (!window.YEARBOOK_TEACHERS) return;
+    const newPos = ybQueuePosition + 1;
+    if (newPos >= ybTeacherQueue.length) return showToast("No more teachers in queue.");
+
+    const nextTeacher = ybTeacherQueue[newPos];
+    const options = ybBuildOptions(nextTeacher);
+    const newRoundId = (ybRoundId || 0) + 1;
+
+    try {
+        const { error } = await supabaseC
+            .from('yearbook_config')
+            .update({
+                phase: 'guessing',
+                teacher_index: nextTeacher,
+                option_indices: options,
+                round_id: newRoundId,
+                queue_position: newPos
+            })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast(`Next up: ${YEARBOOK_TEACHERS[nextTeacher]?.name || '?'}`);
+    } catch (e) {
+        showToast("Error advancing to next teacher.");
     }
 }
 
@@ -588,7 +647,7 @@ window.ybResetRound = async function() {
     try {
         const { error } = await supabaseC
             .from('yearbook_config')
-            .update({ phase: 'waiting', teacher_index: null, option_indices: null })
+            .update({ phase: 'waiting', teacher_index: null, option_indices: null, teacher_queue: [], queue_position: 0 })
             .eq('id', 'main');
         if (error) throw error;
         showToast("Round reset.");

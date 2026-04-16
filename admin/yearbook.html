@@ -10,6 +10,57 @@
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
         <link rel="stylesheet" href="../style.css">
+        <style>
+            .yb-checkbox-label {
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+                padding: 0.5rem 0.75rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 1rem;
+                transition: background 0.15s;
+            }
+            .yb-checkbox-label:hover {
+                background: rgba(255,255,255,0.07);
+            }
+            .yb-checkbox-label input[type=checkbox] {
+                width: 18px;
+                height: 18px;
+                accent-color: var(--primary);
+                cursor: pointer;
+            }
+            #yb-teacher-checkboxes {
+                display: flex;
+                flex-direction: column;
+                gap: 0.1rem;
+                max-height: 280px;
+                overflow-y: auto;
+                text-align: left;
+                border: 1px solid var(--card-border);
+                border-radius: 8px;
+                padding: 0.5rem;
+                margin-bottom: 0.75rem;
+                background: rgba(0,0,0,0.2);
+            }
+            .yb-select-row {
+                display: flex;
+                gap: 0.5rem;
+                justify-content: center;
+                margin-bottom: 0.5rem;
+                font-size: 0.85rem;
+            }
+            .yb-select-row button {
+                background: none;
+                border: 1px solid var(--card-border);
+                color: var(--text-muted);
+                border-radius: 6px;
+                padding: 0.2rem 0.6rem;
+                cursor: pointer;
+                font-size: 0.8rem;
+            }
+            .yb-select-row button:hover { border-color: var(--primary); color: var(--text-color); }
+        </style>
     </head>
     <body>
 
@@ -17,31 +68,36 @@
             <a href="/admin">← Admin</a>
         </nav>
 
-        <div id="adminDash" style="display: none; flex-direction: column; align-items: center; margin-top: 5rem; padding-top: 1rem;">
+        <div id="adminDash" style="display: none; flex-direction: column; align-items: center; margin-top: 5rem; padding-top: 1rem; padding-bottom: 2rem;">
             <h1>Yearbook</h1>
 
             <div class="admin-panel" style="margin-top: 1rem;">
                 <h3>Game Controls</h3>
 
-                <p id="yb-round-info" style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.95rem;">No active round.</p>
+                <p id="yb-round-info" style="color: var(--text-muted); margin: 0.5rem 0; font-size: 0.95rem;">No active round.</p>
+                <span id="yb-queue-progress" class="status-badge status-open" style="display: none; margin-bottom: 1rem;"></span>
 
-                <!-- Teacher picker (shown when in waiting or reveal phase) -->
-                <div id="yb-teacher-picker" style="margin-bottom: 1rem;">
-                    <select id="yb-teacher-select" style="padding: 0.65rem 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: var(--text-color); font-size: 1rem; margin-bottom: 0.5rem;">
-                        <option value="">— Pick a teacher —</option>
-                    </select>
+                <!-- Teacher picker -->
+                <div id="yb-teacher-picker" style="margin: 1rem 0;">
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.4rem;">Select teachers (in order):</p>
+                    <div class="yb-select-row">
+                        <button onclick="ybSelectAll()">Select all</button>
+                        <button onclick="ybSelectNone()">Clear</button>
+                    </div>
+                    <div id="yb-teacher-checkboxes"></div>
                 </div>
 
-                <button id="yb-start-btn" class="action-btn btn-primary" onclick="openModal('ybStartModal')">Start Round</button>
+                <button id="yb-start-btn" class="action-btn btn-primary" onclick="openModal('ybStartModal')">Start</button>
                 <button id="yb-reveal-btn" class="action-btn btn-success" onclick="ybReveal()" style="display: none;">Reveal Answer</button>
-                <button id="yb-reset-btn" class="action-btn btn-danger" style="background: #555; display: none;" onclick="openModal('ybResetModal')">Reset Round</button>
+                <button id="yb-next-btn" class="action-btn btn-primary" onclick="ybNextTeacher()" style="display: none;">Next Teacher →</button>
+                <button id="yb-reset-btn" class="action-btn" style="background: #555; display: none;" onclick="openModal('ybResetModal')">Reset Round</button>
                 <button class="action-btn btn-danger" style="background: #000;" onclick="openModal('ybScoresModal')">Reset All Scores</button>
 
                 <!-- Confirm start modal -->
                 <div class="modal" id="ybStartModal">
-                    <div class="modal-content" style="max-width: 400px; text-align: center;">
-                        <h2>Start Yearbook Round?</h2>
-                        <p id="yb-start-confirm-text" style="color: var(--text-muted); margin: 1rem 0;">Students will see the throwback photo and four choices.</p>
+                    <div class="modal-content" style="max-width: 420px; text-align: center;">
+                        <h2>Start Yearbook?</h2>
+                        <p id="yb-start-confirm-text" style="color: var(--text-muted); margin: 1rem 0;"></p>
                         <button class="action-btn btn-primary" onclick="ybStartRound(); closeModal('ybStartModal');">Start</button>
                         <button class="action-btn btn-secondary" onclick="closeModal('ybStartModal')">Cancel</button>
                     </div>
@@ -51,7 +107,7 @@
                 <div class="modal" id="ybResetModal">
                     <div class="modal-content" style="max-width: 400px; text-align: center;">
                         <h2>Reset Round?</h2>
-                        <p style="color: var(--text-muted); margin: 1rem 0;">This clears the current round. Scores are kept.</p>
+                        <p style="color: var(--text-muted); margin: 1rem 0;">Clears the current session. Scores are kept.</p>
                         <button class="action-btn btn-secondary" onclick="closeModal('ybResetModal')">Cancel</button>
                         <button class="action-btn btn-danger" onclick="ybResetRound(); closeModal('ybResetModal')">Yes, Reset</button>
                     </div>
@@ -76,5 +132,33 @@
         <script src="../yearbook-data.js"></script>
         <script src="../common.js"></script>
         <script src="../61646D696E64617368.js"></script>
+        <script>
+            function ybSelectAll() {
+                document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]').forEach(cb => cb.checked = true);
+            }
+            function ybSelectNone() {
+                document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]').forEach(cb => cb.checked = false);
+            }
+
+            // Wire up the start modal to show a summary of selected teachers
+            document.addEventListener('DOMContentLoaded', () => {
+                const startBtn = document.getElementById('yb-start-btn');
+                if (startBtn) {
+                    startBtn.addEventListener('click', () => {
+                        const names = Array.from(document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]:checked'))
+                            .map(cb => {
+                                const id = parseInt(cb.value);
+                                return YEARBOOK_TEACHERS.find(t => t.id === id)?.name || '?';
+                            });
+                        const confirmText = document.getElementById('yb-start-confirm-text');
+                        if (confirmText) {
+                            confirmText.textContent = names.length
+                                ? `${names.length} teacher${names.length > 1 ? 's' : ''}: ${names.join(', ')}`
+                                : 'No teachers selected.';
+                        }
+                    });
+                }
+            });
+        </script>
     </body>
 </html>

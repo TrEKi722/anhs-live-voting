@@ -31,12 +31,14 @@ let cupsMyRank = null; // rank among correct presses (1/2/3/4+), null if wrong o
 // Yearbook state
 let ybPhase = 'waiting';       // 'waiting' | 'guessing' | 'reveal'
 let ybTeacherIndex = null;     // index into YEARBOOK_TEACHERS
-let ybOptionIndices = [];      // array of 4 teacher indices (first is correct)
+let ybOptionIndices = [];      // array of 4 teacher indices (shuffled)
 let ybRoundId = null;          // increments each round
 let ybMyVote = null;           // teacher index I voted for (null = not voted)
 let ybMyScore = 0;
 let ybScoredRoundId = null;    // round_id for which score has been awarded locally
 let ybVoteCounts = {};         // { teacherIndex: count } populated during reveal
+let ybTeacherQueue = [];       // ordered list of teacher indices for the session
+let ybQueuePosition = 0;       // current position in the queue (0-indexed)
 
 // Name Game state
 let ngIsActive = false;
@@ -1277,6 +1279,8 @@ async function fetchYearbookConfig() {
         ybTeacherIndex = config.teacher_index ?? null;
         ybOptionIndices = config.option_indices || [];
         ybRoundId = config.round_id ?? null;
+        ybTeacherQueue = config.teacher_queue || [];
+        ybQueuePosition = config.queue_position ?? 0;
     }
 }
 
@@ -1449,6 +1453,8 @@ function setupYearbookRealtime() {
             ybTeacherIndex = payload.new.teacher_index ?? null;
             ybOptionIndices = payload.new.option_indices || [];
             ybRoundId = payload.new.round_id ?? null;
+            ybTeacherQueue = payload.new.teacher_queue || [];
+            ybQueuePosition = payload.new.queue_position ?? 0;
 
             // New round started — clear local vote state
             if (ybRoundId !== prevRoundId) {
