@@ -56,7 +56,7 @@
         <script>
             addEventListener("DOMContentLoaded", () => {
                 document.getElementById('voteNow').textContent = 'Vote now @ ' + window.location.hostname;
-                document.getElementById('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' + window.location.hostname + '&size=500x500&color=000&bgcolor=fff&qzone=1';
+                document.getElementById('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' + window.location.hostname + '%2Fvote&size=500x500&color=000&bgcolor=fff&qzone=1';
             });
         </script>
     </body>

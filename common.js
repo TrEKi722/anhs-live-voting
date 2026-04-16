@@ -1516,7 +1516,7 @@ async function updateWallYearbookUI() {
     });
 
     if (ybPhase === 'waiting') {
-        badge.textContent = 'Get Ready!';
+        badge.textContent = 'Waiting for round to start...';
         badge.className = 'status-badge status-locked';
         const el = document.getElementById('yb-wall-waiting');
         if (el) el.style.display = 'block';
