@@ -755,8 +755,8 @@ button.action-btn:hover { opacity: 0.9; }
 }
 
 .yb-wall-reveal-photo img {
-    width: 400px;
-    height: 400px;
+    width: 300px;
+    height: 300px;
     border-radius: var(--border-radius);
     object-fit: cover;
     display: block;
