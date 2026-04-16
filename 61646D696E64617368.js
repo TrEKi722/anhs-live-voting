@@ -485,12 +485,13 @@ window.ngStartRound = async function() {
 // ==========================================
 
 function updateYBAdminUI() {
+    console.log('[YB] updateYBAdminUI called — phase:', ybPhase, '| isAdmin:', isAdmin, '| teacherQueue:', ybTeacherQueue, '| queuePos:', ybQueuePosition);
     const startBtn = document.getElementById('yb-start-btn');
     const revealBtn = document.getElementById('yb-reveal-btn');
     const nextBtn = document.getElementById('yb-next-btn');
     const resetBtn = document.getElementById('yb-reset-btn');
     const pickerSection = document.getElementById('yb-teacher-picker');
-    if (!startBtn) return;
+    if (!startBtn) { console.warn('[YB] updateYBAdminUI: #yb-start-btn not found in DOM, returning early'); return; }
 
     const hasNext = ybTeacherQueue.length > 0 && ybQueuePosition < ybTeacherQueue.length - 1;
 
@@ -516,7 +517,9 @@ function updateYBAdminUI() {
 
     // Populate teacher checkboxes if not yet built
     const checkboxList = document.getElementById('yb-teacher-checkboxes');
+    console.log('[YB] checkboxList:', checkboxList, '| YEARBOOK_TEACHERS defined:', typeof YEARBOOK_TEACHERS !== 'undefined');
     if (checkboxList && checkboxList.children.length === 0 && typeof YEARBOOK_TEACHERS !== 'undefined') {
+        console.log('[YB] Populating', YEARBOOK_TEACHERS.length, 'teacher checkboxes');
         YEARBOOK_TEACHERS.forEach(t => {
             const label = document.createElement('label');
             label.className = 'yb-checkbox-label';
@@ -564,24 +567,32 @@ function ybBuildOptions(teacherIdx) {
 }
 
 window.ybStartRound = async function() {
-    if (!isAdmin) return;
-    if (!window.YEARBOOK_TEACHERS) return;
+    console.log('[YB] ybStartRound called — isAdmin:', isAdmin, '| YEARBOOK_TEACHERS:', window.YEARBOOK_TEACHERS);
+    if (!isAdmin) { console.warn('[YB] ybStartRound: not admin, aborting'); return; }
+    if (!window.YEARBOOK_TEACHERS) { console.warn('[YB] ybStartRound: YEARBOOK_TEACHERS not defined, aborting'); return; }
 
     // Read selected checkboxes
-    const checked = Array.from(document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]:checked'))
-        .map(cb => parseInt(cb.value));
+    const allCheckboxes = document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]');
+    const checkedBoxes = document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]:checked');
+    console.log('[YB] Total checkboxes in DOM:', allCheckboxes.length, '| Checked:', checkedBoxes.length);
+
+    const checked = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+    console.log('[YB] Checked teacher indices:', checked);
+
     if (checked.length === 0) return showToast("Select at least one teacher.");
     if (checked.length > YEARBOOK_TEACHERS.length - 3) {
+        console.warn('[YB] Not enough teachers for decoys:', checked.length, 'selected,', YEARBOOK_TEACHERS.length, 'total');
         return showToast("Need at least 3 un-selected teachers to use as decoys.");
     }
 
-    const queue = checked; // keep the order the admin selected them
+    const queue = checked;
     const firstTeacher = queue[0];
     const options = ybBuildOptions(firstTeacher);
     const newRoundId = (ybRoundId || 0) + 1;
+    console.log('[YB] Starting round — teacher:', firstTeacher, '| options:', options, '| roundId:', newRoundId, '| queue:', queue);
 
     try {
-        const { error } = await supabaseC
+        const { data, error } = await supabaseC
             .from('yearbook_config')
             .update({
                 phase: 'guessing',
@@ -591,11 +602,13 @@ window.ybStartRound = async function() {
                 teacher_queue: queue,
                 queue_position: 0
             })
-            .eq('id', 'main');
+            .eq('id', 'main')
+            .select();
+        console.log('[YB] Supabase update result — data:', data, '| error:', error);
         if (error) throw error;
         showToast("Yearbook started!");
     } catch (e) {
-        console.error(e);
+        console.error('[YB] ybStartRound error:', e);
         showToast("Error starting round.");
     }
 }
