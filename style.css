@@ -800,6 +800,7 @@ button.action-btn:hover { opacity: 0.9; }
     padding: 1.25rem 2rem;
     text-align: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    margin-bottom: 0; /* gap handles spacing; this is a fallback anchor */
 }
 
 .page-header h1 {
@@ -812,6 +813,41 @@ button.action-btn:hover { opacity: 0.9; }
     margin-top: 0.4rem;
     font-weight: 500;
     color: var(--text-muted);
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 0.75rem;
+    }
+
+    .page-layout {
+        gap: 0.75rem;
+    }
+
+    .page-header {
+        padding: 0.875rem 1.25rem;
+        margin-bottom: 0.75rem; /* fallback for older Safari that ignores gap */
+    }
+
+    .page-header h1 {
+        font-size: 1.4rem;
+    }
+
+    .page-header h2 {
+        font-size: 1rem;
+    }
+
+    .content-panel {
+        padding: 0.875rem 1rem;
+    }
+
+    .bar-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .bar-label {
+        font-size: 1rem;
+    }
 }
 
 /* Wall-specific: QR + content side by side */
