@@ -1330,7 +1330,7 @@ function updateYearbookUI() {
 }
 
 function renderYBOptions() {
-    if (!window.YEARBOOK_TEACHERS || !ybOptionIndices.length) return;
+    if (!YEARBOOK_TEACHERS || !ybOptionIndices.length) return;
 
     // Throwback photo
     const img = document.getElementById('yb-throwback-img');
@@ -1362,7 +1362,7 @@ function renderYBOptions() {
 }
 
 async function renderYBReveal() {
-    if (!window.YEARBOOK_TEACHERS || ybTeacherIndex === null) return;
+    if (!YEARBOOK_TEACHERS || ybTeacherIndex === null) return;
 
     // Photos
     const throwbackImg = document.getElementById('yb-reveal-throwback');
@@ -1414,7 +1414,7 @@ async function renderYBReveal() {
 
 function renderYBVoteBars() {
     const grid = document.getElementById('yb-vote-bars');
-    if (!grid || !window.YEARBOOK_TEACHERS) return;
+    if (!grid || !YEARBOOK_TEACHERS) return;
     grid.innerHTML = '';
 
     const total = Object.values(ybVoteCounts).reduce((a, b) => a + b, 0);
@@ -1543,7 +1543,7 @@ async function updateWallYearbookUI() {
 }
 
 function renderWallYBOptions() {
-    if (!window.YEARBOOK_TEACHERS || !ybOptionIndices.length) return;
+    if (!YEARBOOK_TEACHERS || !ybOptionIndices.length) return;
     const img = document.getElementById('yb-wall-throwback');
     if (img && ybTeacherIndex !== null) {
         img.src = `media/teachers/throwbacks/${ybTeacherIndex}.jpg`;
@@ -1588,7 +1588,7 @@ function setupWallYBVotesRealtime() {
 }
 
 function renderWallYBReveal() {
-    if (!window.YEARBOOK_TEACHERS || ybTeacherIndex === null) return;
+    if (!YEARBOOK_TEACHERS || ybTeacherIndex === null) return;
     const teacher = YEARBOOK_TEACHERS[ybTeacherIndex];
     const throwbackImg = document.getElementById('yb-wall-reveal-throwback');
     const currentImg = document.getElementById('yb-wall-reveal-current');

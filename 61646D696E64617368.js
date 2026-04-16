@@ -542,7 +542,7 @@ function updateYBAdminUI() {
     // Round info
     const infoEl = document.getElementById('yb-round-info');
     if (infoEl) {
-        if (ybTeacherIndex !== null && window.YEARBOOK_TEACHERS) {
+        if (ybTeacherIndex !== null && YEARBOOK_TEACHERS) {
             const teacher = YEARBOOK_TEACHERS[ybTeacherIndex];
             infoEl.textContent = `Now showing: ${teacher?.name || '?'}`;
         } else {
@@ -567,9 +567,9 @@ function ybBuildOptions(teacherIdx) {
 }
 
 window.ybStartRound = async function() {
-    console.log('[YB] ybStartRound called — isAdmin:', isAdmin, '| YEARBOOK_TEACHERS:', window.YEARBOOK_TEACHERS);
+    console.log('[YB] ybStartRound called — isAdmin:', isAdmin, '| YEARBOOK_TEACHERS defined:', typeof YEARBOOK_TEACHERS !== 'undefined');
     if (!isAdmin) { console.warn('[YB] ybStartRound: not admin, aborting'); return; }
-    if (!window.YEARBOOK_TEACHERS) { console.warn('[YB] ybStartRound: YEARBOOK_TEACHERS not defined, aborting'); return; }
+    if (!YEARBOOK_TEACHERS) { console.warn('[YB] ybStartRound: YEARBOOK_TEACHERS not defined, aborting'); return; }
 
     // Read selected checkboxes
     const allCheckboxes = document.querySelectorAll('#yb-teacher-checkboxes input[type=checkbox]');
@@ -615,7 +615,7 @@ window.ybStartRound = async function() {
 
 window.ybNextTeacher = async function() {
     if (!isAdmin) return;
-    if (!window.YEARBOOK_TEACHERS) return;
+    if (!YEARBOOK_TEACHERS) return;
     const newPos = ybQueuePosition + 1;
     if (newPos >= ybTeacherQueue.length) return showToast("No more teachers in queue.");
 
