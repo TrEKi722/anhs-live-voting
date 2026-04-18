@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Wall — Find Wally</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css?v=3">
+    </head>
+    <body>
+
+        <div id="full-page" class="page-layout" style="display: none;">
+
+            <!-- Header -->
+            <div class="page-header">
+                <span id="wally-wall-badge" class="status-badge status-locked">Loading...</span>
+                <h1>Find Wally!</h1>
+                <h2 id="wally-play-url"></h2>
+            </div>
+
+            <!-- Body: QR + leaderboard -->
+            <div class="wall-body">
+                <div class="wall-qr-panel">
+                    <img id="wally-qr" src="" alt="QR code to Find Wally" style="width: 400px; height: 400px; border-radius: 8px;">
+                </div>
+                <div class="content-panel" style="text-align: center;">
+
+                    <!-- Inactive -->
+                    <div id="wally-wall-inactive" style="padding: 2rem 0;">
+                        <p style="color: var(--text-muted); font-size: 1.2rem;">Waiting for round to start...</p>
+                    </div>
+
+                    <!-- Active -->
+                    <div id="wally-wall-active" style="display: none;">
+                        <h2 style="margin-bottom: 1rem;">Top Finders</h2>
+                        <table class="yb-leaderboard" style="max-width: 460px; margin: 0 auto;">
+                            <tbody id="wally-wall-leaderboard">
+                                <tr><td colspan="3" style="color: var(--text-muted); text-align: center; padding: 1rem;">No scores yet — go find Wally!</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Data + Logic -->
+        <script src="../wally-data.js"></script>
+        <script src="../common.js"></script>
+        <script>
+            addEventListener("DOMContentLoaded", () => {
+                const host = window.location.hostname;
+                document.getElementById('wally-play-url').textContent = 'Play @ ' + host;
+                document.getElementById('wally-qr').src =
+                    'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' +
+                    host + '%2Fwally&size=500x500&color=000&bgcolor=fff&qzone=1';
+            });
+        </script>
+    </body>
+</html>

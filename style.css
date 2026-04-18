@@ -877,3 +877,91 @@ button.action-btn:hover { opacity: 0.9; }
     flex: 1;
     min-width: 0;
 }
+
+/* Find Wally game */
+#wally-active {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#wally-stopwatch-bar {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    text-align: center;
+    padding: 0.4rem 1rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--card-border);
+}
+
+#wally-stopwatch {
+    font-size: 2rem;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+    letter-spacing: 0.03em;
+}
+
+#wally-image-viewport {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    touch-action: none;
+    cursor: crosshair;
+    min-height: 0;
+    background: #000;
+}
+
+#wally-image-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+#wally-img {
+    display: block;
+    max-width: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+}
+
+#wally-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 1.2rem;
+}
+
+#wally-found {
+    display: none;
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+#wally-found h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+}
+
+#wally-your-time {
+    font-size: 1.4rem;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    margin: 0.5rem 0;
+}
+
+#wally-your-rank {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+}

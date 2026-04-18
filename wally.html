@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>ANHS Live — Find Wally!</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="style.css?v=3">
+    </head>
+    <body>
+
+        <div id="full-page" class="page-layout" style="display: none;">
+
+            <!-- Header -->
+            <div class="page-header">
+                <span id="wally-status-badge" class="status-badge status-locked">Loading...</span>
+                <h1>Find Wally!</h1>
+            </div>
+
+            <!-- State: waiting -->
+            <div id="wally-waiting" class="content-panel" style="text-align: center;">
+                <p style="color: var(--text-muted); font-size: 1.1rem;">Stand by — the round is about to start.</p>
+            </div>
+
+            <!-- State: round ended without finding -->
+            <div id="wally-ended" class="content-panel" style="display: none; text-align: center;">
+                <p style="color: var(--text-muted); font-size: 1.1rem;">Round over — better luck next time!</p>
+            </div>
+
+            <!-- State: hunting -->
+            <div id="wally-active">
+                <div id="wally-stopwatch-bar">
+                    <span id="wally-stopwatch">0.00s</span>
+                </div>
+                <div id="wally-image-viewport">
+                    <div id="wally-image-wrapper">
+                        <img id="wally-img" src="" alt="Find Wally!">
+                    </div>
+                    <div id="wally-loading">Loading scene...</div>
+                </div>
+            </div>
+
+            <!-- State: found -->
+            <div id="wally-found" class="content-panel">
+                <h2>Found him!</h2>
+                <p id="wally-your-time"></p>
+                <p id="wally-your-rank"></p>
+                <div id="wally-top3"></div>
+            </div>
+
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Data + Logic -->
+        <script src="wally-data.js"></script>
+        <script src="common.js"></script>
+    </body>
+</html>

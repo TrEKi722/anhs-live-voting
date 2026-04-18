@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin — Find Wally</title>
+        <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico">
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <link rel="stylesheet" href="../style.css?v=3">
+    </head>
+    <body>
+
+        <nav>
+            <a href="/admin">← Admin</a>
+        </nav>
+
+        <div id="adminDash" style="display: none; flex-direction: column; align-items: center; margin-top: 5rem; padding-top: 1rem; padding-bottom: 2rem;">
+            <h1>Find Wally</h1>
+
+            <div class="admin-panel" style="margin-top: 1rem;">
+                <h3>Game Controls</h3>
+
+                <p id="wally-round-info" style="color: var(--text-muted); margin: 0.5rem 0; font-size: 0.95rem;">No active round.</p>
+
+                <div style="margin: 1rem 0;">
+                    <label for="wally-scene-select" style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Select scene:</label>
+                    <select id="wally-scene-select" style="width: 100%; padding: 0.5rem 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-color); font-size: 1rem;"></select>
+                </div>
+
+                <button id="wally-start-btn" class="action-btn btn-primary" onclick="openModal('wallyStartModal')">Start Round</button>
+                <button id="wally-end-btn" class="action-btn btn-danger" onclick="openModal('wallyEndModal')" style="display: none;">End Round</button>
+                <button class="action-btn" style="background: #555;" onclick="openModal('wallyResetModal')">Reset Scores</button>
+
+                <!-- Confirm start modal -->
+                <div class="modal" id="wallyStartModal">
+                    <div class="modal-content" style="max-width: 400px; text-align: center;">
+                        <h2>Start Round?</h2>
+                        <p id="wally-start-confirm-text" style="color: var(--text-muted); margin: 1rem 0;"></p>
+                        <button class="action-btn btn-primary" onclick="wallyStartRound(document.getElementById('wally-scene-select').value); closeModal('wallyStartModal');">Start</button>
+                        <button class="action-btn btn-secondary" onclick="closeModal('wallyStartModal')">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Confirm end modal -->
+                <div class="modal" id="wallyEndModal">
+                    <div class="modal-content" style="max-width: 400px; text-align: center;">
+                        <h2>End Round?</h2>
+                        <p style="color: var(--text-muted); margin: 1rem 0;">This stops the timer for players still hunting. Scores are kept.</p>
+                        <button class="action-btn btn-secondary" onclick="closeModal('wallyEndModal')">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="wallyEndRound(); closeModal('wallyEndModal')">Yes, End</button>
+                    </div>
+                </div>
+
+                <!-- Confirm reset scores modal -->
+                <div class="modal" id="wallyResetModal">
+                    <div class="modal-content" style="max-width: 400px; text-align: center;">
+                        <h2>Reset Scores?</h2>
+                        <p style="color: var(--text-muted); margin: 1rem 0;">Clears all scores for the current round and ends it.</p>
+                        <button class="action-btn btn-secondary" onclick="closeModal('wallyResetModal')">Cancel</button>
+                        <button class="action-btn btn-danger" onclick="wallyReset(); closeModal('wallyResetModal')">Yes, Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Toast Message -->
+        <div id="toast">Message goes here</div>
+
+        <!-- Data + Logic -->
+        <script src="../wally-data.js"></script>
+        <script src="../common.js"></script>
+        <script src="../61646D696E64617368.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Populate scene selector
+                const sel = document.getElementById('wally-scene-select');
+                if (sel && typeof WALLY_SCENES !== 'undefined') {
+                    WALLY_SCENES.forEach(scene => {
+                        const opt = document.createElement('option');
+                        opt.value = scene.id;
+                        opt.textContent = scene.name;
+                        sel.appendChild(opt);
+                    });
+                }
+
+                // Show selected scene name in confirm modal
+                const startBtn = document.getElementById('wally-start-btn');
+                if (startBtn) {
+                    startBtn.addEventListener('click', () => {
+                        const sel = document.getElementById('wally-scene-select');
+                        const scene = typeof WALLY_SCENES !== 'undefined'
+                            ? WALLY_SCENES.find(s => s.id === sel?.value)
+                            : null;
+                        const confirmText = document.getElementById('wally-start-confirm-text');
+                        if (confirmText) confirmText.textContent = scene ? `Scene: ${scene.name}` : 'No scene selected.';
+                    });
+                }
+            });
+        </script>
+    </body>
+</html>

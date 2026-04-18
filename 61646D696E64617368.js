@@ -9,6 +9,7 @@ function updateAdminUI() {
     updateCupsAdminUI();
     if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
     if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
+    if (typeof updateWallyAdminUI === 'function') updateWallyAdminUI();
     const lockBtn = document.getElementById('toggle-lock-btn');
     const hideBtn = document.getElementById('toggle-hide-btn');
     
@@ -704,5 +705,84 @@ window.ngReset = async function() {
         showToast("Name Game reset!");
     } catch (e) {
         showToast("Error resetting Name Game.");
+    }
+}
+// ==========================================
+// Wally Admin Controls
+// ==========================================
+
+function updateWallyAdminUI() {
+    const startBtn = document.getElementById('wally-start-btn');
+    const endBtn = document.getElementById('wally-end-btn');
+    const roundInfo = document.getElementById('wally-round-info');
+
+    if (!startBtn && !endBtn) return; // not on wally admin page
+
+    const scene = typeof WALLY_SCENES !== 'undefined' ? WALLY_SCENES.find(s => s.id === wallySceneId) : null;
+
+    if (startBtn) startBtn.style.display = wallyIsActive ? 'none' : 'inline-block';
+    if (endBtn) endBtn.style.display = wallyIsActive ? 'inline-block' : 'none';
+
+    if (roundInfo) {
+        roundInfo.textContent = wallyIsActive
+            ? `Active — ${scene ? scene.name : wallySceneId}`
+            : 'No active round.';
+    }
+}
+
+window.wallyStartRound = async function(sceneId) {
+    if (!isAdmin) return;
+    if (!sceneId) return showToast('Select a scene first.');
+    try {
+        const { error } = await supabaseC
+            .from('wally_config')
+            .update({
+                is_active: true,
+                scene_id: sceneId,
+                round_id: crypto.randomUUID(),
+                started_at: new Date().toISOString()
+            })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast('Round started!');
+    } catch (e) {
+        console.error('[Wally] Start error:', e);
+        showToast('Error starting round.');
+    }
+}
+
+window.wallyEndRound = async function() {
+    if (!isAdmin) return;
+    try {
+        const { error } = await supabaseC
+            .from('wally_config')
+            .update({ is_active: false })
+            .eq('id', 'main');
+        if (error) throw error;
+        showToast('Round ended.');
+    } catch (e) {
+        showToast('Error ending round.');
+    }
+}
+
+window.wallyReset = async function() {
+    if (!isAdmin) return;
+    try {
+        if (wallyRoundId) {
+            const { error: scoresErr } = await supabaseC
+                .from('wally_scores')
+                .delete()
+                .eq('round_id', wallyRoundId);
+            if (scoresErr) throw scoresErr;
+        }
+        const { error: cfgErr } = await supabaseC
+            .from('wally_config')
+            .update({ is_active: false, scene_id: null, round_id: null, started_at: null })
+            .eq('id', 'main');
+        if (cfgErr) throw cfgErr;
+        showToast('Scores cleared and round reset.');
+    } catch (e) {
+        console.error('[Wally] Reset error:', e);
+        showToast('Error resetting.');
     }
 }

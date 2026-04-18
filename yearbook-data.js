@@ -11,7 +11,7 @@
 const YEARBOOK_TEACHERS = [
     { id: 0, name: 'Coach Henderson', throwbackExt: 'jpeg', currentExt: 'png', gender: 'm' },
     { id: 1, name: 'Mr. Mocnik', ext: 'jpeg', gender: 'm' },
-    { id: 2, name: 'Coach Calahan', gender: 'm' },
+    { id: 2, name: 'Coach Calahan', throwbackExt: 'jpeg',gender: 'm' },
     { id: 3, name: 'Mr. Chen', gender: 'm' },
     { id: 4, name: 'Mrs. Desiano', gender: 'f' },
     { id: 5, name: 'Mrs. McCann', throwbackExt: 'jpeg', gender: 'f' },

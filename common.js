@@ -40,6 +40,23 @@ let ybVoteCounts = {};         // { teacherIndex: count } populated during revea
 let ybTeacherQueue = [];       // ordered list of teacher indices for the session
 let ybQueuePosition = 0;       // current position in the queue (0-indexed)
 
+// Wally state
+let wallyIsActive = false;
+let wallySceneId = null;
+let wallyRoundId = null;
+let wallyStartedAt = null;
+let wallyFoundTime = null;
+let wallyMyRank = null;
+let wallyTopScores = null;
+let wallyRaf = null;
+let wallyRoundEnded = false;
+let wallyScale = 1;
+let wallyTranslateX = 0;
+let wallyTranslateY = 0;
+let wallyMinScale = 0.1;
+const WALLY_MAX_SCALE = 5;
+let wallyZoomPanSetup = false;
+
 // Name Game state
 let ngIsActive = false;
 let ngImageSet = null;
@@ -140,6 +157,11 @@ addEventListener("DOMContentLoaded", async (event) => {
             setupYearbookRealtime();
             if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
         }
+        if (path === '/admin/wally') {
+            await fetchWallyConfig();
+            setupWallyRealtime();
+            if (typeof updateWallyAdminUI === 'function') updateWallyAdminUI();
+        }
         return;
     }
 
@@ -170,6 +192,11 @@ addEventListener("DOMContentLoaded", async (event) => {
             await fetchYearbookConfig();
             setupYearbookRealtime();
             await initWallYearbook();
+        }
+        if (path === '/wall/wally') {
+            await fetchWallyConfig();
+            setupWallyRealtime();
+            await initWallWally();
         }
         // /wall/vote uses fetchInitialData + setupRealtimeSubscriptions already called via initAuth
         return;
@@ -208,6 +235,17 @@ addEventListener("DOMContentLoaded", async (event) => {
             await initYearbook();
         } else {
             window.location.href = '/?redirect=/yearbook';
+        }
+        return;
+    }
+
+    // Wally route - requires auth, redirect to home if not signed in
+    if (path === '/wally' || path === '/wally.html') {
+        if (session) {
+            await initAuth(null);
+            await initWally();
+        } else {
+            window.location.href = '/?redirect=/wally';
         }
         return;
     }
@@ -1633,4 +1671,489 @@ async function loadYBLeaderboard() {
         : '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1rem;">No scores yet.</td></tr>';
 
     tables.forEach(t => t.innerHTML = html);
+}
+// ==========================================
+// 12. Wally
+// ==========================================
+
+async function fetchWallyConfig() {
+    const { data } = await supabaseC
+        .from('wally_config')
+        .select('*')
+        .eq('id', 'main')
+        .single();
+    if (data) {
+        wallyIsActive = data.is_active || false;
+        wallySceneId = data.scene_id || null;
+        wallyRoundId = data.round_id || null;
+        wallyStartedAt = data.started_at || null;
+    }
+}
+
+async function initWally() {
+    await fetchWallyConfig();
+
+    // Check if player already found Wally this round (page refresh mid-round)
+    if (wallyIsActive && wallyRoundId && currentUser) {
+        const { data: existing } = await supabaseC
+            .from('wally_scores')
+            .select('time_ms')
+            .eq('user_id', currentUser.id)
+            .eq('round_id', wallyRoundId)
+            .maybeSingle();
+        if (existing) {
+            wallyFoundTime = existing.time_ms;
+            const { count } = await supabaseC
+                .from('wally_scores')
+                .select('*', { count: 'exact', head: true })
+                .eq('round_id', wallyRoundId)
+                .lte('time_ms', existing.time_ms);
+            wallyMyRank = count;
+            wallyTopScores = await loadWallyLeaderboard(3);
+        }
+    }
+
+    setupWallyRealtime();
+    wallySetupZoomPan();
+    updateWallyUI();
+}
+
+function updateWallyUI() {
+    const fullPage = document.getElementById('full-page');
+    if (!fullPage) return;
+    fullPage.style.display = 'flex';
+
+    const waitingEl = document.getElementById('wally-waiting');
+    const activeEl = document.getElementById('wally-active');
+    const foundEl = document.getElementById('wally-found');
+    const endedEl = document.getElementById('wally-ended');
+    const badge = document.getElementById('wally-status-badge');
+
+    if (waitingEl) waitingEl.style.display = 'none';
+    if (activeEl) activeEl.style.display = 'none';
+    if (foundEl) foundEl.style.display = 'none';
+    if (endedEl) endedEl.style.display = 'none';
+
+    if (wallyFoundTime !== null) {
+        // Found state
+        if (foundEl) foundEl.style.display = 'block';
+        if (badge) { badge.className = 'status-badge status-open'; badge.textContent = 'Found!'; }
+
+        const timeEl = document.getElementById('wally-your-time');
+        const rankEl = document.getElementById('wally-your-rank');
+        const top3El = document.getElementById('wally-top3');
+
+        if (timeEl) timeEl.textContent = `Your time: ${(wallyFoundTime / 1000).toFixed(3)}s`;
+
+        if (rankEl) {
+            if (wallyMyRank !== null) {
+                const suffix = wallyMyRank === 1 ? 'st' : wallyMyRank === 2 ? 'nd' : wallyMyRank === 3 ? 'rd' : 'th';
+                rankEl.textContent = `You placed ${wallyMyRank}${suffix}!`;
+            } else {
+                rankEl.textContent = 'Submitting...';
+            }
+        }
+
+        if (top3El) {
+            if (wallyTopScores) {
+                const medals = ['🥇', '🥈', '🥉'];
+                top3El.innerHTML = wallyTopScores.length
+                    ? `<table class="yb-leaderboard" style="max-width: 360px; margin: 1rem auto;">
+                        <tbody>
+                            ${wallyTopScores.map((row, i) => `
+                                <tr>
+                                    <td style="font-size: 1.4rem; padding: 0.6rem;">${medals[i] || (i + 1) + '.'}</td>
+                                    <td style="text-align: left; padding: 0.6rem;">${row.display_name || 'Anonymous'}</td>
+                                    <td style="font-weight: bold; color: var(--primary); padding: 0.6rem; font-variant-numeric: tabular-nums;">${(row.time_ms / 1000).toFixed(3)}s</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>`
+                    : '<p style="color: var(--text-muted);">No scores yet.</p>';
+            } else {
+                top3El.textContent = '';
+            }
+        }
+
+    } else if (wallyRoundEnded) {
+        // Round ended while player was still hunting
+        if (endedEl) endedEl.style.display = 'block';
+        if (badge) { badge.className = 'status-badge status-locked'; badge.textContent = 'Round Over'; }
+
+    } else if (wallyIsActive) {
+        // Hunting state
+        if (activeEl) activeEl.style.display = 'flex';
+        if (badge) { badge.className = 'status-badge status-open'; badge.textContent = 'Active'; }
+
+        const img = document.getElementById('wally-img');
+        const scene = typeof WALLY_SCENES !== 'undefined' ? WALLY_SCENES.find(s => s.id === wallySceneId) : null;
+        if (img && scene) {
+            const fullUrl = window.location.origin + scene.image;
+            if (img.src !== fullUrl) {
+                const loadingEl = document.getElementById('wally-loading');
+                if (loadingEl) loadingEl.style.display = 'flex';
+                wallyScale = 0.1;
+                wallyTranslateX = 0;
+                wallyTranslateY = 0;
+                wallyApplyTransform();
+
+                img.onload = () => {
+                    const vp = document.getElementById('wally-image-viewport');
+                    if (vp && img.naturalWidth) {
+                        wallyMinScale = Math.min(vp.clientWidth / img.naturalWidth, vp.clientHeight / img.naturalHeight);
+                        wallyScale = wallyMinScale;
+                        wallyTranslateX = 0;
+                        wallyTranslateY = 0;
+                        wallyClampTranslate();
+                        wallyApplyTransform();
+                    }
+                    if (loadingEl) loadingEl.style.display = 'none';
+                };
+                img.src = scene.image;
+            }
+        }
+
+        startWallyStopwatch();
+
+    } else {
+        // Waiting state
+        if (waitingEl) waitingEl.style.display = 'block';
+        if (badge) { badge.className = 'status-badge status-locked'; badge.textContent = 'Waiting'; }
+        stopWallyStopwatch();
+    }
+}
+
+function setupWallyRealtime() {
+    supabaseC
+        .channel('wally-config-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'wally_config' }, payload => {
+            if (!payload.new) return;
+            const prevRoundId = wallyRoundId;
+            const prevActive = wallyIsActive;
+
+            wallyIsActive = payload.new.is_active || false;
+            wallySceneId = payload.new.scene_id || null;
+            wallyRoundId = payload.new.round_id || null;
+            wallyStartedAt = payload.new.started_at || null;
+
+            // New round started — clear per-player state
+            if (wallyRoundId !== prevRoundId) {
+                wallyFoundTime = null;
+                wallyMyRank = null;
+                wallyTopScores = null;
+                wallyRoundEnded = false;
+            }
+
+            // Round ended while player was hunting
+            if (!wallyIsActive && prevActive && wallyFoundTime === null) {
+                wallyRoundEnded = true;
+                stopWallyStopwatch();
+            }
+
+            // Round reset (round_id cleared to null)
+            if (wallyRoundId === null) {
+                wallyFoundTime = null;
+                wallyMyRank = null;
+                wallyTopScores = null;
+                wallyRoundEnded = false;
+            }
+
+            updateWallyUI();
+            if (typeof updateWallyAdminUI === 'function') updateWallyAdminUI();
+
+            // Refresh wall leaderboard if on wall page
+            if (document.getElementById('wally-wall-leaderboard')) {
+                loadWallyLeaderboard(5).then(scores => {
+                    wallyTopScores = scores;
+                    updateWallWallyUI();
+                });
+            }
+        })
+        .subscribe();
+}
+
+function startWallyStopwatch() {
+    if (wallyRaf) return;
+    function tick() {
+        if (!wallyStartedAt) { wallyRaf = null; return; }
+        const elapsed = Date.now() - new Date(wallyStartedAt).getTime();
+        const el = document.getElementById('wally-stopwatch');
+        if (el) el.textContent = (elapsed / 1000).toFixed(2) + 's';
+        wallyRaf = requestAnimationFrame(tick);
+    }
+    wallyRaf = requestAnimationFrame(tick);
+}
+
+function stopWallyStopwatch() {
+    if (wallyRaf) {
+        cancelAnimationFrame(wallyRaf);
+        wallyRaf = null;
+    }
+}
+
+function wallyApplyTransform() {
+    const wrapper = document.getElementById('wally-image-wrapper');
+    if (wrapper) {
+        wrapper.style.transform = `scale(${wallyScale}) translate(${wallyTranslateX}px, ${wallyTranslateY}px)`;
+    }
+}
+
+function wallyClampTranslate() {
+    const img = document.getElementById('wally-img');
+    const vp = document.getElementById('wally-image-viewport');
+    if (!img?.naturalWidth || !vp) return;
+
+    const minTx = vp.clientWidth / wallyScale - img.naturalWidth;
+    wallyTranslateX = minTx >= 0
+        ? minTx / 2
+        : Math.max(minTx, Math.min(0, wallyTranslateX));
+
+    const minTy = vp.clientHeight / wallyScale - img.naturalHeight;
+    wallyTranslateY = minTy >= 0
+        ? minTy / 2
+        : Math.max(minTy, Math.min(0, wallyTranslateY));
+}
+
+function wallySetupZoomPan() {
+    if (wallyZoomPanSetup) return;
+    const vp = document.getElementById('wally-image-viewport');
+    if (!vp) return;
+    wallyZoomPanSetup = true;
+
+    let lastPinchDist = 0;
+    let lastPanX = 0, lastPanY = 0;
+    let tapStartX = 0, tapStartY = 0, tapStartTime = 0;
+    let isPinching = false;
+
+    function getTouchDist(t1, t2) {
+        const dx = t1.clientX - t2.clientX;
+        const dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    vp.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (e.touches.length >= 2) {
+            isPinching = true;
+            lastPinchDist = getTouchDist(e.touches[0], e.touches[1]);
+        } else {
+            isPinching = false;
+            lastPanX = e.touches[0].clientX;
+            lastPanY = e.touches[0].clientY;
+            tapStartX = lastPanX;
+            tapStartY = lastPanY;
+            tapStartTime = Date.now();
+        }
+    }, { passive: false });
+
+    vp.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (e.touches.length >= 2) {
+            isPinching = true;
+            const newDist = getTouchDist(e.touches[0], e.touches[1]);
+            if (!newDist) return;
+            const scaleFactor = newDist / lastPinchDist;
+            const newScale = Math.max(wallyMinScale, Math.min(WALLY_MAX_SCALE, wallyScale * scaleFactor));
+
+            const rect = vp.getBoundingClientRect();
+            const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+            // Keep pinch midpoint stationary in image space
+            const imgMidX = midX / wallyScale - wallyTranslateX;
+            const imgMidY = midY / wallyScale - wallyTranslateY;
+            wallyTranslateX = midX / newScale - imgMidX;
+            wallyTranslateY = midY / newScale - imgMidY;
+            wallyScale = newScale;
+
+            wallyClampTranslate();
+            wallyApplyTransform();
+            lastPinchDist = newDist;
+        } else if (e.touches.length === 1 && !isPinching) {
+            const dx = e.touches[0].clientX - lastPanX;
+            const dy = e.touches[0].clientY - lastPanY;
+            wallyTranslateX += dx / wallyScale;
+            wallyTranslateY += dy / wallyScale;
+            wallyClampTranslate();
+            wallyApplyTransform();
+            lastPanX = e.touches[0].clientX;
+            lastPanY = e.touches[0].clientY;
+        }
+    }, { passive: false });
+
+    vp.addEventListener('touchend', e => {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+            // Went from 2 to 1 touch — reset pan reference
+            lastPanX = e.touches[0].clientX;
+            lastPanY = e.touches[0].clientY;
+            isPinching = false;
+        } else if (e.touches.length === 0) {
+            if (!isPinching) {
+                const dx = Math.abs(e.changedTouches[0].clientX - tapStartX);
+                const dy = Math.abs(e.changedTouches[0].clientY - tapStartY);
+                const dt = Date.now() - tapStartTime;
+                if (dx < 10 && dy < 10 && dt < 300) {
+                    wallyHandleTap(e.changedTouches[0]);
+                }
+            }
+            isPinching = false;
+        }
+    }, { passive: false });
+
+    // Desktop: scroll wheel to zoom
+    vp.addEventListener('wheel', e => {
+        e.preventDefault();
+        const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        const newScale = Math.max(wallyMinScale, Math.min(WALLY_MAX_SCALE, wallyScale * scaleFactor));
+        const rect = vp.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const imgMx = mx / wallyScale - wallyTranslateX;
+        const imgMy = my / wallyScale - wallyTranslateY;
+        wallyTranslateX = mx / newScale - imgMx;
+        wallyTranslateY = my / newScale - imgMy;
+        wallyScale = newScale;
+        wallyClampTranslate();
+        wallyApplyTransform();
+    }, { passive: false });
+
+    // Desktop: click to test hit detection (touch events suppress this on mobile)
+    vp.addEventListener('click', e => {
+        if (wallyFoundTime !== null || !wallyIsActive) return;
+        const img = document.getElementById('wally-img');
+        if (!img?.naturalWidth) return;
+        const rect = vp.getBoundingClientRect();
+        const imgPixelX = (e.clientX - rect.left) / wallyScale - wallyTranslateX;
+        const imgPixelY = (e.clientY - rect.top) / wallyScale - wallyTranslateY;
+        wallyCheckHit((imgPixelX / img.naturalWidth) * 100, (imgPixelY / img.naturalHeight) * 100);
+    });
+}
+
+function wallyHandleTap(touch) {
+    if (wallyFoundTime !== null || !wallyIsActive) return;
+    const img = document.getElementById('wally-img');
+    if (!img?.naturalWidth) return;
+
+    const vp = document.getElementById('wally-image-viewport');
+    const rect = vp.getBoundingClientRect();
+    const imgPixelX = (touch.clientX - rect.left) / wallyScale - wallyTranslateX;
+    const imgPixelY = (touch.clientY - rect.top) / wallyScale - wallyTranslateY;
+
+    const tapXPct = (imgPixelX / img.naturalWidth) * 100;
+    const tapYPct = (imgPixelY / img.naturalHeight) * 100;
+
+    console.log('[Wally] Tap at:', tapXPct.toFixed(2) + '%', tapYPct.toFixed(2) + '%');
+
+    wallyCheckHit(tapXPct, tapYPct);
+}
+
+function wallyCheckHit(tapXPct, tapYPct) {
+    const scene = typeof WALLY_SCENES !== 'undefined' ? WALLY_SCENES.find(s => s.id === wallySceneId) : null;
+    if (!scene) return;
+    const { x, y, radius } = scene.hitbox;
+    const dist = Math.sqrt((tapXPct - x) ** 2 + (tapYPct - y) ** 2);
+    if (dist <= radius) {
+        const timeMs = Date.now() - new Date(wallyStartedAt).getTime();
+        wallySubmitScore(timeMs);
+    }
+}
+
+async function wallySubmitScore(timeMs) {
+    if (!currentUser || !wallyRoundId) return;
+    if (wallyFoundTime !== null) return;
+    wallyFoundTime = timeMs;
+    stopWallyStopwatch();
+    updateWallyUI(); // show "Submitting..." while rank loads
+
+    const displayName = currentUser.user_metadata?.full_name
+        || currentUser.user_metadata?.name
+        || currentUser.email
+        || 'Anonymous';
+
+    try {
+        const { error } = await supabaseC
+            .from('wally_scores')
+            .insert({
+                user_id: currentUser.id,
+                round_id: wallyRoundId,
+                time_ms: timeMs,
+                display_name: displayName
+            });
+        if (error) throw error;
+
+        const { count } = await supabaseC
+            .from('wally_scores')
+            .select('*', { count: 'exact', head: true })
+            .eq('round_id', wallyRoundId)
+            .lte('time_ms', timeMs);
+        wallyMyRank = count;
+        wallyTopScores = await loadWallyLeaderboard(3);
+        updateWallyUI();
+    } catch (e) {
+        console.error('[Wally] Submit error:', e);
+        showToast('Error submitting your time.');
+        wallyFoundTime = null;
+        startWallyStopwatch();
+        updateWallyUI();
+    }
+}
+
+async function loadWallyLeaderboard(limit) {
+    if (!wallyRoundId) return [];
+    const { data } = await supabaseC
+        .from('wally_scores')
+        .select('display_name, time_ms')
+        .eq('round_id', wallyRoundId)
+        .order('time_ms', { ascending: true })
+        .limit(limit || 5);
+    return data || [];
+}
+
+// Wall page
+async function initWallWally() {
+    wallyTopScores = await loadWallyLeaderboard(5);
+    setupWallWallyRealtime();
+    updateWallWallyUI();
+}
+
+function updateWallWallyUI() {
+    const fullPage = document.getElementById('full-page');
+    if (fullPage) fullPage.style.display = 'flex';
+
+    const badge = document.getElementById('wally-wall-badge');
+    const inactiveEl = document.getElementById('wally-wall-inactive');
+    const activeEl = document.getElementById('wally-wall-active');
+    const lbEl = document.getElementById('wally-wall-leaderboard');
+
+    if (badge) {
+        badge.className = wallyIsActive ? 'status-badge status-open' : 'status-badge status-locked';
+        badge.textContent = wallyIsActive ? 'Active' : 'Waiting';
+    }
+    if (inactiveEl) inactiveEl.style.display = wallyIsActive ? 'none' : 'block';
+    if (activeEl) activeEl.style.display = wallyIsActive ? 'block' : 'none';
+
+    if (lbEl) {
+        const scores = wallyTopScores || [];
+        const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+        lbEl.innerHTML = scores.length
+            ? scores.map((row, i) => `
+                <tr>
+                    <td style="padding: 0.75rem; font-size: 1.5rem;">${medals[i]}</td>
+                    <td style="padding: 0.75rem; text-align: left;">${row.display_name || 'Anonymous'}</td>
+                    <td style="padding: 0.75rem; font-weight: bold; color: var(--primary); font-variant-numeric: tabular-nums;">${(row.time_ms / 1000).toFixed(3)}s</td>
+                </tr>
+            `).join('')
+            : '<tr><td colspan="3" style="color: var(--text-muted); text-align: center; padding: 1rem;">No scores yet — go find Wally!</td></tr>';
+    }
+}
+
+function setupWallWallyRealtime() {
+    supabaseC
+        .channel('wall-wally-scores')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wally_scores' }, async () => {
+            wallyTopScores = await loadWallyLeaderboard(5);
+            updateWallWallyUI();
+        })
+        .subscribe();
 }
