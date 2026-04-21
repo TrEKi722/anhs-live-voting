@@ -21,6 +21,7 @@ let options = ["Loading...", "Loading...", "Loading...", "Loading..."];
 let myVote = null;
 let isAdmin = false;
 let isSuperAdmin = false;
+let displayName = 'Anonymous';
 
 // Cups state
 let cupsIsActive = false;
@@ -73,6 +74,66 @@ let ngWallCountdownRaf = null;
 // ==========================================
 // 2. Authentication & Initialization
 // ==========================================
+
+const USERNAME_ADJECTIVES = [
+    'amber','bold','brave','bright','calm','clever','cool','cosmic','crisp','curious',
+    'daring','dark','deft','eager','epic','fast','fierce','fluffy','frozen','gentle',
+    'giant','glad','glowing','golden','grand','green','happy','hasty','icy','jolly',
+    'keen','laser','loud','lucky','mellow','mighty','misty','neon','noble','odd',
+    'pale','peppy','polar','proud','quick','quiet','rapid','rusty','shiny','silent',
+    'sleek','slim','slow','sly','smart','smooth','snappy','solar','sonic','speedy',
+    'spicy','stormy','sunny','super','swift','tiny','turbo','violet','vivid','wacky',
+    'warm','wild','windy','wise','woolly','zany','zealous','zippy'
+];
+const USERNAME_NOUNS = [
+    'anvil','badger','bear','beaver','bison','boar','bolt','buffalo','camel','cat',
+    'cloud','cobra','comet','condor','coral','cougar','coyote','crane','crow','dingo',
+    'dolphin','dragon','duck','eagle','eel','elk','falcon','ferret','finch','flamingo',
+    'fox','frog','gecko','gibbon','goat','goose','gopher','hawk','hedgehog','hippo',
+    'ibis','iguana','jaguar','kiwi','lemur','leopard','lion','lizard','llama','lobster',
+    'lynx','marmot','moose','moth','mouse','mule','newt','ocelot','orca','osprey',
+    'otter','owl','panda','parrot','penguin','porcupine','puffin','quail','rabbit',
+    'raccoon','raven','rhino','salmon','seal','shark','sloth','snail','sparrow','squid',
+    'stag','stoat','swan','tiger','toad','turtle','viper','walrus'
+];
+
+function generateUsername() {
+    const adj = USERNAME_ADJECTIVES[Math.floor(Math.random() * USERNAME_ADJECTIVES.length)];
+    const noun = USERNAME_NOUNS[Math.floor(Math.random() * USERNAME_NOUNS.length)];
+    return `${adj}-${noun}`;
+}
+
+async function getOrCreateUsername(user) {
+    if (user.user_metadata?.username) return user.user_metadata.username;
+    const name = generateUsername();
+    const { data, error } = await supabaseC.auth.updateUser({ data: { username: name } });
+    if (!error && data?.user) currentUser = data.user;
+    return name;
+}
+
+async function voterSignIn() {
+    const { data: { session } } = await supabaseC.auth.getSession();
+    if (session) {
+        currentUser = session.user;
+        currentSession = session;
+    } else {
+        const { data, error } = await supabaseC.auth.signInAnonymously();
+        if (error) { showToast('Could not sign in. Please reload.'); return false; }
+        currentUser = data.user;
+        currentSession = data.session;
+    }
+    displayName = await getOrCreateUsername(currentUser);
+    injectUsernameBar(displayName);
+    return true;
+}
+
+function injectUsernameBar(username) {
+    if (document.getElementById('username-bar')) return;
+    const bar = document.createElement('div');
+    bar.id = 'username-bar';
+    bar.innerHTML = `<span class="username-bar-label">You are:</span> <span class="username-bar-name">${username}</span>`;
+    document.body.prepend(bar);
+}
 
 async function initAuth(token) {
     try {
@@ -207,80 +268,57 @@ addEventListener("DOMContentLoaded", async (event) => {
         if (session) {
             await initAuth(null);
             if (!isAdmin) {
-                await logoutUser();
-                showToast("Logged out because you are not an admin.");
-                if (authCon) authCon.style.display = 'flex';
+                window.location.href = '/';
+                return;
             }
-            return;
         }
         loadTurnstile();
         return;
     }
 
-    // Cups route - requires auth, redirect to home if not signed in
+    // Cups route
     if (path === '/cups' || path === '/cups.html') {
-        if (session) {
-            await initAuth(null);
-            await initCups();
-        } else {
-            window.location.href = '/?redirect=/cups';
-        }
+        if (!await voterSignIn()) return;
+        await initAuth(null);
+        await initCups();
         return;
     }
 
-    // Yearbook route - requires auth, redirect to home if not signed in
+    // Yearbook route
     if (path === '/yearbook' || path === '/yearbook.html') {
-        if (session) {
-            await initAuth(null);
-            await initYearbook();
-        } else {
-            window.location.href = '/?redirect=/yearbook';
-        }
+        if (!await voterSignIn()) return;
+        await initAuth(null);
+        await initYearbook();
         return;
     }
 
-    // Wally route - requires auth, redirect to home if not signed in
+    // Wally route
     if (path === '/wally' || path === '/wally.html') {
-        if (session) {
-            await initAuth(null);
-            await initWally();
-        } else {
-            window.location.href = '/?redirect=/wally';
-        }
+        if (!await voterSignIn()) return;
+        await initAuth(null);
+        await initWally();
         return;
     }
 
-    // Name Game route - requires auth, redirect to home if not signed in
+    // Name Game route
     if (path === '/name-game' || path === '/name-game.html') {
-        if (session) {
-            await initAuth(null);
-            await initNameGame();
-        } else {
-            window.location.href = '/?redirect=/name-game';
-        }
+        if (!await voterSignIn()) return;
+        await initAuth(null);
+        await initNameGame();
         return;
     }
 
-    // Vote route - requires auth, redirect to home if not signed in
+    // Vote route
     if (path === '/vote' || path === '/vote.html') {
-        if (session) {
-            await initAuth(null);
-        } else {
-            window.location.href = '/?redirect=/vote';
-        }
+        if (!await voterSignIn()) return;
+        await initAuth(null);
         return;
     }
 
     // Index/menu route
-    if (session) {
-        currentUser = session.user;
-        currentSession = session;
-        const menuCon = document.getElementById('menu-container');
-        if (menuCon) menuCon.style.display = 'flex';
-        if (authCon) authCon.style.display = 'none';
-    } else if (authCon) {
-        authCon.style.display = 'flex';
-    }
+    if (!await voterSignIn()) return;
+    const menuCon = document.getElementById('menu-container');
+    if (menuCon) menuCon.style.display = 'flex';
 });
 
 window.signInWithGoogle = async function() {
@@ -345,22 +383,7 @@ window.logoutUser = async function() {
         isSuperAdmin = false;
         currentUser = null;
         currentSession = null;
-        const emailField = document.getElementById('admin-email');
-        const passField = document.getElementById('admin-pass');
-        if (emailField) emailField.value = '';
-        if (passField) passField.value = '';
-        showToast("User logged out.");
-        if (typeof updateAdminUI === 'function') updateAdminUI();
-
-        // On vote page, redirect home; on menu page, swap back to sign-in
-        if (window.location.pathname === '/vote' || window.location.pathname === '/vote.html') {
-            window.location.href = '/';
-            return;
-        }
-        const menuCon = document.getElementById('menu-container');
-        const authCon = document.getElementById('auth-container');
-        if (menuCon) menuCon.style.display = 'none';
-        if (authCon) authCon.style.display = 'flex';
+        window.location.href = '/';
     } catch (error) {
         console.log("Logout error:", error);
         showToast("Error logging out.");
@@ -1116,10 +1139,6 @@ window.submitNGAnswer = async function() {
         showNGFeedback('correct', '✓ Correct!');
         updateNGScoreDisplay();
 
-        const displayName = currentUser?.user_metadata?.full_name
-            || currentUser?.user_metadata?.name
-            || currentUser?.email
-            || 'Anonymous';
         await supabaseC.from('name_game_scores').upsert({
             user_id: currentUser.id,
             display_name: displayName,
@@ -1438,10 +1457,6 @@ async function renderYBReveal() {
     if (currentUser && ybMyVote === ybTeacherIndex && ybScoredRoundId !== ybRoundId) {
         ybScoredRoundId = ybRoundId;
         ybMyScore++;
-        const displayName = currentUser?.user_metadata?.full_name
-            || currentUser?.user_metadata?.name
-            || currentUser?.email
-            || 'Anonymous';
         await supabaseC.from('yearbook_scores').upsert({
             user_id: currentUser.id,
             display_name: displayName,
@@ -2065,11 +2080,6 @@ async function wallySubmitScore(timeMs) {
     wallyFoundTime = timeMs;
     stopWallyStopwatch();
     updateWallyUI(); // show "Submitting..." while rank loads
-
-    const displayName = currentUser.user_metadata?.full_name
-        || currentUser.user_metadata?.name
-        || currentUser.email
-        || 'Anonymous';
 
     try {
         const { error } = await supabaseC

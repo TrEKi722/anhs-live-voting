@@ -965,3 +965,33 @@ button.action-btn:hover { opacity: 0.9; }
     color: var(--text-muted);
     margin-bottom: 1.25rem;
 }
+
+/* Username Bar */
+#username-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--card-border);
+    padding: 0.6rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    z-index: 10;
+    box-sizing: border-box;
+}
+
+.username-bar-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.username-bar-name {
+    color: var(--primary);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
