@@ -111,13 +111,48 @@ async function getOrCreateUsername(user) {
     return name;
 }
 
+function getVoterCaptchaToken() {
+    return new Promise((resolve, reject) => {
+        function renderWidget() {
+            const container = document.createElement('div');
+            container.style.display = 'none';
+            document.body.appendChild(container);
+            window.turnstile.render(container, {
+                sitekey: '0x4AAAAAACp4ciLpxF9JPdqQ',
+                size: 'invisible',
+                callback: (t) => resolve(t),
+                'error-callback': () => reject(new Error('Turnstile failed')),
+            });
+        }
+
+        if (window.turnstile) {
+            renderWidget();
+        } else {
+            const script = document.createElement('script');
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+            script.onload = renderWidget;
+            script.onerror = () => reject(new Error('Turnstile script failed to load'));
+            document.head.appendChild(script);
+        }
+    });
+}
+
 async function voterSignIn() {
     const { data: { session } } = await supabaseC.auth.getSession();
     if (session) {
         currentUser = session.user;
         currentSession = session;
     } else {
-        const { data, error } = await supabaseC.auth.signInAnonymously();
+        let captchaToken;
+        try {
+            captchaToken = await getVoterCaptchaToken();
+        } catch (e) {
+            showToast('Could not complete verification. Please reload.');
+            return false;
+        }
+        const { data, error } = await supabaseC.auth.signInAnonymously({
+            options: { captchaToken }
+        });
         if (error) { showToast('Could not sign in. Please reload.'); return false; }
         currentUser = data.user;
         currentSession = data.session;
