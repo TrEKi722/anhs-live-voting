@@ -76,27 +76,101 @@ let ngWallCountdownRaf = null;
 // ==========================================
 
 const USERNAME_ADJECTIVES = [
-    'amber','bold','brave','bright','calm','clever','cool','cosmic','crisp','curious',
-    'daring','dark','deft','eager','epic','fast','fierce','fluffy','frozen','gentle',
-    'giant','glad','glowing','golden','grand','green','happy','hasty','icy','jolly',
-    'keen','laser','loud','lucky','mellow','mighty','misty','neon','noble','odd',
-    'pale','peppy','polar','proud','quick','quiet','rapid','rusty','shiny','silent',
-    'sleek','slim','slow','sly','smart','smooth','snappy','solar','sonic','speedy',
-    'spicy','stormy','sunny','super','swift','tiny','turbo','violet','vivid','wacky',
-    'warm','wild','windy','wise','woolly','zany','zealous','zippy'
-];
-const USERNAME_NOUNS = [
-    'anvil','badger','bear','beaver','bison','boar','bolt','buffalo','camel','cat',
-    'cloud','cobra','comet','condor','coral','cougar','coyote','crane','crow','dingo',
-    'dolphin','dragon','duck','eagle','eel','elk','falcon','ferret','finch','flamingo',
-    'fox','frog','gecko','gibbon','goat','goose','gopher','hawk','hedgehog','hippo',
-    'ibis','iguana','jaguar','kiwi','lemur','leopard','lion','lizard','llama','lobster',
-    'lynx','marmot','moose','moth','mouse','mule','newt','ocelot','orca','osprey',
-    'otter','owl','panda','parrot','penguin','porcupine','puffin','quail','rabbit',
-    'raccoon','raven','rhino','salmon','seal','shark','sloth','snail','sparrow','squid',
-    'stag','stoat','swan','tiger','toad','turtle','viper','walrus'
+    'agile', 'amber', 'ashen', 'astral', 'atomic', 'azure',
+    'bold', 'brash', 'brave', 'breezy', 'bright', 'brisk',
+    'bronze', 'buoyant', 'calm', 'candid', 'cardinal', 'charred',
+    'chilly', 'chrome', 'chunky', 'cinder', 'civic', 'clever',
+    'coastal', 'cobalt', 'colossal', 'cool', 'cosmic', 'crafty',
+    'crimson', 'crisp', 'crystal', 'cubic', 'cunning', 'curious',
+    'daring', 'dauntless', 'dawning', 'deep', 'deft', 'delta',
+    'dense', 'distant', 'dizzy', 'dreamy', 'drifting', 'dusk',
+    'dusty', 'eager', 'ebony', 'elastic', 'electric', 'elegant',
+    'ember', 'emerald', 'endless', 'epic', 'erratic', 'faint',
+    'fast', 'feral', 'fierce', 'fiery', 'firm', 'fizzy',
+    'flinty', 'fluffy', 'focal', 'foggy', 'forged', 'frantic',
+    'frosty', 'frozen', 'funky', 'furious', 'galactic', 'garnet',
+    'gentle', 'ghostly', 'giant', 'giddy', 'gilded', 'glad',
+    'glowing', 'golden', 'grand', 'green', 'gritty', 'grounded',
+    'gusty', 'happy', 'hasty', 'hazy', 'heavy', 'honed',
+    'howling', 'humble', 'hushed', 'hyper', 'icy', 'indigo',
+    'inky', 'inner', 'iron', 'ivory', 'jade', 'jagged',
+    'jaunty', 'jolly', 'jovial', 'jumpy', 'keen', 'kinetic',
+    'knightly', 'knotty', 'laser', 'lavender', 'lean', 'lively',
+    'lofty', 'lone', 'looming', 'loud', 'lucky', 'lunar',
+    'marble', 'marine', 'maverick', 'mellow', 'metallic', 'mighty',
+    'mint', 'misty', 'molten', 'mossy', 'muted', 'mysterious',
+    'narrow', 'neon', 'nimble', 'noble', 'north', 'nuclear',
+    'obsidian', 'onyx', 'opal', 'orbital', 'parallel', 'patient',
+    'peppy', 'phantom', 'phasmic', 'pixel', 'plucky', 'plush',
+    'polar', 'primal', 'prime', 'prismatic', 'proud', 'pure',
+    'quartz', 'quick', 'quiet', 'quirky', 'radiant', 'raging',
+    'rapid', 'raw', 'reckless', 'relic', 'remote', 'rigid',
+    'ringed', 'risen', 'roaming', 'robust', 'rocky', 'roguish',
+    'rosy', 'rumbling', 'rusty', 'sacred', 'sandy', 'savage',
+    'scarlet', 'scattered', 'scorched', 'sealed', 'serene', 'shallow',
+    'sharp', 'shifting', 'shiny', 'silent', 'silver', 'skeletal',
+    'sleek', 'sleepy', 'smart', 'smooth', 'snappy', 'soaring',
+    'solar', 'solemn', 'solid', 'sonic', 'spare', 'spectral',
+    'speedy', 'spicy', 'spiky', 'splendid', 'squat', 'static',
+    'steady', 'stellar', 'stiff', 'stony', 'stormy', 'stripped',
+    'strong', 'submerged', 'sudden', 'sullen', 'sunny', 'super',
+    'surging', 'swift', 'swirling', 'tangled', 'tawny', 'teal',
+    'tepid', 'thick', 'thorny', 'timid', 'tiny', 'towering',
+    'tranquil', 'trembling', 'tundra', 'turbo', 'twilight', 'unbound',
+    'unruly', 'upbeat', 'upright', 'vaporous', 'vast', 'vaulted',
+    'veiled', 'velvety', 'verdant', 'violet', 'virid', 'vivid',
+    'volcanic', 'wacky', 'wandering', 'warm', 'warped', 'weathered',
+    'whirring', 'wild', 'windy', 'wired', 'wise', 'woolly',
+    'worn', 'wry', 'zany', 'zealous', 'zippy'
 ];
 
+const USERNAME_NOUNS = [
+    'albatross', 'alligator', 'alpaca', 'anaconda', 'anchovy', 'antelope',
+    'anvil', 'ape', 'armadillo', 'axolotl', 'baboon', 'badger',
+    'barnacle', 'barracuda', 'bat', 'bear', 'beaver', 'beetle',
+    'bison', 'blobfish', 'bluejay', 'boar', 'bolt', 'bongo',
+    'buffalo', 'bullfrog', 'bumblebee', 'camel', 'capybara', 'caribou',
+    'cassowary', 'cat', 'catfish', 'centipede', 'chameleon', 'cheetah',
+    'chipmunk', 'cicada', 'clam', 'cloud', 'clownfish', 'cobra',
+    'cockatoo', 'comet', 'condor', 'coral', 'cormorant', 'cougar',
+    'coyote', 'crab', 'crane', 'crayfish', 'cricket', 'crocodile',
+    'crow', 'curlew', 'cuttlefish', 'dartfrog', 'deer', 'dingo',
+    'dolphin', 'dormouse', 'dragon', 'dragonfly', 'duck', 'dugong',
+    'dunlin', 'eagle', 'earthworm', 'eel', 'egret', 'elk',
+    'ermine', 'falcon', 'ferret', 'finch', 'firefly', 'flamingo',
+    'flounder', 'flycatcher', 'fox', 'frog', 'gannet', 'gazelle',
+    'gecko', 'gharial', 'gibbon', 'giraffe', 'glowworm', 'gnu',
+    'goat', 'goose', 'gopher', 'gorilla', 'grasshopper', 'grebe',
+    'groundhog', 'grouper', 'gull', 'hamster', 'hare', 'harrier',
+    'hawk', 'hedgehog', 'hermitcrab', 'heron', 'hippo', 'hoopoe',
+    'hornbill', 'hornet', 'hummingbird', 'hyena', 'ibis', 'iguana',
+    'impala', 'jackal', 'jaguar', 'jellyfish', 'katydid', 'kingfisher',
+    'kite', 'kiwi', 'koala', 'komodo', 'kudu', 'lamprey',
+    'langur', 'lapwing', 'leafhopper', 'lemur', 'leopard', 'lion',
+    'lizard', 'llama', 'lobster', 'lorikeet', 'lynx', 'mackerel',
+    'manatee', 'mandrill', 'mantis', 'marlin', 'marmot', 'meerkat',
+    'millipede', 'mink', 'mole', 'monarch', 'mongoose', 'moose',
+    'moth', 'mouse', 'mudskipper', 'mule', 'mussel', 'narwhal',
+    'newt', 'nighthawk', 'numbat', 'ocelot', 'octopus', 'opossum',
+    'orca', 'oryx', 'osprey', 'otter', 'owl', 'oyster',
+    'panda', 'pangolin', 'parrot', 'pelican', 'penguin', 'perch',
+    'peregrine', 'pheasant', 'pigeon', 'pike', 'piranha', 'platypus',
+    'plover', 'pollock', 'porcupine', 'porpoise', 'prawn', 'pronghorn',
+    'ptarmigan', 'puffin', 'puma', 'quail', 'quetzal', 'quokka',
+    'rabbit', 'raccoon', 'raven', 'ray', 'razorbill', 'reindeer',
+    'rhino', 'roadrunner', 'rooster', 'sable', 'sailfish', 'salamander',
+    'salmon', 'sandpiper', 'sawfish', 'scallop', 'scorpion', 'seagull',
+    'seahorse', 'seal', 'shark', 'shrew', 'shrimp', 'skink',
+    'skunk', 'sloth', 'snail', 'snapper', 'snipe', 'sparrow',
+    'spider', 'springbok', 'squid', 'stag', 'starfish', 'stingray',
+    'stoat', 'stork', 'sturgeon', 'sunfish', 'swan', 'swift',
+    'tapir', 'tarantula', 'tarpon', 'termite', 'tern', 'thrush',
+    'tiger', 'toad', 'toucan', 'treefrog', 'trout', 'tuna',
+    'turtle', 'urchin', 'viper', 'vole', 'vulture', 'walrus',
+    'warthog', 'wasp', 'weasel', 'whale', 'whelk', 'wildcat',
+    'wildebeest', 'wolf', 'wolverine', 'wombat', 'woodpecker', 'wren',
+    'yak', 'zorilla'
+];
 function generateUsername() {
     const adj = USERNAME_ADJECTIVES[Math.floor(Math.random() * USERNAME_ADJECTIVES.length)];
     const noun = USERNAME_NOUNS[Math.floor(Math.random() * USERNAME_NOUNS.length)];
@@ -104,11 +178,40 @@ function generateUsername() {
 }
 
 async function getOrCreateUsername(user) {
+    // Fast path: already stored in metadata
     if (user.user_metadata?.username) return user.user_metadata.username;
-    const name = generateUsername();
-    const { data, error } = await supabaseC.auth.updateUser({ data: { username: name } });
-    if (!error && data?.user) currentUser = data.user;
-    return name;
+
+    // Check if they already have a profile (e.g. lost local session storage)
+    const { data: existing } = await supabaseC
+        .from('user_profiles')
+        .select('username')
+        .eq('user_id', user.id)
+        .single();
+
+    if (existing?.username) {
+        const { data } = await supabaseC.auth.updateUser({ data: { username: existing.username } });
+        if (data?.user) currentUser = data.user;
+        return existing.username;
+    }
+
+    // Generate a unique username, retrying on collisions
+    for (let attempt = 0; attempt < 20; attempt++) {
+        const name = generateUsername();
+        const { error } = await supabaseC
+            .from('user_profiles')
+            .insert({ user_id: user.id, username: name });
+
+        if (!error) {
+            const { data } = await supabaseC.auth.updateUser({ data: { username: name } });
+            if (data?.user) currentUser = data.user;
+            return name;
+        }
+
+        if (error.code !== '23505') break; // unexpected error, stop retrying
+        // code 23505 = unique_violation — try a different name
+    }
+
+    return generateUsername(); // last-resort fallback
 }
 
 function getVoterCaptchaToken() {
