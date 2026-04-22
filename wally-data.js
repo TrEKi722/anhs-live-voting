@@ -16,6 +16,6 @@ const WALLY_SCENES = [
         id: 'scene_01',
         name: 'Scene 1',
         image: '/media/wally/scene_01.jpg',
-        hitbox: { x: 50, y: 50, radius: 5 }  // TODO: update after placing scene image
+        hitbox: { x: 1160, y: 500, radius: 20 }  // TODO: update after placing scene image
     }
 ];
