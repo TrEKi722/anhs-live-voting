@@ -2073,8 +2073,9 @@ function wallyClampTranslate() {
 function wallySetupZoomPan() {
     if (wallyZoomPanSetup) return;
     const vp = document.getElementById('wally-image-viewport');
-    if (!vp) return;
+    if (!vp) { console.log('[Wally] wallySetupZoomPan: viewport element not found!'); return; }
     wallyZoomPanSetup = true;
+    console.log('[Wally] zoom/pan listeners attached');
 
     let lastPinchDist = 0;
     let lastPanX = 0, lastPanY = 0;
@@ -2149,6 +2150,7 @@ function wallySetupZoomPan() {
                 const dx = Math.abs(e.changedTouches[0].clientX - tapStartX);
                 const dy = Math.abs(e.changedTouches[0].clientY - tapStartY);
                 const dt = Date.now() - tapStartTime;
+                console.log('[Wally] touchend — dx:', dx.toFixed(1), 'dy:', dy.toFixed(1), 'dt:', dt + 'ms', isPinching ? '(pinch)' : '');
                 if (dx < 10 && dy < 10 && dt < 300) {
                     wallyHandleTap(e.changedTouches[0]);
                 }
