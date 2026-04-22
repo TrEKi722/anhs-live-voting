@@ -1952,7 +1952,7 @@ function updateWallyUI() {
 
                 img.onload = () => {
                     const vp = document.getElementById('wally-image-viewport');
-                    if (vp && img.naturalWidth) {
+                    if (vp && img.naturalWidth && vp.clientWidth > 0 && vp.clientHeight > 0) {
                         wallyMinScale = Math.min(vp.clientWidth / img.naturalWidth, vp.clientHeight / img.naturalHeight);
                         wallyScale = wallyMinScale;
                         wallyTranslateX = 0;
@@ -1961,6 +1961,9 @@ function updateWallyUI() {
                         wallyApplyTransform();
                     }
                     if (loadingEl) loadingEl.style.display = 'none';
+                };
+                img.onerror = () => {
+                    if (loadingEl) loadingEl.textContent = 'Failed to load scene image.';
                 };
                 img.src = scene.image;
             }
