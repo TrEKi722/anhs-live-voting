@@ -323,9 +323,6 @@ addEventListener("DOMContentLoaded", async (event) => {
     const authCon = document.getElementById('auth-container');
     const path = window.location.pathname;
 
-    // random background every page load
-    document.body.style.backgroundImage = `url('/media/backgrounds/${Math.floor(Math.random() * 10 + 1)}.jpg')`;
-
     // /admin menu — auth required, no admin JS loaded here
     if (path === '/admin') {
         await initAuth(null);
