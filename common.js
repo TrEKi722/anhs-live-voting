@@ -2176,20 +2176,35 @@ function wallySetupZoomPan() {
 
     // Desktop: click to test hit detection (touch events suppress this on mobile)
     vp.addEventListener('click', e => {
-        if (wallyFoundTime !== null || !wallyIsActive) return;
+        if (wallyFoundTime !== null || !wallyIsActive) {
+            console.log('[Wally] Click ignored — active:', wallyIsActive, 'alreadyFound:', wallyFoundTime !== null);
+            return;
+        }
         const img = document.getElementById('wally-img');
-        if (!img?.naturalWidth) return;
+        if (!img?.naturalWidth) {
+            console.log('[Wally] Click ignored — image not loaded (naturalWidth=0)');
+            return;
+        }
         const rect = vp.getBoundingClientRect();
         const imgPixelX = (e.clientX - rect.left) / wallyScale - wallyTranslateX;
         const imgPixelY = (e.clientY - rect.top) / wallyScale - wallyTranslateY;
-        wallyCheckHit((imgPixelX / img.naturalWidth) * 100, (imgPixelY / img.naturalHeight) * 100);
+        const xPct = (imgPixelX / img.naturalWidth) * 100;
+        const yPct = (imgPixelY / img.naturalHeight) * 100;
+        console.log('[Wally] Click at:', xPct.toFixed(2) + '%', yPct.toFixed(2) + '%');
+        wallyCheckHit(xPct, yPct);
     });
 }
 
 function wallyHandleTap(touch) {
-    if (wallyFoundTime !== null || !wallyIsActive) return;
+    if (wallyFoundTime !== null || !wallyIsActive) {
+        console.log('[Wally] Tap ignored — active:', wallyIsActive, 'alreadyFound:', wallyFoundTime !== null);
+        return;
+    }
     const img = document.getElementById('wally-img');
-    if (!img?.naturalWidth) return;
+    if (!img?.naturalWidth) {
+        console.log('[Wally] Tap ignored — image not loaded (naturalWidth=0)');
+        return;
+    }
 
     const vp = document.getElementById('wally-image-viewport');
     const rect = vp.getBoundingClientRect();
