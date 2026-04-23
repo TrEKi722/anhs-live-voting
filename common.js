@@ -595,7 +595,7 @@ function getRecaptchaToken() {
             container.style.display = 'none';
             document.body.appendChild(container);
             const widgetId = grecaptcha.render(container, {
-                sitekey: 'RECAPTCHA_V2_INVISIBLE_SITE_KEY',
+                sitekey: '6LdHwsYsAAAAAAPo5oL0Yl5BAHuRoQPSFek9svoh',
                 size: 'invisible',
                 callback: (t) => { document.body.removeChild(container); resolve(t); },
                 'error-callback': () => reject(new Error('reCAPTCHA failed')),
@@ -938,7 +938,7 @@ function loadRecaptcha() {
         grecaptcha.ready(() => {
             const container = document.getElementById('recaptcha-container');
             recaptchaAdminWidgetId = grecaptcha.render(container, {
-                sitekey: 'RECAPTCHA_V2_INVISIBLE_SITE_KEY',
+                sitekey: '6LdHwsYsAAAAAAPo5oL0Yl5BAHuRoQPSFek9svoh',
                 size: 'invisible',
                 callback: recaptchaAdminComplete,
             });
