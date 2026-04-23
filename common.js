@@ -1288,11 +1288,11 @@ function updateCupsUI() {
         if (resultDiv) {
             resultDiv.style.display = 'block';
             const isCorrect = cupsMyPress === cupsCorrectOption;
-            const isTopThree = isCorrect && cupsMyRank !== null && cupsMyRank <= 3;
+            const isTopFive = isCorrect && cupsMyRank !== null && cupsMyRank <= 5;
 
-            if (isTopThree) {
-                const emoji = ['', '🥇', '🥈', '🥉'][cupsMyRank];
-                const place = ['', '1st Place!', '2nd Place!', '3rd Place!'][cupsMyRank];
+            if (isTopFive) {
+                const emoji = ['', '🥇', '🥈', '🥉', '🏅', '🏅'][cupsMyRank];
+                const place = ['', '1st Place!', '2nd Place!', '3rd Place!', '4th Place!', '5th Place!'][cupsMyRank];
                 resultDiv.innerHTML = `
                     <div class="cups-result-card cups-result-win">
                         <div class="cups-result-emoji">${emoji}</div>
@@ -1302,7 +1302,7 @@ function updateCupsUI() {
             } else {
                 const heading = isCorrect ? "Didn't place" : "Wrong answer";
                 const sub = isCorrect
-                    ? "You got it right, but didn't place in the top 3."
+                    ? "You got it right, but didn't place in the top 5."
                     : "Better luck next time!";
                 resultDiv.innerHTML = `
                     <div class="cups-result-card cups-result-neutral">
@@ -1373,7 +1373,7 @@ window.pressCup = async function(option) {
     try {
         const { data: myPress, error } = await supabaseC
             .from('hats_presses')
-            .insert({ user_id: currentUser.id, choice: option })
+            .insert({ user_id: currentUser.id, choice: option, timestamp: new Date().toISOString() })
             .select('timestamp, rank')
             .single();
 
@@ -2552,15 +2552,17 @@ async function wallySubmitScore(timeMs) {
             });
         if (error) throw error;
 
-        const { data: scoreRow } = await supabaseC
-            .from('wally_scores')
-            .select('rank')
-            .eq('user_id', currentUser.id)
-            .eq('round_id', wallyRoundId)
-            .single();
-        wallyMyRank = scoreRow?.rank ?? null;
-        wallyTopScores = await loadWallyLeaderboard(3);
-        updateWallyUI();
+        // Rank is stamped asynchronously by the Cloud Function — subscribe and
+        // self-cancel once it arrives rather than querying too early.
+        const scoreDocPath = `wally_scores/${currentUser.id}_${wallyRoundId}`;
+        const unsubRank = subscribeToDoc(scoreDocPath, async (payload) => {
+            if (payload.new?.rank != null) {
+                unsubRank();
+                wallyMyRank = payload.new.rank;
+                wallyTopScores = await loadWallyLeaderboard(3);
+                updateWallyUI();
+            }
+        });
     } catch (e) {
         console.error('[Wally] Submit error:', e);
         showToast('Error submitting your time.');
