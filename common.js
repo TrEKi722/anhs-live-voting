@@ -356,7 +356,7 @@ const supabaseC = {
         },
         async signInWithPassword({ email, password, options }) {
             const call = fns.httpsCallable('adminEmailPasswordSignIn');
-            const result = await call({ email, password, turnstileToken: options?.captchaToken || null });
+            const result = await call({ email, password, recaptchaToken: options?.captchaToken || null });
             const cred = await auth.signInWithCustomToken(result.data.customToken);
             const session = await buildSession(cred.user);
             return { data: { user: session?.user || null, session }, error: null };
