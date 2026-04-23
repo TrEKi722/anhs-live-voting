@@ -1,0 +1,4 @@
+.claude/worktrees/
+functions/node_modules/
+functions/serviceAccountKey.json
+functions/set-super-admin.js
