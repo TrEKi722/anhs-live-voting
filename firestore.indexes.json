@@ -1,1 +1,21 @@
-{ "indexes": [], "fieldOverrides": [] }
+{
+  "indexes": [
+    {
+      "collectionGroup": "wally_scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "round_id", "order": "ASCENDING" },
+        { "fieldPath": "time_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hats_presses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "choice", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
