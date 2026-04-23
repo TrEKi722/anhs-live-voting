@@ -9,6 +9,7 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 const RECAPTCHA_SECRET = defineSecret('RECAPTCHA_SECRET');
+const WEB_API_KEY = defineSecret('WEB_API_KEY');
 const REGION = 'us-central1';
 
 // ==========================================
@@ -18,7 +19,7 @@ const REGION = 'us-central1';
 // Admin email+password sign-in with reCAPTCHA gate.
 // Returns a custom token the client signs in with (which carries the role claim).
 exports.adminEmailPasswordSignIn = onCall(
-  { region: REGION, secrets: [RECAPTCHA_SECRET] },
+  { region: REGION, secrets: [RECAPTCHA_SECRET, WEB_API_KEY] },
   async (req) => {
     const { email, password, recaptchaToken } = req.data || {};
     if (!email || !password) throw new HttpsError('invalid-argument', 'Email and password required.');
@@ -47,7 +48,7 @@ exports.adminEmailPasswordSignIn = onCall(
 // Password reset with reCAPTCHA gate. Silently succeeds for non-admin emails
 // to avoid account enumeration.
 exports.adminSendPasswordReset = onCall(
-  { region: REGION, secrets: [RECAPTCHA_SECRET] },
+  { region: REGION, secrets: [RECAPTCHA_SECRET, WEB_API_KEY] },
   async (req) => {
     const { email, recaptchaToken } = req.data || {};
     if (!email) throw new HttpsError('invalid-argument', 'Email required.');
@@ -136,7 +137,7 @@ exports.setUserRole = onCall({ region: REGION }, async (req) => {
   return { ok: true };
 });
 
-exports.inviteAdmin = onCall({ region: REGION }, async (req) => {
+exports.inviteAdmin = onCall({ region: REGION, secrets: [WEB_API_KEY] }, async (req) => {
   requireSuperAdmin(req);
   const { email, role } = req.data || {};
   if (!email || !['admin', 'super_admin'].includes(role))
