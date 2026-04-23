@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign In | anhs.live</title>
     <link rel="icon" type="image/x-icon" href="https://bell-circle.com/favicon.ico" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <link rel="stylesheet" href="style.css?v=3"/>
   </head>
   <body>
@@ -14,7 +18,7 @@
       <div id="auth-container" style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;">
         <input type="email" id="admin-email" placeholder="Admin Email" />
         <input type="password" id="admin-pass" placeholder="Password" />
-        <div id="turnstile-container" style="width:320px;margin:0.5rem auto;"></div>
+        <div id="recaptcha-container"></div>
         <button class="action-btn btn-primary" onclick="loginUser()">Sign In</button>
         <a href="/reset-password.html">Forgot password?</a>
         <button class="action-btn btn-primary" onclick="signInWithGoogle()" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
