@@ -2,28 +2,28 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
-const { verifyTurnstile } = require('./turnstile');
+const { verifyRecaptcha } = require('./recaptcha');
 
 admin.initializeApp();
 const db = admin.firestore();
 const auth = admin.auth();
 
-const TURNSTILE_SECRET = defineSecret('TURNSTILE_SECRET');
+const RECAPTCHA_SECRET = defineSecret('RECAPTCHA_SECRET');
 const REGION = 'us-central1';
 
 // ==========================================
 // Auth helpers
 // ==========================================
 
-// Admin email+password sign-in with Turnstile gate.
+// Admin email+password sign-in with reCAPTCHA gate.
 // Returns a custom token the client signs in with (which carries the role claim).
 exports.adminEmailPasswordSignIn = onCall(
-  { region: REGION, secrets: [TURNSTILE_SECRET] },
+  { region: REGION, secrets: [RECAPTCHA_SECRET] },
   async (req) => {
-    const { email, password, turnstileToken } = req.data || {};
+    const { email, password, recaptchaToken } = req.data || {};
     if (!email || !password) throw new HttpsError('invalid-argument', 'Email and password required.');
 
-    const check = await verifyTurnstile(turnstileToken, TURNSTILE_SECRET.value(), req.rawRequest?.ip);
+    const check = await verifyRecaptcha(recaptchaToken, RECAPTCHA_SECRET.value());
     if (!check.success) throw new HttpsError('permission-denied', 'Captcha failed.');
 
     const apiKey = process.env.FIREBASE_WEB_API_KEY;
@@ -44,15 +44,15 @@ exports.adminEmailPasswordSignIn = onCall(
   }
 );
 
-// Password reset with Turnstile gate. Silently succeeds for non-admin emails
+// Password reset with reCAPTCHA gate. Silently succeeds for non-admin emails
 // to avoid account enumeration.
 exports.adminSendPasswordReset = onCall(
-  { region: REGION, secrets: [TURNSTILE_SECRET] },
+  { region: REGION, secrets: [RECAPTCHA_SECRET] },
   async (req) => {
-    const { email, turnstileToken } = req.data || {};
+    const { email, recaptchaToken } = req.data || {};
     if (!email) throw new HttpsError('invalid-argument', 'Email required.');
 
-    const check = await verifyTurnstile(turnstileToken, TURNSTILE_SECRET.value(), req.rawRequest?.ip);
+    const check = await verifyRecaptcha(recaptchaToken, RECAPTCHA_SECRET.value());
     if (!check.success) throw new HttpsError('permission-denied', 'Captcha failed.');
 
     try {
@@ -72,6 +72,17 @@ exports.adminSendPasswordReset = onCall(
         body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }) }
     );
     return { sent: true };
+  }
+);
+
+// Voter anonymous sign-in gate: verify reCAPTCHA before client calls signInAnonymously().
+exports.verifyVoterCaptcha = onCall(
+  { region: REGION, secrets: [RECAPTCHA_SECRET] },
+  async (req) => {
+    const { recaptchaToken } = req.data || {};
+    const check = await verifyRecaptcha(recaptchaToken, RECAPTCHA_SECRET.value());
+    if (!check.success) throw new HttpsError('permission-denied', 'Captcha failed.');
+    return { ok: true };
   }
 );
 

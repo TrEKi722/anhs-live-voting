@@ -395,8 +395,6 @@ function callFunction(name, data) {
     return fns.httpsCallable(name)(data || {});
 }
 
-let token = null;
-
 let currentUser = null;
 let currentSession = null;
 let pollIsLocked = false;
@@ -590,27 +588,29 @@ async function getOrCreateUsername(user) {
     return generateUsername();
 }
 
-function getVoterCaptchaToken() {
+function getRecaptchaToken() {
     return new Promise((resolve, reject) => {
         function renderWidget() {
             const container = document.createElement('div');
             container.style.display = 'none';
             document.body.appendChild(container);
-            window.turnstile.render(container, {
-                sitekey: '0x4AAAAAACp4ciLpxF9JPdqQ',
+            const widgetId = grecaptcha.render(container, {
+                sitekey: 'RECAPTCHA_V2_INVISIBLE_SITE_KEY',
                 size: 'invisible',
-                callback: (t) => resolve(t),
-                'error-callback': () => reject(new Error('Turnstile failed')),
+                callback: (t) => { document.body.removeChild(container); resolve(t); },
+                'error-callback': () => reject(new Error('reCAPTCHA failed')),
+                'expired-callback': () => reject(new Error('reCAPTCHA expired')),
             });
+            grecaptcha.execute(widgetId);
         }
 
-        if (window.turnstile) {
+        if (window.grecaptcha && grecaptcha.render) {
             renderWidget();
         } else {
             const script = document.createElement('script');
-            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-            script.onload = renderWidget;
-            script.onerror = () => reject(new Error('Turnstile script failed to load'));
+            script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+            script.onload = () => grecaptcha.ready(renderWidget);
+            script.onerror = () => reject(new Error('reCAPTCHA script failed to load'));
             document.head.appendChild(script);
         }
     });
@@ -622,16 +622,14 @@ async function voterSignIn() {
         currentUser = session.user;
         currentSession = session;
     } else {
-        let captchaToken;
         try {
-            captchaToken = await getVoterCaptchaToken();
+            const recaptchaToken = await getRecaptchaToken();
+            await callFunction('verifyVoterCaptcha', { recaptchaToken });
         } catch (e) {
             showToast('Could not complete verification. Please reload.');
             return false;
         }
-        const { data, error } = await supabaseC.auth.signInAnonymously({
-            options: { captchaToken }
-        });
+        const { data, error } = await supabaseC.auth.signInAnonymously();
         if (error) { showToast('Could not sign in. Please reload.'); return false; }
         currentUser = data.user;
         currentSession = data.session;
@@ -792,7 +790,7 @@ addEventListener("DOMContentLoaded", async (event) => {
                 return;
             }
         }
-        loadTurnstile();
+        loadRecaptcha();
         return;
     }
 
@@ -872,27 +870,26 @@ window.loginUser = async function() {
     const pass = document.getElementById('admin-pass')?.value;
 
     if (!email || !pass) return showToast("Please enter an email and password.");
-    if (!token) return showToast("Please complete the CAPTCHA.");
 
     await supabaseC.auth.signOut();
 
     try {
+        const recaptchaToken = await getAdminRecaptchaToken();
         const { data, error } = await supabaseC.auth.signInWithPassword({
             email,
             password: pass,
-            options: { captchaToken: token }
+            options: { captchaToken: recaptchaToken }
         });
 
         if (error) throw error;
 
-        token = null;
         currentUser = data.user;
         currentSession = data.session;
         showToast("User logged in successfully.");
         await initAuth(null);
     } catch (error) {
         showToast("Login failed: " + error.message);
-        token = null;
+        if (typeof recaptchaAdminWidgetId !== 'undefined') grecaptcha.reset(recaptchaAdminWidgetId);
     }
 };
 
@@ -910,32 +907,44 @@ window.logoutUser = async function() {
     }
 };
 
-function loadTurnstile() {
-    // Preconnect hint
-    const link = document.createElement('link');
-    link.rel = 'preconnect';
-    link.href = 'https://challenges.cloudflare.com';
-    document.head.appendChild(link);
+let recaptchaAdminWidgetId = null;
+let recaptchaAdminResolve = null;
 
-    // Turnstile script
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-
-    document.getElementById('turnstile-container').style.display = 'flex';
-
-    // Create the Turnstile widget div
-    const turnstileDiv = document.createElement('div');
-    turnstileDiv.className = 'cf-turnstile';
-    turnstileDiv.setAttribute('data-sitekey', '0x4AAAAAACp4ciLpxF9JPdqQ');
-    turnstileDiv.setAttribute('data-callback', 'turnstileComplete');
-    document.getElementById('turnstile-container').appendChild(turnstileDiv);
+function recaptchaAdminComplete(token) {
+    if (recaptchaAdminResolve) {
+        recaptchaAdminResolve(token);
+        recaptchaAdminResolve = null;
+    }
 }
 
-async function turnstileComplete(cToken) {
-    token = cToken;
+function getAdminRecaptchaToken() {
+    return new Promise((resolve) => {
+        recaptchaAdminResolve = resolve;
+        grecaptcha.execute(recaptchaAdminWidgetId);
+    });
+}
+
+function loadRecaptcha() {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = 'https://www.google.com';
+    document.head.appendChild(link);
+
+    const script = document.createElement('script');
+    script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+        grecaptcha.ready(() => {
+            const container = document.getElementById('recaptcha-container');
+            recaptchaAdminWidgetId = grecaptcha.render(container, {
+                sitekey: 'RECAPTCHA_V2_INVISIBLE_SITE_KEY',
+                size: 'invisible',
+                callback: recaptchaAdminComplete,
+            });
+        });
+    };
+    document.head.appendChild(script);
 }
 
 // ==========================================
