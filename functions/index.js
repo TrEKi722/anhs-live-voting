@@ -26,8 +26,8 @@ exports.adminEmailPasswordSignIn = onCall(
     const check = await verifyRecaptcha(recaptchaToken, RECAPTCHA_SECRET.value());
     if (!check.success) throw new HttpsError('permission-denied', 'Captcha failed.');
 
-    const apiKey = process.env.FIREBASE_WEB_API_KEY;
-    if (!apiKey) throw new HttpsError('failed-precondition', 'Missing FIREBASE_WEB_API_KEY.');
+    const apiKey = process.env.WEB_API_KEY;
+    if (!apiKey) throw new HttpsError('failed-precondition', 'Missing WEB_API_KEY.');
 
     const resp = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
@@ -63,8 +63,8 @@ exports.adminSendPasswordReset = onCall(
       return { sent: true };
     }
 
-    const apiKey = process.env.FIREBASE_WEB_API_KEY;
-    if (!apiKey) throw new HttpsError('failed-precondition', 'Missing FIREBASE_WEB_API_KEY.');
+    const apiKey = process.env.WEB_API_KEY;
+    if (!apiKey) throw new HttpsError('failed-precondition', 'Missing WEB_API_KEY.');
 
     await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
@@ -156,7 +156,7 @@ exports.inviteAdmin = onCall({ region: REGION }, async (req) => {
     email, role, createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  const apiKey = process.env.FIREBASE_WEB_API_KEY;
+  const apiKey = process.env.WEB_API_KEY;
   if (apiKey) {
     await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
