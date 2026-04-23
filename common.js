@@ -870,6 +870,7 @@ window.loginUser = async function() {
     const pass = document.getElementById('admin-pass')?.value;
 
     if (!email || !pass) return showToast("Please enter an email and password.");
+    if (recaptchaAdminWidgetId === null) return showToast("Security check still loading, please try again in a moment.");
 
     await supabaseC.auth.signOut();
 
