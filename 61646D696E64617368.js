@@ -518,7 +518,7 @@ window.ybStartRound = async function() {
             })
             .eq('id', 'main')
             .select();
-        console.log('[YB] Supabase update result — data:', data, '| error:', error);
+        console.log('[YB] Firestore update result — data:', data, '| error:', error);
         if (error) throw error;
         showToast("Yearbook started!");
     } catch (e) {

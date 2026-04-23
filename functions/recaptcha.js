@@ -1,8 +1,7 @@
-async function verifyTurnstile(token, secret, remoteip) {
+async function verifyRecaptcha(token, secret) {
   if (!token || !secret) return { success: false };
   const body = new URLSearchParams({ secret, response: token });
-  if (remoteip) body.set('remoteip', remoteip);
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+  const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
     method: 'POST', body,
   });
   if (!res.ok) return { success: false };
@@ -10,4 +9,4 @@ async function verifyTurnstile(token, secret, remoteip) {
   return { success: !!data.success };
 }
 
-module.exports = { verifyTurnstile };
+module.exports = { verifyRecaptcha };
