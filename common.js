@@ -5,10 +5,395 @@
 // ==========================================
 // 1. Variables
 // ==========================================
-const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
+const auth = firebase.auth();
+const db = firebase.firestore();
+const fns = window._fns || firebase.app().functions('us-central1');
 
-const supabaseC = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const CONFIG_DOCS = {
+    poll_config: 'config/poll',
+    hats_config: 'config/hats',
+    name_game_config: 'config/name_game',
+    yearbook_config: 'config/yearbook',
+    wally_config: 'config/wally'
+};
+
+const COUNTER_DOCS = {
+    poll: 'counters/poll',
+    hats: 'counters/hats',
+    yearbook: 'counters/yearbook'
+};
+
+const LEADERBOARD_DOCS = {
+    name_game: 'leaderboards/name_game',
+    yearbook: 'leaderboards/yearbook',
+    wally: 'leaderboards/wally'
+};
+
+const DOC_ID_BUILDERS = {
+    votes: ({ user_id }) => user_id,
+    hats_presses: ({ user_id }) => user_id,
+    name_game_scores: ({ user_id }) => user_id,
+    yearbook_scores: ({ user_id }) => user_id,
+    user_profiles: ({ user_id }) => user_id,
+    yearbook_votes: ({ user_id, round_id }) => `${user_id}_${round_id}`,
+    wally_scores: ({ user_id, round_id }) => `${user_id}_${round_id}`
+};
+
+let authBootstrapPromise = null;
+
+function normalizeFirestoreValue(value) {
+    if (value?.toDate) return value.toDate().toISOString();
+    if (Array.isArray(value)) return value.map(normalizeFirestoreValue);
+    if (value && typeof value === 'object') {
+        const out = {};
+        Object.entries(value).forEach(([k, v]) => {
+            out[k] = normalizeFirestoreValue(v);
+        });
+        return out;
+    }
+    return value;
+}
+
+function normalizeDoc(id, data) {
+    return { id, ...normalizeFirestoreValue(data || {}) };
+}
+
+function normalizeAuthUser(user, metadata) {
+    if (!user) return null;
+    const userMetadata = {
+        username: metadata?.username || null
+    };
+    return {
+        id: user.uid,
+        uid: user.uid,
+        email: user.email || null,
+        isAnonymous: !!user.isAnonymous,
+        user_metadata: userMetadata
+    };
+}
+
+async function getUserProfile(uid) {
+    if (!uid) return null;
+    const snap = await db.collection('user_profiles').doc(uid).get();
+    return snap.exists ? normalizeDoc(snap.id, snap.data()) : null;
+}
+
+async function buildSession(user) {
+    if (!user) return null;
+    const profile = await getUserProfile(user.uid);
+    const tokenResult = await user.getIdTokenResult().catch(() => null);
+    return {
+        user: normalizeAuthUser(user, profile),
+        access_token: tokenResult?.token || null
+    };
+}
+
+async function ensureAuthBootstrap() {
+    if (!authBootstrapPromise) {
+        authBootstrapPromise = auth.getRedirectResult().catch((error) => {
+            console.error('Auth redirect error:', error);
+            return null;
+        });
+    }
+    await authBootstrapPromise;
+}
+
+function firebaseProviderFor(name) {
+    if (name === 'google') return new firebase.auth.GoogleAuthProvider();
+    if (name === 'azure') return new firebase.auth.OAuthProvider('microsoft.com');
+    throw new Error(`Unsupported OAuth provider: ${name}`);
+}
+
+function getDocIdFromFilters(table, filters, row) {
+    if (row) return DOC_ID_BUILDERS[table]?.(row) || null;
+
+    const filterMap = new Map(filters.map((f) => [f.field, f.value]));
+    if (table === 'votes' || table === 'hats_presses' || table === 'name_game_scores' || table === 'yearbook_scores' || table === 'user_profiles') {
+        return filterMap.get('user_id') || null;
+    }
+    if (table === 'yearbook_votes' || table === 'wally_scores') {
+        const userId = filterMap.get('user_id');
+        const roundId = filterMap.get('round_id');
+        return userId != null && roundId != null ? `${userId}_${roundId}` : null;
+    }
+    return null;
+}
+
+function applyFieldSelection(row, fields) {
+    if (!row || !fields || fields === '*') return row;
+    const selected = {};
+    fields.split(',').map((f) => f.trim()).filter(Boolean).forEach((field) => {
+        if (field in row) selected[field] = row[field];
+    });
+    return selected;
+}
+
+function docsFromCounter(counter, valueKeyPrefix) {
+    const total = counter?.total || 0;
+    const docs = [];
+    for (let i = 0; i < 4; i++) {
+        const count = counter?.[`${valueKeyPrefix}${i}`] || 0;
+        for (let j = 0; j < count; j++) docs.push({ option_index: i });
+    }
+    return { docs, total };
+}
+
+class FirebaseQueryBuilder {
+    constructor(table) {
+        this.table = table;
+        this.filters = [];
+        this.sort = null;
+        this.rowLimit = null;
+        this.expectSingle = false;
+        this.allowMissing = false;
+        this.selectedFields = '*';
+        this.countOptions = null;
+        this.mode = 'select';
+        this.payload = null;
+        this.returningFields = null;
+    }
+
+    select(fields, options) {
+        this.selectedFields = fields || '*';
+        this.countOptions = options || null;
+        if (this.mode !== 'select') this.returningFields = fields || '*';
+        return this;
+    }
+
+    eq(field, value) {
+        this.filters.push({ op: '==', field, value });
+        return this;
+    }
+
+    neq(field, value) {
+        this.filters.push({ op: '!=', field, value });
+        return this;
+    }
+
+    lte(field, value) {
+        this.filters.push({ op: '<=', field, value });
+        return this;
+    }
+
+    order(field, { ascending } = {}) {
+        this.sort = { field, ascending: ascending !== false };
+        return this;
+    }
+
+    limit(value) {
+        this.rowLimit = value;
+        return this;
+    }
+
+    single() {
+        this.expectSingle = true;
+        this.allowMissing = false;
+        return this;
+    }
+
+    maybeSingle() {
+        this.expectSingle = true;
+        this.allowMissing = true;
+        return this;
+    }
+
+    update(payload) {
+        this.mode = 'update';
+        this.payload = payload;
+        return this;
+    }
+
+    insert(payload) {
+        this.mode = 'insert';
+        this.payload = payload;
+        return this;
+    }
+
+    upsert(payload) {
+        this.mode = 'upsert';
+        this.payload = payload;
+        return this;
+    }
+
+    delete() {
+        this.mode = 'delete';
+        return this;
+    }
+
+    then(resolve, reject) {
+        return this.execute().then(resolve, reject);
+    }
+
+    async execute() {
+        try {
+            if (CONFIG_DOCS[this.table]) return await this.executeConfigDoc();
+            return await this.executeCollection();
+        } catch (error) {
+            return { data: null, error };
+        }
+    }
+
+    async executeConfigDoc() {
+        const ref = db.doc(CONFIG_DOCS[this.table]);
+        if (this.mode === 'select') {
+            const snap = await ref.get();
+            const row = snap.exists ? normalizeDoc('main', snap.data()) : null;
+            return { data: this.expectSingle ? row : row ? [row] : [], error: null };
+        }
+
+        if (this.mode === 'update' || this.mode === 'upsert' || this.mode === 'insert') {
+            await ref.set(this.payload || {}, { merge: true });
+            const snap = await ref.get();
+            const row = snap.exists ? applyFieldSelection(normalizeDoc('main', snap.data()), this.returningFields) : null;
+            return { data: row ? (this.expectSingle ? row : [row]) : null, error: null };
+        }
+
+        throw new Error(`Unsupported operation for ${this.table}: ${this.mode}`);
+    }
+
+    async executeCollection() {
+        if (this.mode === 'insert' || this.mode === 'upsert') {
+            const row = Array.isArray(this.payload) ? this.payload[0] : this.payload;
+            const docId = getDocIdFromFilters(this.table, this.filters, row);
+            if (!docId) throw new Error(`Unable to derive document id for ${this.table}`);
+            const ref = db.collection(this.table).doc(docId);
+            const data = normalizeFirestoreValue(row);
+            const opts = this.mode === 'upsert' ? { merge: true } : undefined;
+            await ref.set(data, opts);
+            const snap = await ref.get();
+            const out = applyFieldSelection(normalizeDoc(snap.id, snap.data()), this.returningFields);
+            return { data: this.expectSingle ? out : [out], error: null };
+        }
+
+        if (this.mode === 'update') {
+            const docId = getDocIdFromFilters(this.table, this.filters, this.payload);
+            const ref = docId ? db.collection(this.table).doc(docId) : null;
+            if (!ref) throw new Error(`Update needs a resolvable document id for ${this.table}`);
+            await ref.set(this.payload || {}, { merge: true });
+            const snap = await ref.get();
+            const out = applyFieldSelection(normalizeDoc(snap.id, snap.data()), this.returningFields);
+            return { data: this.expectSingle ? out : [out], error: null };
+        }
+
+        if (this.mode === 'delete') {
+            const docId = getDocIdFromFilters(this.table, this.filters);
+            if (docId) {
+                await db.collection(this.table).doc(docId).delete();
+                return { data: null, error: null };
+            }
+
+            let query = db.collection(this.table);
+            this.filters.forEach((filter) => {
+                if (filter.op === '==') query = query.where(filter.field, '==', filter.value);
+                if (filter.op === '<=') query = query.where(filter.field, '<=', filter.value);
+                if (filter.op === '!=') query = query.where(filter.field, '!=', filter.value);
+            });
+            const snap = await query.get();
+            const batch = db.batch();
+            snap.forEach((docSnap) => batch.delete(docSnap.ref));
+            await batch.commit();
+            return { data: null, error: null };
+        }
+
+        if (this.table === 'votes' && this.filters.length === 0 && !this.expectSingle) {
+            const counterSnap = await db.doc(COUNTER_DOCS.poll).get();
+            const { docs } = docsFromCounter(counterSnap.data(), 'o');
+            return { data: docs, error: null };
+        }
+
+        const directDocId = getDocIdFromFilters(this.table, this.filters);
+        if (directDocId) {
+            const snap = await db.collection(this.table).doc(directDocId).get();
+            const row = snap.exists ? normalizeDoc(snap.id, snap.data()) : null;
+            if (!row && !this.allowMissing) return { data: null, error: new Error('Document not found') };
+            return {
+                data: this.expectSingle ? row : row ? [applyFieldSelection(row, this.selectedFields)] : [],
+                error: null
+            };
+        }
+
+        let query = db.collection(this.table);
+        this.filters.forEach((filter) => {
+            query = query.where(filter.field, filter.op, filter.value);
+        });
+        if (this.sort) query = query.orderBy(this.sort.field, this.sort.ascending ? 'asc' : 'desc');
+        if (this.rowLimit) query = query.limit(this.rowLimit);
+
+        const snap = await query.get();
+        const rows = snap.docs.map((docSnap) => applyFieldSelection(normalizeDoc(docSnap.id, docSnap.data()), this.selectedFields));
+
+        if (this.countOptions?.head) {
+            return { data: null, count: snap.size, error: null };
+        }
+
+        if (this.expectSingle) {
+            const row = rows[0] || null;
+            if (!row && !this.allowMissing) return { data: null, error: new Error('Document not found') };
+            return { data: row, error: null };
+        }
+
+        return { data: rows, error: null };
+    }
+}
+
+const supabaseC = {
+    auth: {
+        async getSession() {
+            await ensureAuthBootstrap();
+            const session = await buildSession(auth.currentUser);
+            return { data: { session }, error: null };
+        },
+        async signInAnonymously() {
+            const cred = await auth.signInAnonymously();
+            const session = await buildSession(cred.user);
+            return { data: { user: session?.user || null, session }, error: null };
+        },
+        async signInWithOAuth({ provider }) {
+            const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+            if (redirectParam) sessionStorage.setItem('postAuthRedirect', redirectParam);
+            await auth.signInWithRedirect(firebaseProviderFor(provider));
+            return { error: null };
+        },
+        async signInWithPassword({ email, password, options }) {
+            const call = fns.httpsCallable('adminEmailPasswordSignIn');
+            const result = await call({ email, password, turnstileToken: options?.captchaToken || null });
+            const cred = await auth.signInWithCustomToken(result.data.customToken);
+            const session = await buildSession(cred.user);
+            return { data: { user: session?.user || null, session }, error: null };
+        },
+        async signOut() {
+            await auth.signOut();
+            return { error: null };
+        }
+    },
+    from(table) {
+        return new FirebaseQueryBuilder(table);
+    }
+};
+
+function subscribeToDoc(path, callback) {
+    return db.doc(path).onSnapshot((snap) => {
+        callback({ new: snap.exists ? normalizeDoc(snap.id, snap.data()) : null });
+    });
+}
+
+function subscribeToCollection(table, callback, queryBuilder) {
+    let query = db.collection(table);
+    if (queryBuilder) query = queryBuilder(query);
+    return query.onSnapshot((snap) => {
+        snap.docChanges().forEach((change) => {
+            callback({
+                eventType: change.type === 'removed' ? 'DELETE' : change.type === 'added' ? 'INSERT' : 'UPDATE',
+                new: change.type === 'removed' ? null : normalizeDoc(change.doc.id, change.doc.data()),
+                old: change.type === 'added' ? null : normalizeDoc(change.doc.id, change.doc.data())
+            });
+        });
+    });
+}
+
+function callFunction(name, data) {
+    return fns.httpsCallable(name)(data || {});
+}
 
 let token = null;
 
@@ -178,40 +563,31 @@ function generateUsername() {
 }
 
 async function getOrCreateUsername(user) {
-    // Fast path: already stored in metadata
     if (user.user_metadata?.username) return user.user_metadata.username;
 
-    // Check if they already have a profile (e.g. lost local session storage)
-    const { data: existing } = await supabaseC
-        .from('user_profiles')
-        .select('username')
-        .eq('user_id', user.id)
-        .single();
-
+    const existing = await getUserProfile(user.id);
     if (existing?.username) {
-        const { data } = await supabaseC.auth.updateUser({ data: { username: existing.username } });
-        if (data?.user) currentUser = data.user;
+        currentUser = {
+            ...user,
+            user_metadata: { ...(user.user_metadata || {}), username: existing.username }
+        };
         return existing.username;
     }
 
-    // Generate a unique username, retrying on collisions
     for (let attempt = 0; attempt < 20; attempt++) {
         const name = generateUsername();
-        const { error } = await supabaseC
-            .from('user_profiles')
-            .insert({ user_id: user.id, username: name });
+        const collision = await db.collection('user_profiles').where('username', '==', name).limit(1).get();
+        if (!collision.empty) continue;
 
-        if (!error) {
-            const { data } = await supabaseC.auth.updateUser({ data: { username: name } });
-            if (data?.user) currentUser = data.user;
-            return name;
-        }
-
-        if (error.code !== '23505') break; // unexpected error, stop retrying
-        // code 23505 = unique_violation — try a different name
+        await db.collection('user_profiles').doc(user.id).set({ user_id: user.id, username: name }, { merge: true });
+        currentUser = {
+            ...user,
+            user_metadata: { ...(user.user_metadata || {}), username: name }
+        };
+        return name;
     }
 
-    return generateUsername(); // last-resort fallback
+    return generateUsername();
 }
 
 function getVoterCaptchaToken() {
@@ -275,6 +651,7 @@ function injectUsernameBar(username) {
 
 async function initAuth(token) {
     try {
+        await ensureAuthBootstrap();
         const { data: { session } } = await supabaseC.auth.getSession();
 
         if (session) {
@@ -296,6 +673,14 @@ async function initAuth(token) {
             setTimeout(() => {
                 window.location.href = '/sign-in';
             }, 3000);
+            return;
+        }
+
+        // Finish OAuth redirect flow after claims/session have settled
+        const postAuthRedirect = sessionStorage.getItem('postAuthRedirect');
+        if (postAuthRedirect && currentUser && window.location.pathname === '/sign-in') {
+            sessionStorage.removeItem('postAuthRedirect');
+            window.location.href = postAuthRedirect;
             return;
         }
 
@@ -591,75 +976,48 @@ async function fetchInitialData() {
 }
 
 async function fetchAndUpdateAllVotes() {
-    const { data: votes, error } = await supabaseC
-        .from('votes')
-        .select('option_index');
-
-    if (error) {
+    try {
+        const snap = await db.doc(COUNTER_DOCS.poll).get();
+        const data = snap.data() || {};
+        updateResults([
+            data.o0 || 0,
+            data.o1 || 0,
+            data.o2 || 0,
+            data.o3 || 0
+        ], data.total || 0);
+    } catch (error) {
         console.error("Error fetching votes:", error);
         showToast("Error fetching votes. Check console or reload.");
-        return;
     }
-
-    let voteCounts = [0, 0, 0, 0];
-    let totalVotes = 0;
-
-    if (votes) {
-        votes.forEach(v => {
-            if (v.option_index >= 0 && v.option_index <= 3) {
-                voteCounts[v.option_index]++;
-                totalVotes++;
-            }
-        });
-    }
-
-    updateResults(voteCounts, totalVotes);
 }
 
 function setupRealtimeSubscriptions() {
-    supabaseC
-        .channel('poll-config-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_config' }, payload => {
-            if (payload.new && payload.new.is_locked !== undefined) {
-                pollIsLocked = payload.new.is_locked;
-                updateVoteBtns();
-                fetchAndUpdateAllVotes();
-                if (typeof updateAdminUI === 'function') updateAdminUI();
-            }           
-            if (payload.new && payload.new.results_hidden !== undefined) {
-                pollIsHidden = payload.new.results_hidden;
-                updateVoteBtns();
-                fetchAndUpdateAllVotes();
-                updateQandA();
-                updateResults();
-                if (typeof updateAdminUI === 'function') updateAdminUI();
-            }
-            if (payload.new && ( payload.new.question !== undefined || payload.new.option0 !== undefined || payload.new.option1 !== undefined || payload.new.option2 !== undefined || payload.new.option3 !== undefined )) {
-                question = payload.new.question || question;
-                options[0] = payload.new.option0 || options[0];
-                options[1] = payload.new.option1 || options[1];
-                options[2] = payload.new.option2 || options[2];
-                options[3] = payload.new.option3 || options[3];
-                updateQandA();
-                updateResults();
-                updateVoteBtns();
-                fetchAndUpdateAllVotes();
-                if (typeof updateAdminUI === 'function') updateAdminUI();
-                if (typeof updateAdminOptionInputs === 'function') updateAdminOptionInputs();
-            }
-        })
-        .subscribe();
+    subscribeToDoc(CONFIG_DOCS.poll_config, (payload) => {
+        if (!payload.new) return;
+        pollIsLocked = !!payload.new.is_locked;
+        pollIsHidden = !!payload.new.results_hidden;
+        question = payload.new.question || question;
+        options[0] = payload.new.option0 || options[0];
+        options[1] = payload.new.option1 || options[1];
+        options[2] = payload.new.option2 || options[2];
+        options[3] = payload.new.option3 || options[3];
+        updateQandA();
+        updateVoteBtns();
+        fetchAndUpdateAllVotes();
+        if (typeof updateAdminUI === 'function') updateAdminUI();
+        if (typeof updateAdminOptionInputs === 'function') updateAdminOptionInputs();
+    });
 
-    supabaseC
-        .channel('votes-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, payload => {
-            fetchAndUpdateAllVotes();
-            if (payload.eventType === 'DELETE' && currentUser && payload.old.user_id === currentUser.id) {
-                myVote = null;
-                updateVoteBtns();
-            }
-        })
-        .subscribe();
+    subscribeToDoc(COUNTER_DOCS.poll, () => {
+        fetchAndUpdateAllVotes();
+    });
+
+    if (currentUser) {
+        subscribeToDoc(`votes/${currentUser.id}`, (payload) => {
+            myVote = payload.new?.option_index ?? null;
+            updateVoteBtns();
+        });
+    }
 }
 
 async function checkRole() {
@@ -670,27 +1028,11 @@ async function checkRole() {
             return;
         }
 
-        const response = await fetch(
-            `${SUPABASE_URL}/functions/v1/get-user-role?user_id=${currentUser.id}`,
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            }
-        );
+        const tokenResult = await auth.currentUser?.getIdTokenResult(true);
+        const role = tokenResult?.claims?.role || null;
 
-        const result = await response.json();
-
-        if (!response.ok || result.error) {
-            console.error("Role fetch error:", result.error);
-            isAdmin = false;
-            isSuperAdmin = false;
-            return;
-        }
-
-        isAdmin = result.role === "admin" || result.role === "super_admin";
-        isSuperAdmin = result.role === "super_admin";
+        isAdmin = role === 'admin' || role === 'super_admin';
+        isSuperAdmin = role === 'super_admin';
 
     } catch (err) {
         console.error("Error checking role:", err);
@@ -904,20 +1246,13 @@ async function initCups() {
     if (currentUser) {
         const { data: press } = await supabaseC
             .from('hats_presses')
-            .select('choice, timestamp')
+            .select('choice, timestamp, rank')
             .eq('user_id', currentUser.id)
             .maybeSingle();
 
         if (press) {
             cupsMyPress = press.choice;
-            if (cupsCorrectOption !== null && press.choice === cupsCorrectOption) {
-                const { count } = await supabaseC
-                    .from('hats_presses')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('choice', cupsCorrectOption)
-                    .lte('timestamp', press.timestamp);
-                cupsMyRank = count;
-            }
+            cupsMyRank = press.rank ?? null;
         }
     }
 
@@ -984,25 +1319,33 @@ function updateCupsUI() {
 }
 
 function setupCupsRealtime() {
-    supabaseC
-        .channel('cups-config-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'hats_config' }, payload => {
-            if (!payload.new) return;
-            const newCorrectOption = payload.new.correct_option ?? null;
+    subscribeToDoc(CONFIG_DOCS.hats_config, (payload) => {
+        if (!payload.new) return;
+        const newCorrectOption = payload.new.correct_option ?? null;
+        if (newCorrectOption === null && cupsCorrectOption !== null) {
+            cupsMyPress = null;
+            cupsMyRank = null;
+        }
+        cupsIsActive = !!payload.new.is_active;
+        cupsCorrectOption = newCorrectOption;
+        updateCupsUI();
+        if (typeof updateCupsAdminUI === 'function') updateCupsAdminUI();
+        if (typeof updateWallCupsUI === 'function') updateWallCupsUI();
+    });
 
-            // Round was reset — clear local press state so UI returns to inactive
-            if (newCorrectOption === null && cupsCorrectOption !== null) {
+    if (currentUser) {
+        subscribeToDoc(`hats_presses/${currentUser.id}`, (payload) => {
+            const press = payload.new;
+            if (!press) {
                 cupsMyPress = null;
                 cupsMyRank = null;
+            } else {
+                cupsMyPress = press.choice ?? null;
+                cupsMyRank = press.rank ?? null;
             }
-
-            cupsIsActive = payload.new.is_active;
-            cupsCorrectOption = newCorrectOption;
             updateCupsUI();
-            if (typeof updateCupsAdminUI === 'function') updateCupsAdminUI();
-            if (typeof updateWallCupsUI === 'function') updateWallCupsUI();
-        })
-        .subscribe();
+        });
+    }
 }
 
 window.pressCup = async function(option) {
@@ -1021,23 +1364,13 @@ window.pressCup = async function(option) {
         const { data: myPress, error } = await supabaseC
             .from('hats_presses')
             .insert({ user_id: currentUser.id, choice: option })
-            .select('timestamp')
+            .select('timestamp, rank')
             .single();
 
         if (error) throw error;
 
         cupsMyPress = option;
-
-        if (option === cupsCorrectOption) {
-            const { count } = await supabaseC
-                .from('hats_presses')
-                .select('*', { count: 'exact', head: true })
-                .eq('choice', cupsCorrectOption)
-                .lte('timestamp', myPress.timestamp);
-            cupsMyRank = count;
-        } else {
-            cupsMyRank = null;
-        }
+        cupsMyRank = option === cupsCorrectOption ? (myPress.rank ?? null) : null;
 
         updateCupsUI();
     } catch (error) {
@@ -1206,41 +1539,38 @@ function showNGFeedback(type, message) {
 }
 
 function setupNameGameRealtime() {
-    supabaseC
-        .channel('name-game-config-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'name_game_config' }, payload => {
-            if (!payload.new) return;
-            const wasActive = ngIsActive;
-            const newActive = payload.new.is_active;
-            const newSet = payload.new.image_set ?? null;
+    subscribeToDoc(CONFIG_DOCS.name_game_config, (payload) => {
+        if (!payload.new) return;
+        const wasActive = ngIsActive;
+        const newActive = !!payload.new.is_active;
+        const newSet = payload.new.image_set ?? null;
 
-            if (!newActive && newSet === null) {
-                ngMyScore = 0;
-                ngCorrectSet = new Set();
-            }
+        if (!newActive && newSet === null) {
+            ngMyScore = 0;
+            ngCorrectSet = new Set();
+        }
 
-            ngIsActive = newActive;
-            ngImageSet = newSet;
-            ngImageOrder = payload.new.image_order || [];
-            ngDurationSeconds = payload.new.round_duration_seconds || 10;
-            ngMemorizeDurationSeconds = payload.new.memorize_duration_seconds || 10;
-            ngRoundStartTime = payload.new.round_start_time ? new Date(payload.new.round_start_time).getTime() : null;
-            ngRoundEndTime = payload.new.round_end_time ? new Date(payload.new.round_end_time).getTime() : null;
+        ngIsActive = newActive;
+        ngImageSet = newSet;
+        ngImageOrder = payload.new.image_order || [];
+        ngDurationSeconds = payload.new.round_duration_seconds || 10;
+        ngMemorizeDurationSeconds = payload.new.memorize_duration_seconds || 10;
+        ngRoundStartTime = payload.new.round_start_time ? new Date(payload.new.round_start_time).getTime() : null;
+        ngRoundEndTime = payload.new.round_end_time ? new Date(payload.new.round_end_time).getTime() : null;
 
-            if (!wasActive && newActive) {
-                ngMyScore = 0;
-                ngCorrectSet = new Set();
-                ['ng-memorize-grid', 'ng-wall-memorize-grid'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) delete el.dataset.built;
-                });
-            }
+        if (!wasActive && newActive) {
+            ngMyScore = 0;
+            ngCorrectSet = new Set();
+            ['ng-memorize-grid', 'ng-wall-memorize-grid'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) delete el.dataset.built;
+            });
+        }
 
-            updateNameGameUI();
-            if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
-            if (typeof updateWallNGUI === 'function') updateWallNGUI();
-        })
-        .subscribe();
+        updateNameGameUI();
+        if (typeof updateNGAdminUI === 'function') updateNGAdminUI();
+        if (typeof updateWallNGUI === 'function') updateWallNGUI();
+    });
 }
 
 window.submitNGAnswer = async function() {
@@ -1308,11 +1638,9 @@ async function updateWallCupsUI() {
         if (activeDiv) activeDiv.style.display = 'block';
 
         if (cupsCorrectOption !== null && countEl) {
-            const { count } = await supabaseC
-                .from('hats_presses')
-                .select('*', { count: 'exact', head: true })
-                .eq('choice', cupsCorrectOption);
-            countEl.textContent = count || 0;
+            const snap = await db.doc(COUNTER_DOCS.hats).get();
+            const data = snap.data() || {};
+            countEl.textContent = data.correctCount || 0;
         }
     } else {
         badge.textContent = 'Waiting for round to start...';
@@ -1323,12 +1651,9 @@ async function updateWallCupsUI() {
 }
 
 function setupWallCupsRealtime() {
-    supabaseC
-        .channel('wall-cups-presses')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hats_presses' }, () => {
-            updateWallCupsUI();
-        })
-        .subscribe();
+    subscribeToDoc(COUNTER_DOCS.hats, () => {
+        updateWallCupsUI();
+    });
 }
 
 // ==========================================
@@ -1421,12 +1746,11 @@ function startWallNGCountdown(phase) {
 
 function setupWallNGScoresRealtime() {
     if (ngWallScoresChannel) return;
-    ngWallScoresChannel = supabaseC
-        .channel('wall-ng-scores')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'name_game_scores' }, () => {
+    ngWallScoresChannel = {
+        unsubscribe: subscribeToDoc(LEADERBOARD_DOCS.name_game, () => {
             loadWallNGLeaderboard();
         })
-        .subscribe();
+    };
 }
 
 async function loadWallNGLeaderboard() {
@@ -1435,11 +1759,8 @@ async function loadWallNGLeaderboard() {
         .filter(Boolean);
     if (!tables.length) return;
 
-    const { data: scores } = await supabaseC
-        .from('name_game_scores')
-        .select('display_name, score')
-        .order('score', { ascending: false })
-        .limit(5);
+    const snap = await db.doc(LEADERBOARD_DOCS.name_game).get();
+    const scores = snap.data()?.top || [];
 
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
     const html = scores?.length
@@ -1576,15 +1897,9 @@ async function renderYBReveal() {
 
     // Fetch vote counts
     if (ybOptionIndices.length && ybRoundId !== null) {
-        const { data: votes } = await supabaseC
-            .from('yearbook_votes')
-            .select('teacher_index')
-            .eq('round_id', ybRoundId);
-
-        ybVoteCounts = {};
-        (votes || []).forEach(v => {
-            ybVoteCounts[v.teacher_index] = (ybVoteCounts[v.teacher_index] || 0) + 1;
-        });
+        const snap = await db.doc(COUNTER_DOCS.yearbook).get();
+        const data = snap.data() || {};
+        ybVoteCounts = data.round_id === ybRoundId ? (data.counts || {}) : {};
         renderYBVoteBars();
     }
 
@@ -1630,31 +1945,33 @@ function renderYBVoteBars() {
 }
 
 function setupYearbookRealtime() {
-    supabaseC
-        .channel('yearbook-config-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'yearbook_config' }, async payload => {
-            if (!payload.new) return;
-            const prevRoundId = ybRoundId;
-            const prevPhase = ybPhase;
+    subscribeToDoc(CONFIG_DOCS.yearbook_config, async (payload) => {
+        if (!payload.new) return;
+        const prevRoundId = ybRoundId;
 
-            ybPhase = payload.new.phase || 'waiting';
-            ybTeacherIndex = payload.new.teacher_index ?? null;
-            ybOptionIndices = payload.new.option_indices || [];
-            ybRoundId = payload.new.round_id ?? null;
-            ybTeacherQueue = payload.new.teacher_queue || [];
-            ybQueuePosition = payload.new.queue_position ?? 0;
+        ybPhase = payload.new.phase || 'waiting';
+        ybTeacherIndex = payload.new.teacher_index ?? null;
+        ybOptionIndices = payload.new.option_indices || [];
+        ybRoundId = payload.new.round_id ?? null;
+        ybTeacherQueue = payload.new.teacher_queue || [];
+        ybQueuePosition = payload.new.queue_position ?? 0;
 
-            // New round started — clear local vote state
-            if (ybRoundId !== prevRoundId) {
-                ybMyVote = null;
-                ybVoteCounts = {};
-            }
+        if (ybRoundId !== prevRoundId) {
+            ybMyVote = null;
+            ybVoteCounts = {};
+        }
 
-            updateYearbookUI();
-            if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
-            if (typeof updateWallYearbookUI === 'function') updateWallYearbookUI();
-        })
-        .subscribe();
+        updateYearbookUI();
+        if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
+        if (typeof updateWallYearbookUI === 'function') updateWallYearbookUI();
+    });
+
+    subscribeToDoc(COUNTER_DOCS.yearbook, (payload) => {
+        const data = payload.new || {};
+        ybVoteCounts = data.round_id === ybRoundId ? (data.counts || {}) : {};
+        if (ybPhase === 'reveal') renderYBVoteBars();
+        if (typeof updateWallYBVoteCounts === 'function') updateWallYBVoteCounts();
+    });
 }
 
 window.submitYearbookVote = async function(teacherIdx) {
@@ -1754,13 +2071,9 @@ function renderWallYBOptions() {
 
 async function updateWallYBVoteCounts() {
     if (ybRoundId === null || !ybOptionIndices.length) return;
-    const { data: votes } = await supabaseC
-        .from('yearbook_votes')
-        .select('teacher_index')
-        .eq('round_id', ybRoundId);
-
-    const counts = {};
-    (votes || []).forEach(v => { counts[v.teacher_index] = (counts[v.teacher_index] || 0) + 1; });
+    const snap = await db.doc(COUNTER_DOCS.yearbook).get();
+    const data = snap.data() || {};
+    const counts = data.round_id === ybRoundId ? (data.counts || {}) : {};
     ybOptionIndices.forEach(idx => {
         const el = document.getElementById(`yb-wall-count-${idx}`);
         if (el) el.textContent = counts[idx] || 0;
@@ -1768,12 +2081,9 @@ async function updateWallYBVoteCounts() {
 }
 
 function setupWallYBVotesRealtime() {
-    supabaseC
-        .channel('wall-yb-votes')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'yearbook_votes' }, () => {
-            updateWallYBVoteCounts();
-        })
-        .subscribe();
+    subscribeToDoc(COUNTER_DOCS.yearbook, () => {
+        updateWallYBVoteCounts();
+    });
 }
 
 function renderWallYBReveal() {
@@ -1789,12 +2099,11 @@ function renderWallYBReveal() {
 
 function setupWallYBScoresRealtime() {
     if (ybWallScoresChannel) return;
-    ybWallScoresChannel = supabaseC
-        .channel('wall-yb-scores')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'yearbook_scores' }, () => {
+    ybWallScoresChannel = {
+        unsubscribe: subscribeToDoc(LEADERBOARD_DOCS.yearbook, () => {
             loadYBLeaderboard();
         })
-        .subscribe();
+    };
 }
 
 async function loadYBLeaderboard() {
@@ -1803,11 +2112,8 @@ async function loadYBLeaderboard() {
         .filter(Boolean);
     if (!tables.length) return;
 
-    const { data: scores } = await supabaseC
-        .from('yearbook_scores')
-        .select('display_name, score')
-        .order('score', { ascending: false })
-        .limit(5);
+    const snap = await db.doc(LEADERBOARD_DOCS.yearbook).get();
+    const scores = snap.data()?.top || [];
 
     const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
     const html = scores?.length
@@ -1847,18 +2153,13 @@ async function initWally() {
     if (wallyIsActive && wallyRoundId && currentUser) {
         const { data: existing } = await supabaseC
             .from('wally_scores')
-            .select('time_ms')
+            .select('time_ms, rank')
             .eq('user_id', currentUser.id)
             .eq('round_id', wallyRoundId)
             .maybeSingle();
         if (existing) {
             wallyFoundTime = existing.time_ms;
-            const { count } = await supabaseC
-                .from('wally_scores')
-                .select('*', { count: 'exact', head: true })
-                .eq('round_id', wallyRoundId)
-                .lte('time_ms', existing.time_ms);
-            wallyMyRank = count;
+            wallyMyRank = existing.rank ?? null;
             wallyTopScores = await loadWallyLeaderboard(3);
         }
     }
@@ -1977,52 +2278,46 @@ function updateWallyUI() {
 }
 
 function setupWallyRealtime() {
-    supabaseC
-        .channel('wally-config-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'wally_config' }, payload => {
-            if (!payload.new) return;
-            const prevRoundId = wallyRoundId;
-            const prevActive = wallyIsActive;
+    subscribeToDoc(CONFIG_DOCS.wally_config, (payload) => {
+        if (!payload.new) return;
+        const prevRoundId = wallyRoundId;
+        const prevActive = wallyIsActive;
 
-            wallyIsActive = payload.new.is_active || false;
-            wallySceneId = payload.new.scene_id || null;
-            wallyRoundId = payload.new.round_id || null;
-            wallyStartedAt = payload.new.started_at || null;
+        wallyIsActive = payload.new.is_active || false;
+        wallySceneId = payload.new.scene_id || null;
+        wallyRoundId = payload.new.round_id || null;
+        wallyStartedAt = payload.new.started_at || null;
 
-            // New round started — clear per-player state
-            if (wallyRoundId !== prevRoundId) {
-                wallyFoundTime = null;
-                wallyMyRank = null;
-                wallyTopScores = null;
-                wallyRoundEnded = false;
-            }
+        if (wallyRoundId !== prevRoundId) {
+            wallyFoundTime = null;
+            wallyMyRank = null;
+            wallyTopScores = null;
+            wallyRoundEnded = false;
+        }
 
-            // Round ended while player was hunting
-            if (!wallyIsActive && prevActive && wallyFoundTime === null) {
-                wallyRoundEnded = true;
-                stopWallyStopwatch();
-            }
+        if (!wallyIsActive && prevActive && wallyFoundTime === null) {
+            wallyRoundEnded = true;
+            stopWallyStopwatch();
+        }
 
-            // Round reset (round_id cleared to null)
-            if (wallyRoundId === null) {
-                wallyFoundTime = null;
-                wallyMyRank = null;
-                wallyTopScores = null;
-                wallyRoundEnded = false;
-            }
+        if (wallyRoundId === null) {
+            wallyFoundTime = null;
+            wallyMyRank = null;
+            wallyTopScores = null;
+            wallyRoundEnded = false;
+        }
 
-            updateWallyUI();
-            if (typeof updateWallyAdminUI === 'function') updateWallyAdminUI();
+        updateWallyUI();
+        if (typeof updateWallyAdminUI === 'function') updateWallyAdminUI();
 
-            // Refresh wall leaderboard if on wall page
-            if (document.getElementById('wally-wall-leaderboard')) {
-                loadWallyLeaderboard(5).then(scores => {
-                    wallyTopScores = scores;
-                    updateWallWallyUI();
-                });
-            }
-        })
-        .subscribe();
+        if (document.getElementById('wally-wall-leaderboard')) {
+            loadWallyLeaderboard(5).then(scores => {
+                wallyTopScores = scores;
+                updateWallWallyUI();
+            });
+        }
+    });
+
 }
 
 function startWallyStopwatch() {
@@ -2247,12 +2542,13 @@ async function wallySubmitScore(timeMs) {
             });
         if (error) throw error;
 
-        const { count } = await supabaseC
+        const { data: scoreRow } = await supabaseC
             .from('wally_scores')
-            .select('*', { count: 'exact', head: true })
+            .select('rank')
+            .eq('user_id', currentUser.id)
             .eq('round_id', wallyRoundId)
-            .lte('time_ms', timeMs);
-        wallyMyRank = count;
+            .single();
+        wallyMyRank = scoreRow?.rank ?? null;
         wallyTopScores = await loadWallyLeaderboard(3);
         updateWallyUI();
     } catch (e) {
@@ -2266,13 +2562,10 @@ async function wallySubmitScore(timeMs) {
 
 async function loadWallyLeaderboard(limit) {
     if (!wallyRoundId) return [];
-    const { data } = await supabaseC
-        .from('wally_scores')
-        .select('display_name, time_ms')
-        .eq('round_id', wallyRoundId)
-        .order('time_ms', { ascending: true })
-        .limit(limit || 5);
-    return data || [];
+    const snap = await db.doc(LEADERBOARD_DOCS.wally).get();
+    const data = snap.data() || {};
+    if (data.round_id !== wallyRoundId) return [];
+    return (data.top || []).slice(0, limit || 5);
 }
 
 // Wall page
@@ -2314,11 +2607,8 @@ function updateWallWallyUI() {
 }
 
 function setupWallWallyRealtime() {
-    supabaseC
-        .channel('wall-wally-scores')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wally_scores' }, async () => {
-            wallyTopScores = await loadWallyLeaderboard(5);
-            updateWallWallyUI();
-        })
-        .subscribe();
+    subscribeToDoc(LEADERBOARD_DOCS.wally, async () => {
+        wallyTopScores = await loadWallyLeaderboard(5);
+        updateWallWallyUI();
+    });
 }

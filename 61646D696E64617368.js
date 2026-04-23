@@ -82,30 +82,14 @@ function closeModal(id) {
 // ==========================================
 async function loadAdminList() {
     try {
-        const response = await fetch(
-            `https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/get-users-with-roles`,
-            {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${currentSession.access_token}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        const result = await response.json();
-
-        if (!response.ok || result.error) {
-            console.error("Error fetching users:", result.error);
-            return;
-        }
+        const result = await callFunction('listAdmins');
 
         const adminList = document.getElementById("adminList");
         if (!adminList) return;
 
         adminList.innerHTML = "";
 
-        const admins = result.users.filter(u => u.role === "admin" || u.role === "super_admin");
+        const admins = (result.data?.admins || []).filter(u => u.role === "admin" || u.role === "super_admin");
 
         if (admins.length === 0) {
             adminList.innerHTML = "<li>No admins found.</li>";
@@ -171,18 +155,7 @@ window.cupsEndRound = async function() {
 window.cupsReset = async function() {
     if (!isAdmin) return;
     try {
-        const { error: delErr } = await supabaseC
-            .from('hats_presses')
-            .delete()
-            .neq('user_id', '00000000-0000-0000-0000-000000000000');
-        if (delErr) throw delErr;
-
-        const { error: cfgErr } = await supabaseC
-            .from('hats_config')
-            .update({ correct_option: null, is_active: false })
-            .eq('id', 'main');
-        if (cfgErr) throw cfgErr;
-
+        await callFunction('adminResetGame', { game: 'cups' });
         showToast("Cups round reset!");
     } catch (e) {
         showToast("Error resetting cups.");
@@ -228,20 +201,7 @@ window.toggleHide = async function() {
 window.resetPoll = async function() {
     if (!isAdmin || !currentUser) return;
     try {
-        const { error: deleteError } = await supabaseC
-            .from('votes')
-            .delete()
-            .neq('user_id', '00000000-0000-0000-0000-000000000000');
-            
-        if (deleteError) throw deleteError;
-
-        const { error: unlockError } = await supabaseC
-            .from('poll_config')
-            .update({ is_locked: false })
-            .eq('id', 'main');
-            
-        if (unlockError) throw unlockError;
-
+        await callFunction('adminResetGame', { game: 'poll' });
         showToast("Poll reset successfully!");
     } catch (error) {
         showToast("Error resetting poll.");
@@ -285,24 +245,7 @@ window.editRole = async function(emailElementId, roleElementId) {
     if (!role) return showToast("Please choose a role.");
 
     try {
-        const response = await fetch(
-            'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/edit-role',
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${currentSession.access_token}`,
-                },
-                body: JSON.stringify({ email, role }),
-            }
-        );
-
-        const result = await response.json();
-        if (!response.ok) {
-            showToast(result.error ?? "Role update failed.");
-            return;
-        }
-
+        await callFunction('setUserRole', { email, role });
         showToast(`Updated ${email} to role ${role}!`);
         loadAdminList();
     } catch (err) {
@@ -324,32 +267,16 @@ window.addAdmin = async function(emailElementId, roleElementId) {
 }
 
 async function inviteUser(email, role) {
-    if (!currentUser || !currentSession) {
+    if (!currentUser) {
         console.error("Invite error: No authenticated user or session.");
         showToast("You must be logged in to invite users.");
         return { success: false };
     }
 
-    const response = await fetch(
-        'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/invite-user',
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${currentSession.access_token}`,
-            },
-            body: JSON.stringify({ email, role }),
-        }
-    );
-
-    const result = await response.json();
-    if (!response.ok) {
-        showToast(result.error ?? "Invite failed.");
-        return { success: false, error: result.error ?? "Invite failed." };
-    }
+    const result = await callFunction('inviteAdmin', { email, role });
 
     showToast(`Invite sent to ${email}!`);
-    return { success: true, user: result.user };
+    return { success: true, user: result.data || null };
 }
 
 window.removeAdmin = async function(emailElementId) {
@@ -359,24 +286,7 @@ window.removeAdmin = async function(emailElementId) {
     if (!email) return showToast("Please enter an email.");
 
     try {
-        const response = await fetch(
-            'https://ntzxejhhxtzdyyeqbfpn.supabase.co/functions/v1/delete-user',
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${currentSession.access_token}`,
-                },
-                body: JSON.stringify({ email }),
-            }
-        );
-
-        const result = await response.json();
-        if (!response.ok) {
-            showToast(result.error ?? "Remove failed.");
-            return;
-        }
-
+        await callFunction('deleteAdmin', { email });
         showToast(`${email} has been deleted`);
         loadAdminList();
     } catch (err) {
@@ -676,11 +586,7 @@ window.ybResetRound = async function() {
 window.ybResetScores = async function() {
     if (!isAdmin) return;
     try {
-        const { error } = await supabaseC
-            .from('yearbook_scores')
-            .delete()
-            .neq('user_id', '00000000-0000-0000-0000-000000000000');
-        if (error) throw error;
+        await callFunction('adminResetGame', { game: 'yearbook_scores' });
         showToast("Scores cleared!");
     } catch (e) {
         showToast("Error clearing scores.");
@@ -690,18 +596,7 @@ window.ybResetScores = async function() {
 window.ngReset = async function() {
     if (!isAdmin) return;
     try {
-        const { error: scoresErr } = await supabaseC
-            .from('name_game_scores')
-            .delete()
-            .neq('user_id', '00000000-0000-0000-0000-000000000000');
-        if (scoresErr) throw scoresErr;
-
-        const { error: cfgErr } = await supabaseC
-            .from('name_game_config')
-            .update({ is_active: false, image_set: null, image_order: null, round_start_time: null, round_end_time: null, memorize_duration_seconds: null })
-            .eq('id', 'main');
-        if (cfgErr) throw cfgErr;
-
+        await callFunction('adminResetGame', { game: 'name_game' });
         showToast("Name Game reset!");
     } catch (e) {
         showToast("Error resetting Name Game.");
@@ -768,18 +663,7 @@ window.wallyEndRound = async function() {
 window.wallyReset = async function() {
     if (!isAdmin) return;
     try {
-        if (wallyRoundId) {
-            const { error: scoresErr } = await supabaseC
-                .from('wally_scores')
-                .delete()
-                .eq('round_id', wallyRoundId);
-            if (scoresErr) throw scoresErr;
-        }
-        const { error: cfgErr } = await supabaseC
-            .from('wally_config')
-            .update({ is_active: false, scene_id: null, round_id: null, started_at: null })
-            .eq('id', 'main');
-        if (cfgErr) throw cfgErr;
+        await callFunction('adminResetGame', { game: 'wally', roundId: wallyRoundId || null });
         showToast('Scores cleared and round reset.');
     } catch (e) {
         console.error('[Wally] Reset error:', e);

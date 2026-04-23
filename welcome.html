@@ -57,16 +57,10 @@
     <div id="debug" class="debug" aria-hidden="true"></div>
   </main>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-    // Replace these with your project's values
-    const SUPABASE_URL = 'https://ntzxejhhxtzdyyeqbfpn.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enhlamhoeHR6ZHl5ZXFiZnBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTQzMjMsImV4cCI6MjA4ODgzMDMyM30.0oh9mGajdP5tVibXjk5fp1acviBq-LUCkauE3m1c6_0';
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true }
-    });
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
 
     const statusEl = document.getElementById('status');
     const debugEl = document.getElementById('debug');
@@ -99,14 +93,9 @@
     async function setPassword(password) {
       submitBtn.disabled = true;
       try {
-        const { data, error } = await supabase.auth.updateUser({ password });
-        if (error) {
-          console.warn('updateUser error', error);
-          showStatus('err', 'Could not set password: ' + error.message);
-          showDebug(JSON.stringify(error, null, 2));
-          submitBtn.disabled = false;
-          return;
-        }
+        const oobCode = new URL(window.location.href).searchParams.get('oobCode');
+        if (!oobCode) throw new Error('Missing reset code.');
+        await firebase.auth().confirmPasswordReset(oobCode, password);
         showStatus('ok', 'Password updated. Redirecting to admin dashboard...');
         setTimeout(() => window.location.href = '/admin', 900);
       } catch (err) {
@@ -115,13 +104,6 @@
         showDebug(String(err));
         submitBtn.disabled = false;
       }
-    }
-
-    // Helper: parse fragment (after #) into an object
-    function parseFragment(fragment) {
-      if (!fragment) return {};
-      const q = fragment.startsWith('#') ? fragment.slice(1) : fragment;
-      return Object.fromEntries(new URLSearchParams(q));
     }
 
     // Helper: parse query string
@@ -134,47 +116,15 @@
       showStatus('ok', 'Processing reset link…');
       try {
         const url = new URL(window.location.href);
-        const fragment = parseFragment(url.hash);
         const query = parseQuery(url.search);
 
-        // 1) If access_token present in fragment -> set session
-        if (fragment.access_token) {
-          const access_token = fragment.access_token;
-          const refresh_token = fragment.refresh_token || null;
-          // set session directly
-          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
-          if (error) {
-            console.warn('setSession error', error);
-            showStatus('err', 'Invalid or expired link: ' + (error.message || 'please request a new reset email.'));
-            showDebug(JSON.stringify(error, null, 2));
-            fallbackEl.style.display = 'block';
-            return;
-          }
-          // success: show form
+        if (query.mode === 'resetPassword' && query.oobCode) {
+          await firebase.auth().verifyPasswordResetCode(query.oobCode);
           hideStatus();
           form.style.display = 'block';
           return;
         }
 
-        // 2) PKCE/token_hash flow (token_hash & type in query)
-        if (query.token_hash && query.type) {
-          const { token_hash, type } = query;
-          // verifyOtp exchanges the token_hash for a session
-          const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
-          if (error) {
-            console.warn('verifyOtp error', error);
-            showStatus('err', 'Invalid or expired link: ' + (error.message || 'please request a new reset email.'));
-            showDebug(JSON.stringify(error, null, 2));
-            fallbackEl.style.display = 'block';
-            return;
-          }
-          // success: show form
-          hideStatus();
-          form.style.display = 'block';
-          return;
-        }
-
-        // 3) No usable tokens
         showStatus('err', 'No valid auth token found in the link. Please request a new password reset.');
         fallbackEl.style.display = 'block';
       } catch (err) {

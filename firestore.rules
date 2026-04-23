@@ -1,0 +1,157 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.role in ['admin', 'super_admin'];
+    }
+
+    function isSuperAdmin() {
+      return signedIn() && request.auth.token.role == 'super_admin';
+    }
+
+    function pollUnlocked() {
+      return get(/databases/$(database)/documents/config/poll).data.is_locked == false;
+    }
+
+    function hatsActive() {
+      let d = get(/databases/$(database)/documents/config/hats).data;
+      return d.is_active == true && d.correct_option != null;
+    }
+
+    function yearbookGuessing() {
+      let d = get(/databases/$(database)/documents/config/yearbook).data;
+      return d.phase == 'guessing' && d.round_id != null;
+    }
+
+    function wallyActive() {
+      let d = get(/databases/$(database)/documents/config/wally).data;
+      return d.is_active == true && d.round_id != null;
+    }
+
+    function nameGameActive() {
+      return get(/databases/$(database)/documents/config/name_game).data.is_active == true;
+    }
+
+    // Config docs: public read, admin write
+    match /config/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Aggregated counters and leaderboards: read-only from clients (triggers write)
+    match /counters/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /leaderboards/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Main poll votes: each user writes only their own doc
+    match /votes/{uid} {
+      allow get:    if signedIn() && request.auth.uid == uid;
+      allow list:   if false;
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && pollUnlocked()
+        && request.resource.data.option_index is int
+        && request.resource.data.option_index >= 0
+        && request.resource.data.option_index <= 3;
+      allow delete: if isAdmin();
+    }
+
+    // Cups presses: insert-once per uid, no update
+    match /hats_presses/{uid} {
+      allow get:    if signedIn() && request.auth.uid == uid;
+      allow list:   if false;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && hatsActive()
+        && request.resource.data.choice is int
+        && request.resource.data.choice >= 0
+        && request.resource.data.choice <= 3;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Yearbook votes: composite id = "{uid}_{roundId}"
+    match /yearbook_votes/{docId} {
+      allow get:    if signedIn()
+        && (resource == null || resource.data.user_id == request.auth.uid);
+      allow list:   if false;
+      allow create: if signedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && yearbookGuessing()
+        && request.resource.data.teacher_index is int
+        && request.resource.data.round_id is int
+        && docId == request.auth.uid + '_' + string(request.resource.data.round_id);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Wally scores: composite id = "{uid}_{roundId}"
+    match /wally_scores/{docId} {
+      allow get:    if signedIn()
+        && (resource == null || resource.data.user_id == request.auth.uid);
+      allow list:   if false;
+      allow create: if signedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && wallyActive()
+        && request.resource.data.time_ms is int
+        && request.resource.data.time_ms > 0
+        && docId == request.auth.uid + '_' + request.resource.data.round_id;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Name-game scores: upsert while active, score may only grow
+    match /name_game_scores/{uid} {
+      allow get:    if signedIn() && request.auth.uid == uid;
+      allow list:   if false;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && nameGameActive()
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && nameGameActive()
+        && request.resource.data.score is int
+        && request.resource.data.score >= resource.data.score;
+      allow delete: if isAdmin();
+    }
+
+    // Yearbook cumulative scores
+    match /yearbook_scores/{uid} {
+      allow get:    if signedIn() && request.auth.uid == uid;
+      allow list:   if false;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.score is int
+        && request.resource.data.score >= resource.data.score;
+      allow delete: if isAdmin();
+    }
+
+    // User profiles (display names)
+    match /user_profiles/{uid} {
+      allow read:          if true;
+      allow create, update: if signedIn() && request.auth.uid == uid;
+      allow delete:        if isAdmin();
+    }
+
+    // Admin mirror doc (for UI listing)
+    match /admins/{uid} {
+      allow read:  if isAdmin();
+      allow write: if false;
+    }
+  }
+}
