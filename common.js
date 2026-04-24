@@ -1083,6 +1083,8 @@ function showRankModal(modalId, rank, subMsg) {
         const msgEl = modal.querySelector('[id$="-rank-modal-msg"]');
         if (msgEl) msgEl.textContent = subMsg;
     }
+    const crumblEl = modal.querySelector('.rank-modal-crumbl');
+    if (crumblEl) crumblEl.style.display = rank === 1 ? 'block' : 'none';
     modal.style.display = 'block';
 }
 
