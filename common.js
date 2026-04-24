@@ -2390,10 +2390,6 @@ function updateWallyUI() {
             if (wallyMyRank !== null) {
                 const suffix = wallyMyRank === 1 ? 'st' : wallyMyRank === 2 ? 'nd' : wallyMyRank === 3 ? 'rd' : 'th';
                 rankEl.textContent = `You placed ${wallyMyRank}${suffix}!`;
-                if (wallyMyRank <= 3 && !wallyModalShown) {
-                    wallyModalShown = true;
-                    showRankModal('wally-rank-modal', wallyMyRank);
-                }
             } else {
                 rankEl.textContent = 'Submitting...';
             }
@@ -2495,13 +2491,18 @@ function setupWallyRealtime() {
             wallyModalShown = false;
         }
 
-        if (!wallyIsActive && prevActive && wallyFoundTime === null) {
-            wallyRoundEnded = true;
-            stopWallyStopwatch();
-            loadWallyLeaderboard(5).then(scores => {
-                wallyTopScores = scores;
-                updateWallyUI();
-            });
+        if (!wallyIsActive && prevActive) {
+            if (wallyFoundTime === null) {
+                wallyRoundEnded = true;
+                stopWallyStopwatch();
+                loadWallyLeaderboard(5).then(scores => {
+                    wallyTopScores = scores;
+                    updateWallyUI();
+                });
+            } else if (wallyMyRank !== null && wallyMyRank <= 3 && !wallyModalShown) {
+                wallyModalShown = true;
+                showRankModal('wally-rank-modal', wallyMyRank);
+            }
         }
 
         if (wallyRoundId === null) {
