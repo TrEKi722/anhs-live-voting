@@ -460,6 +460,78 @@ function updateYBAdminUI() {
             infoEl.textContent = 'No active round.';
         }
     }
+
+    // Initialize timing controls
+    const guessingInput = document.getElementById('yb-guessing-duration');
+    const revealInput = document.getElementById('yb-reveal-duration');
+    const autoToggle = document.getElementById('yb-auto-advance-toggle');
+    if (guessingInput && ybGuessingDurationMs) guessingInput.value = Math.round(ybGuessingDurationMs / 1000);
+    if (revealInput && ybRevealDurationMs) revealInput.value = Math.round(ybRevealDurationMs / 1000);
+    if (autoToggle) autoToggle.checked = ybAutoAdvanceEnabled;
+    ybUpdateTimingsUI();
+}
+
+window.ybToggleAutoAdvance = async function() {
+    const toggle = document.getElementById('yb-auto-advance-toggle');
+    if (!toggle) return;
+    ybAutoAdvanceEnabled = toggle.checked;
+    ybUpdateTimingsUI();
+    if (ybPhase !== 'waiting') {
+        try {
+            const { error } = await supabaseC
+                .from('yearbook_config')
+                .update({ auto_advance_enabled: ybAutoAdvanceEnabled })
+                .eq('id', 'main');
+            if (error) throw error;
+        } catch (e) {
+            showToast("Error updating auto-advance setting.");
+        }
+    }
+}
+
+window.ybUpdateTimings = async function() {
+    const guessingInput = document.getElementById('yb-guessing-duration');
+    const revealInput = document.getElementById('yb-reveal-duration');
+    if (!guessingInput || !revealInput) return;
+
+    const guessingSeconds = parseInt(guessingInput.value) || 20;
+    const revealSeconds = parseInt(revealInput.value) || 10;
+
+    ybGuessingDurationMs = guessingSeconds * 1000;
+    ybRevealDurationMs = revealSeconds * 1000;
+
+    if (ybPhase !== 'waiting') {
+        try {
+            const { error } = await supabaseC
+                .from('yearbook_config')
+                .update({
+                    guessing_duration_ms: guessingSeconds,
+                    reveal_duration_ms: revealSeconds
+                })
+                .eq('id', 'main');
+            if (error) throw error;
+        } catch (e) {
+            showToast("Error updating timings.");
+        }
+    }
+}
+
+window.ybUpdateTimingsUI = function() {
+    const toggle = document.getElementById('yb-auto-advance-toggle');
+    const timerDisplay = document.getElementById('yb-timer-display');
+    const guessingInput = document.getElementById('yb-guessing-duration');
+    const revealInput = document.getElementById('yb-reveal-duration');
+
+    if (toggle) toggle.checked = ybAutoAdvanceEnabled;
+    if (timerDisplay && guessingInput && revealInput && ybAutoAdvanceEnabled && ybPhase !== 'waiting') {
+        timerDisplay.style.display = 'block';
+        const elapsed = ybPhaseStartedAt ? Date.now() - ybPhaseStartedAt : 0;
+        const duration = ybPhase === 'guessing' ? ybGuessingDurationMs : ybRevealDurationMs;
+        const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+        document.getElementById('yb-timer-countdown').textContent = remaining;
+    } else if (timerDisplay) {
+        timerDisplay.style.display = 'none';
+    }
 }
 
 function ybBuildOptions(teacherIdx) {
@@ -514,7 +586,11 @@ window.ybStartRound = async function() {
                 option_indices: options,
                 round_id: newRoundId,
                 teacher_queue: queue,
-                queue_position: 0
+                queue_position: 0,
+                auto_advance_enabled: ybAutoAdvanceEnabled,
+                guessing_duration_ms: Math.round(ybGuessingDurationMs / 1000),
+                reveal_duration_ms: Math.round(ybRevealDurationMs / 1000),
+                phase_started_at: new Date().toISOString()
             })
             .eq('id', 'main')
             .select();
@@ -545,7 +621,8 @@ window.ybNextTeacher = async function() {
                 teacher_index: nextTeacher,
                 option_indices: options,
                 round_id: newRoundId,
-                queue_position: newPos
+                queue_position: newPos,
+                phase_started_at: new Date().toISOString()
             })
             .eq('id', 'main');
         if (error) throw error;
@@ -560,7 +637,10 @@ window.ybReveal = async function() {
     try {
         const { error } = await supabaseC
             .from('yearbook_config')
-            .update({ phase: 'reveal' })
+            .update({
+                phase: 'reveal',
+                phase_started_at: new Date().toISOString()
+            })
             .eq('id', 'main');
         if (error) throw error;
         showToast("Answer revealed!");
@@ -669,4 +749,11 @@ window.wallyReset = async function() {
         console.error('[Wally] Reset error:', e);
         showToast('Error resetting.');
     }
+}
+
+// Update yearbook timer display
+if (document.getElementById('yb-auto-advance-toggle')) {
+    setInterval(() => {
+        ybUpdateTimingsUI();
+    }, 100);
 }

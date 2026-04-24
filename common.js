@@ -425,6 +425,11 @@ let ybScoredRoundId = null;    // round_id for which score has been awarded loca
 let ybVoteCounts = {};         // { teacherIndex: count } populated during reveal
 let ybTeacherQueue = [];       // ordered list of teacher indices for the session
 let ybQueuePosition = 0;       // current position in the queue (0-indexed)
+let ybAutoAdvanceEnabled = false;
+let ybGuessingDurationMs = 20000;
+let ybRevealDurationMs = 10000;
+let ybPhaseStartedAt = null;   // timestamp when current phase started
+let ybAutoAdvanceTimer = null;
 
 // Wally state
 let wallyIsActive = false;
@@ -1858,6 +1863,10 @@ async function fetchYearbookConfig() {
         ybRoundId = config.round_id ?? null;
         ybTeacherQueue = config.teacher_queue || [];
         ybQueuePosition = config.queue_position ?? 0;
+        ybAutoAdvanceEnabled = config.auto_advance_enabled ?? false;
+        ybGuessingDurationMs = (config.guessing_duration_ms ?? 20) * 1000;
+        ybRevealDurationMs = (config.reveal_duration_ms ?? 10) * 1000;
+        ybPhaseStartedAt = config.phase_started_at ? new Date(config.phase_started_at).getTime() : null;
     }
 }
 
@@ -2020,12 +2029,17 @@ function setupYearbookRealtime() {
         ybRoundId = payload.new.round_id ?? null;
         ybTeacherQueue = payload.new.teacher_queue || [];
         ybQueuePosition = payload.new.queue_position ?? 0;
+        ybAutoAdvanceEnabled = payload.new.auto_advance_enabled ?? false;
+        ybGuessingDurationMs = (payload.new.guessing_duration_ms ?? 20) * 1000;
+        ybRevealDurationMs = (payload.new.reveal_duration_ms ?? 10) * 1000;
+        ybPhaseStartedAt = payload.new.phase_started_at ? new Date(payload.new.phase_started_at).getTime() : null;
 
         if (ybRoundId !== prevRoundId) {
             ybMyVote = null;
             ybVoteCounts = {};
         }
 
+        ybStartAutoAdvanceTimer();
         updateYearbookUI();
         if (typeof updateYBAdminUI === 'function') updateYBAdminUI();
         if (typeof updateWallYearbookUI === 'function') updateWallYearbookUI();
@@ -2037,6 +2051,38 @@ function setupYearbookRealtime() {
         if (ybPhase === 'reveal') renderYBVoteBars();
         if (typeof updateWallYBVoteCounts === 'function') updateWallYBVoteCounts();
     });
+}
+
+function ybStartAutoAdvanceTimer() {
+    if (ybAutoAdvanceTimer) clearInterval(ybAutoAdvanceTimer);
+    if (!ybAutoAdvanceEnabled || !ybPhaseStartedAt || ybPhase === 'waiting') return;
+
+    const checkAdvance = async () => {
+        if (!ybAutoAdvanceEnabled || !ybPhaseStartedAt) {
+            if (ybAutoAdvanceTimer) clearInterval(ybAutoAdvanceTimer);
+            ybAutoAdvanceTimer = null;
+            return;
+        }
+        const elapsed = Date.now() - ybPhaseStartedAt;
+        const duration = ybPhase === 'guessing' ? ybGuessingDurationMs : ybRevealDurationMs;
+
+        if (elapsed >= duration) {
+            if (ybAutoAdvanceTimer) clearInterval(ybAutoAdvanceTimer);
+            ybAutoAdvanceTimer = null;
+
+            if (ybPhase === 'guessing') {
+                await ybReveal();
+            } else if (ybPhase === 'reveal') {
+                const hasNext = ybTeacherQueue.length > 0 && ybQueuePosition < ybTeacherQueue.length - 1;
+                if (hasNext) {
+                    await ybNextTeacher();
+                }
+            }
+        }
+    };
+
+    ybAutoAdvanceTimer = setInterval(checkAdvance, 100);
+    checkAdvance();
 }
 
 window.submitYearbookVote = async function(teacherIdx) {
