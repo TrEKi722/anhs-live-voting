@@ -297,9 +297,10 @@ exports.onHatsPressWrite = onDocumentWritten(
       });
     }
 
-    // On first insert, write rank back to the doc so the client can display it.
-    // Guard: only when rank is not yet set, preventing infinite recursion.
-    if (!before && after && ac !== null && after.rank === undefined) {
+    // Write rank back to the doc. Guard: only when rank is not yet set, preventing infinite recursion.
+    // Note: !before removed — if a user presses again in a new round without a reset, Firestore
+    // sees it as an update (before exists), but we still need to rank it.
+    if (after && ac !== null && after.rank === undefined) {
       let rank = null;
       if (correct !== null && ac === correct && after.timestamp) {
         const snap = await db.collection('hats_presses')
