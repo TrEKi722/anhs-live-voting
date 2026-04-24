@@ -1319,17 +1319,9 @@ function updateCupsUI() {
                     </div>`;
             }
         }
-        if (lbDiv && cupsTopScores && cupsTopScores.length > 0) {
+        if (lbDiv) {
             lbDiv.style.display = 'block';
-            if (lbList) {
-                lbList.innerHTML = cupsTopScores.map((score, i) => `
-                    <div style="padding: 0.5rem; background: var(--bg-panel); border-radius: 0.5rem;">
-                        <span style="font-weight: bold;">#${i + 1}</span> ${score.display_name}
-                    </div>
-                `).join('');
-            }
-        } else if (lbDiv) {
-            lbDiv.style.display = 'none';
+            if (lbList) lbList.innerHTML = renderCupsLeaderboardHTML(cupsTopScores);
         }
         badge.textContent = 'Round over';
         badge.className = 'status-badge status-locked';
@@ -1344,17 +1336,9 @@ function updateCupsUI() {
         if (pickDiv) pickDiv.style.display = 'none';
         if (inactiveDiv) inactiveDiv.style.display = 'block';
         if (resultDiv) resultDiv.style.display = 'none';
-        if (lbDiv && cupsTopScores && cupsTopScores.length > 0) {
+        if (lbDiv) {
             lbDiv.style.display = 'block';
-            if (lbList) {
-                lbList.innerHTML = cupsTopScores.map((score, i) => `
-                    <div style="padding: 0.5rem; background: var(--bg-panel); border-radius: 0.5rem;">
-                        <span style="font-weight: bold;">#${i + 1}</span> ${score.display_name}
-                    </div>
-                `).join('');
-            }
-        } else if (lbDiv) {
-            lbDiv.style.display = 'none';
+            if (lbList) lbList.innerHTML = renderCupsLeaderboardHTML(cupsTopScores);
         }
         badge.textContent = 'Waiting for round to start...';
         badge.className = 'status-badge status-locked';
@@ -1370,6 +1354,21 @@ async function loadCupsLeaderboard(limit) {
     const snap = await db.doc(LEADERBOARD_DOCS.hats).get();
     const data = snap.data() || {};
     return (data.top || []).slice(0, limit || 5);
+}
+
+function renderCupsLeaderboardHTML(scores) {
+    const medals = ['🥇', '🥈', '🥉', '🏅', '🏅'];
+    if (!scores || !scores.length) {
+        return '<p style="color: var(--text-muted); text-align: center; padding: 1rem;">No scores yet</p>';
+    }
+    return `<table class="yb-leaderboard" style="max-width: 360px; margin: 0 auto;"><tbody>
+        ${scores.map((row, i) => `
+            <tr>
+                <td style="font-size: 1.4rem; padding: 0.6rem;">${medals[i] || (i + 1) + '.'}</td>
+                <td style="text-align: left; padding: 0.6rem;">${row.display_name || 'Anonymous'}</td>
+            </tr>
+        `).join('')}
+    </tbody></table>`;
 }
 
 function setupCupsRealtime() {
@@ -1424,7 +1423,7 @@ window.pressCup = async function(option) {
     try {
         const { data: myPress, error } = await supabaseC
             .from('hats_presses')
-            .insert({ user_id: currentUser.id, choice: option, timestamp: new Date().toISOString() })
+            .insert({ user_id: currentUser.id, choice: option, timestamp: new Date().toISOString(), display_name: displayName })
             .select('choice')
             .single();
 
@@ -1681,54 +1680,43 @@ window.submitNGAnswer = async function() {
 // ==========================================
 
 async function initWallCups() {
-    await updateWallCupsUI();
+    cupsTopScores = await loadCupsLeaderboard(5);
+    const fullPage = document.getElementById('full-page');
+    if (fullPage) fullPage.style.display = 'flex';
+    updateWallCupsUI();
     setupWallCupsRealtime();
 }
 
-async function updateWallCupsUI() {
+function updateWallCupsUI() {
     const badge = document.getElementById('cups-wall-badge');
     const inactiveDiv = document.getElementById('cups-wall-inactive');
     const activeDiv = document.getElementById('cups-wall-active');
-    const countEl = document.getElementById('cups-wall-count');
-    const lbDiv = document.getElementById('cups-wall-leaderboard');
-    const lbList = document.getElementById('cups-wall-leaderboard-list');
+    const lbEl = document.getElementById('cups-wall-leaderboard');
 
     if (!badge) return;
 
-    if (cupsIsActive) {
-        badge.textContent = 'Round is live!';
-        badge.className = 'status-badge status-open';
-        if (inactiveDiv) inactiveDiv.style.display = 'none';
-        if (activeDiv) activeDiv.style.display = 'block';
-        if (lbDiv) lbDiv.style.display = 'none';
+    badge.textContent = cupsIsActive ? 'Round is live!' : 'Waiting...';
+    badge.className = cupsIsActive ? 'status-badge status-open' : 'status-badge status-locked';
+    if (inactiveDiv) inactiveDiv.style.display = cupsIsActive ? 'none' : 'block';
+    if (activeDiv) activeDiv.style.display = cupsIsActive ? 'block' : 'none';
 
-        if (cupsCorrectOption !== null && countEl) {
-            const snap = await db.doc(COUNTER_DOCS.hats).get();
-            const data = snap.data() || {};
-            countEl.textContent = data.correctCount || 0;
-        }
-    } else {
-        badge.textContent = 'Waiting for round to start...';
-        badge.className = 'status-badge status-locked';
-        if (inactiveDiv) inactiveDiv.style.display = 'block';
-        if (activeDiv) activeDiv.style.display = 'none';
-        if (lbDiv && cupsTopScores && cupsTopScores.length > 0) {
-            lbDiv.style.display = 'block';
-            if (lbList) {
-                lbList.innerHTML = cupsTopScores.map((score, i) => `
-                    <div style="padding: 0.5rem; background: var(--bg-panel); border-radius: 0.5rem; font-size: 1.2rem;">
-                        <span style="font-weight: bold;">#${i + 1}</span> ${score.display_name}
-                    </div>
-                `).join('');
-            }
-        } else if (lbDiv) {
-            lbDiv.style.display = 'none';
-        }
+    if (lbEl) {
+        const scores = cupsTopScores || [];
+        const medals = ['🥇', '🥈', '🥉', '🏅', '🏅'];
+        lbEl.innerHTML = scores.length
+            ? scores.map((row, i) => `
+                <tr>
+                    <td style="padding: 0.75rem; font-size: 1.5rem;">${medals[i]}</td>
+                    <td style="padding: 0.75rem; text-align: left;">${row.display_name || 'Anonymous'}</td>
+                </tr>
+            `).join('')
+            : '<tr><td colspan="2" style="color: var(--text-muted); text-align: center; padding: 1rem;">No scores yet</td></tr>';
     }
 }
 
 function setupWallCupsRealtime() {
-    subscribeToDoc(COUNTER_DOCS.hats, () => {
+    subscribeToDoc(LEADERBOARD_DOCS.hats, async () => {
+        cupsTopScores = await loadCupsLeaderboard(5);
         updateWallCupsUI();
     });
 }

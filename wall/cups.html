@@ -34,19 +34,18 @@
                     <img src="" id="qr" alt="QR to cups game" style="width: 400px; height: 400px; border-radius: 8px;">
                 </div>
                 <div class="content-panel" style="text-align: center;">
-                    <div id="cups-wall-inactive" style="padding: 2rem 0; color: var(--text-muted); font-size: 1.3rem;">
+                    <div id="cups-wall-inactive" style="display: none; padding: 2rem 0; color: var(--text-muted); font-size: 1.3rem;">
                         Waiting for round to start...
                     </div>
-                    <div id="cups-wall-active" style="display: none; padding: 2rem 0;">
+                    <div id="cups-wall-active" style="display: none; padding: 1rem 0;">
                         <p style="font-size: 1.2rem; color: var(--text-muted);">Round is live — pick fast!</p>
-                        <div style="font-size: 5rem; font-weight: bold; margin: 1rem 0;" id="cups-wall-count">0</div>
-                        <p style="color: var(--text-muted); font-size: 1.1rem;">correct guesses so far</p>
                     </div>
-                    <div id="cups-wall-leaderboard" style="display: none; margin-top: 2rem; padding: 1rem 0;">
-                        <h3>Top 5</h3>
-                        <div id="cups-wall-leaderboard-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
-                        </div>
-                    </div>
+                    <h2 style="margin: 1rem 0;">Top Picks</h2>
+                    <table class="yb-leaderboard" style="max-width: 460px; margin: 0 auto;">
+                        <tbody id="cups-wall-leaderboard">
+                            <tr><td colspan="2" style="color: var(--text-muted); text-align: center; padding: 1rem;">No scores yet</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
