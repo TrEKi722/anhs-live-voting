@@ -2370,6 +2370,7 @@ function updateWallyUI() {
                         wallyApplyTransform();
                     }
                     if (loadingEl) loadingEl.style.display = 'none';
+                    startWallyStopwatch();
                 };
                 img.onerror = () => {
                     if (loadingEl) loadingEl.textContent = 'Failed to load scene image.';
@@ -2377,8 +2378,6 @@ function updateWallyUI() {
                 img.src = scene.image;
             }
         }
-
-        startWallyStopwatch();
 
     } else {
         // Waiting state
