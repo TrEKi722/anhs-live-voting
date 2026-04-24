@@ -413,6 +413,7 @@ let cupsCorrectOption = null;
 let cupsMyPress = null;
 let cupsMyRank = null; // rank among correct presses (1/2/3/4+), null if wrong or no press
 let cupsTopScores = null; // top 5 correct presses
+let cupsModalShown = false;
 
 // Yearbook state
 let ybPhase = 'waiting';       // 'waiting' | 'guessing' | 'reveal'
@@ -430,6 +431,7 @@ let ybGuessingDurationMs = 20000;
 let ybRevealDurationMs = 10000;
 let ybPhaseStartedAt = null;   // timestamp when current phase started
 let ybAutoAdvanceTimer = null;
+let ybModalShown = false;
 
 // Wally state
 let wallyIsActive = false;
@@ -448,6 +450,7 @@ let wallyTranslateY = 0;
 let wallyMinScale = 0.1;
 const WALLY_MAX_SCALE = 5;
 let wallyZoomPanSetup = false;
+let wallyModalShown = false;
 
 // Name Game state
 let ngIsActive = false;
@@ -461,6 +464,7 @@ let ngMyScore = 0;
 let ngCorrectSet = new Set();
 let ngCountdownRaf = null;
 let ngWallCountdownRaf = null;
+let ngModalShown = false;
 
 // ==========================================
 // 2. Authentication & Initialization
@@ -1066,6 +1070,34 @@ async function checkRole() {
 // 4. UI
 // ==========================================
 
+function showRankModal(modalId, rank, subMsg) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    const emojis = ['🥇', '🥈', '🥉'];
+    const places = ['1st Place!', '2nd Place!', '3rd Place!'];
+    const emojiEl = modal.querySelector('.rank-modal-emoji');
+    const placeEl = modal.querySelector('.rank-modal-place');
+    if (emojiEl) emojiEl.textContent = emojis[rank - 1];
+    if (placeEl) placeEl.textContent = places[rank - 1];
+    if (subMsg) {
+        const msgEl = modal.querySelector('[id$="-rank-modal-msg"]');
+        if (msgEl) msgEl.textContent = subMsg;
+    }
+    modal.style.display = 'block';
+}
+
+function renderLeaderboardTable(scores, scoreField, formatFn) {
+    const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+    if (!scores || !scores.length) return '<p style="color:var(--text-muted);">No scores yet.</p>';
+    return `<table class="yb-leaderboard" style="max-width:360px; margin:0 auto;"><tbody>
+        ${scores.map((row, i) => `<tr>
+            <td style="font-size:1.4rem; padding:0.6rem;">${medals[i] || (i+1)+'.'}</td>
+            <td style="text-align:left; padding:0.6rem;">${row.display_name || 'Anonymous'}</td>
+            <td style="font-weight:bold; color:var(--primary); padding:0.6rem; font-variant-numeric:tabular-nums;">${formatFn ? formatFn(row) : row[scoreField]}</td>
+        </tr>`).join('')}
+    </tbody></table>`;
+}
+
 
 function showToast(message) {
     const toast = document.getElementById('toast');
@@ -1313,6 +1345,10 @@ function updateCupsUI() {
                         <h2>${place}</h2>
                         <p>You picked the right cup!</p>
                     </div>`;
+                if (cupsMyRank <= 3 && !cupsModalShown) {
+                    cupsModalShown = true;
+                    showRankModal('cups-rank-modal', cupsMyRank);
+                }
             } else {
                 const heading = isCorrect ? "Didn't place" : "Wrong answer";
                 const sub = isCorrect
@@ -1385,6 +1421,7 @@ function setupCupsRealtime() {
             cupsMyPress = null;
             cupsMyRank = null;
             cupsTopScores = null;
+            cupsModalShown = false;
         }
         cupsIsActive = !!payload.new.is_active;
         cupsCorrectOption = newCorrectOption;
@@ -1526,7 +1563,25 @@ function updateNameGameUI() {
         if (input) { input.value = ''; input.focus(); }
     } else if (phase === 'done') {
         showNGFinalScore();
+        showNGDoneLeaderboard();
     }
+}
+
+async function showNGDoneLeaderboard() {
+    const el = document.getElementById('ng-done-scores');
+    if (!el || ngModalShown) return;
+    try {
+        const snap = await db.doc(LEADERBOARD_DOCS.name_game).get();
+        const scores = snap.data()?.top || [];
+        el.innerHTML = scores.length ? renderLeaderboardTable(scores, 'score') : '';
+        const userRank = scores.findIndex(r => r.display_name === displayName && r.score === ngMyScore);
+        if (userRank >= 0 && userRank < 3 && ngMyScore > 0) {
+            ngModalShown = true;
+            const msgEl = document.getElementById('ng-rank-modal-msg');
+            if (msgEl) msgEl.textContent = `You got ${ngMyScore} correct!`;
+            showRankModal('ng-rank-modal', userRank + 1);
+        }
+    } catch (e) { /* leaderboard unavailable */ }
 }
 
 function buildNGImageGrid(containerId) {
@@ -1628,6 +1683,7 @@ function setupNameGameRealtime() {
         if (!wasActive && newActive) {
             ngMyScore = 0;
             ngCorrectSet = new Set();
+            ngModalShown = false;
             ['ng-memorize-grid', 'ng-wall-memorize-grid'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) delete el.dataset.built;
@@ -1988,6 +2044,27 @@ async function renderYBReveal() {
             score: ybMyScore
         });
     }
+
+    showYBRevealLeaderboard();
+}
+
+async function showYBRevealLeaderboard() {
+    const el = document.getElementById('yb-reveal-scores');
+    if (!el) return;
+    try {
+        const snap = await db.doc(LEADERBOARD_DOCS.yearbook).get();
+        const scores = snap.data()?.top || [];
+        el.innerHTML = scores.length ? renderLeaderboardTable(scores, 'score') : '';
+        if (!ybModalShown && ybMyScore > 0) {
+            const userRank = scores.findIndex(r => r.display_name === displayName && r.score === ybMyScore);
+            if (userRank >= 0 && userRank < 3) {
+                ybModalShown = true;
+                const msgEl = document.getElementById('yb-rank-modal-msg');
+                if (msgEl) msgEl.textContent = `You have ${ybMyScore} point${ybMyScore !== 1 ? 's' : ''}!`;
+                showRankModal('yb-rank-modal', userRank + 1);
+            }
+        }
+    } catch (e) { /* leaderboard unavailable */ }
 }
 
 function renderYBVoteBars() {
@@ -2038,6 +2115,7 @@ function setupYearbookRealtime() {
         if (ybRoundId !== prevRoundId) {
             ybMyVote = null;
             ybVoteCounts = {};
+            ybModalShown = false;
         }
 
         ybStartAutoAdvanceTimer();
@@ -2312,6 +2390,10 @@ function updateWallyUI() {
             if (wallyMyRank !== null) {
                 const suffix = wallyMyRank === 1 ? 'st' : wallyMyRank === 2 ? 'nd' : wallyMyRank === 3 ? 'rd' : 'th';
                 rankEl.textContent = `You placed ${wallyMyRank}${suffix}!`;
+                if (wallyMyRank <= 3 && !wallyModalShown) {
+                    wallyModalShown = true;
+                    showRankModal('wally-rank-modal', wallyMyRank);
+                }
             } else {
                 rankEl.textContent = 'Submitting...';
             }
@@ -2342,6 +2424,10 @@ function updateWallyUI() {
         // Round ended while player was still hunting
         if (endedEl) endedEl.style.display = 'block';
         if (badge) { badge.className = 'status-badge status-locked'; badge.textContent = 'Round Over'; }
+        const endedScoresEl = document.getElementById('wally-ended-scores');
+        if (endedScoresEl && wallyTopScores) {
+            endedScoresEl.innerHTML = renderLeaderboardTable(wallyTopScores, null, r => (r.time_ms / 1000).toFixed(3) + 's');
+        }
 
     } else if (wallyIsActive) {
         // Hunting state
@@ -2406,11 +2492,16 @@ function setupWallyRealtime() {
             wallyTopScores = null;
             wallyRoundEnded = false;
             wallyImageLoadTime = null;
+            wallyModalShown = false;
         }
 
         if (!wallyIsActive && prevActive && wallyFoundTime === null) {
             wallyRoundEnded = true;
             stopWallyStopwatch();
+            loadWallyLeaderboard(5).then(scores => {
+                wallyTopScores = scores;
+                updateWallyUI();
+            });
         }
 
         if (wallyRoundId === null) {

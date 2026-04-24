@@ -56,6 +56,16 @@
 
         </div>
 
+        <!-- Rank Modal (shown for top 3 when round ends) -->
+        <div id="cups-rank-modal" class="modal" onclick="this.style.display='none'" style="display:none;">
+            <div class="modal-content" style="text-align:center; max-width:320px;">
+                <div class="rank-modal-emoji" style="font-size:4rem; margin-bottom:1rem;"></div>
+                <h2 class="rank-modal-place" style="font-size:2.5rem; margin-bottom:0.5rem;"></h2>
+                <p style="color:var(--text-muted);">You picked the right cup!</p>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:1rem;">Tap to dismiss</p>
+            </div>
+        </div>
+
         <!-- Custom Toast Message -->
         <div id="toast">Message goes here</div>
 

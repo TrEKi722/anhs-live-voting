@@ -37,6 +37,7 @@
             <!-- State: round ended without finding -->
             <div id="wally-ended" class="content-panel" style="display: none; text-align: center;">
                 <p style="color: var(--text-muted); font-size: 1.1rem;">Round over — better luck next time!</p>
+                <div id="wally-ended-scores" style="margin-top: 1.5rem;"></div>
             </div>
 
             <!-- State: hunting -->
@@ -60,6 +61,16 @@
                 <div id="wally-top3"></div>
             </div>
 
+        </div>
+
+        <!-- Rank Modal (shown when round ends for top 3) -->
+        <div id="wally-rank-modal" class="modal" onclick="this.style.display='none'" style="display:none;">
+            <div class="modal-content" style="text-align:center; max-width:320px;">
+                <div class="rank-modal-emoji" style="font-size:4rem; margin-bottom:1rem;"></div>
+                <h2 class="rank-modal-place" style="font-size:2.5rem; margin-bottom:0.5rem;"></h2>
+                <p style="color:var(--text-muted);">You found Wally!</p>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:1rem;">Tap to dismiss</p>
+            </div>
         </div>
 
         <!-- Custom Toast Message -->

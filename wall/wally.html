@@ -37,15 +37,18 @@
                         <p style="color: var(--text-muted); font-size: 1.2rem;">Waiting for round to start...</p>
                     </div>
 
-                    <!-- Active -->
+                    <!-- Active indicator -->
                     <div id="wally-wall-active" style="display: none;">
-                        <h2 style="margin-bottom: 1rem;">Top Finders</h2>
-                        <table class="yb-leaderboard" style="max-width: 460px; margin: 0 auto;">
-                            <tbody id="wally-wall-leaderboard">
-                                <tr><td colspan="3" style="color: var(--text-muted); text-align: center; padding: 1rem;">No scores yet — go find Wally!</td></tr>
-                            </tbody>
-                        </table>
+                        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1rem;">Round is live — find Wally!</p>
                     </div>
+
+                    <!-- Leaderboard always visible -->
+                    <h2 style="margin: 1rem 0;">Top Finders</h2>
+                    <table class="yb-leaderboard" style="max-width: 460px; margin: 0 auto;">
+                        <tbody id="wally-wall-leaderboard">
+                            <tr><td colspan="3" style="color: var(--text-muted); text-align: center; padding: 1rem;">No scores yet — go find Wally!</td></tr>
+                        </tbody>
+                    </table>
 
                 </div>
             </div>
