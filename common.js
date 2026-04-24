@@ -1290,7 +1290,7 @@ function updateCupsUI() {
     if (!badge) return;
 
     if (cupsMyPress !== null) {
-        // User has submitted — show result, hide everything else
+        // User has submitted — show result and leaderboard
         if (pickDiv) pickDiv.style.display = 'none';
         if (inactiveDiv) inactiveDiv.style.display = 'none';
         if (resultDiv) {
@@ -1318,6 +1318,18 @@ function updateCupsUI() {
                         <p>${sub}</p>
                     </div>`;
             }
+        }
+        if (lbDiv && cupsTopScores && cupsTopScores.length > 0) {
+            lbDiv.style.display = 'block';
+            if (lbList) {
+                lbList.innerHTML = cupsTopScores.map((score, i) => `
+                    <div style="padding: 0.5rem; background: var(--bg-panel); border-radius: 0.5rem;">
+                        <span style="font-weight: bold;">#${i + 1}</span> ${score.display_name}
+                    </div>
+                `).join('');
+            }
+        } else if (lbDiv) {
+            lbDiv.style.display = 'none';
         }
         badge.textContent = 'Round over';
         badge.className = 'status-badge status-locked';
