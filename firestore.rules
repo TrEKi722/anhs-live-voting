@@ -102,9 +102,10 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.user_id == request.auth.uid
         && wallyActive()
+        && (request.resource.data.round_id is string || request.resource.data.round_id is int)
         && request.resource.data.time_ms is int
         && request.resource.data.time_ms > 0
-        && docId == request.auth.uid + '_' + request.resource.data.round_id;
+        && docId == request.auth.uid + '_' + string(request.resource.data.round_id);
       allow update: if false;
       allow delete: if isAdmin();
     }

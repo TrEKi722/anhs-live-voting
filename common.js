@@ -666,11 +666,10 @@ async function initAuth(token) {
         // Guard: admin & wall pages require admin role
         const _p = window.location.pathname;
         if ((_p === '/admin' || _p.startsWith('/admin/') || _p === '/wall' || _p.startsWith('/wall/')) && !isAdmin) {
-            await logoutUser();
-            showToast("Sending you to sign in page...");
+            showToast("Please sign in with admin credentials.");
             setTimeout(() => {
                 window.location.href = '/sign-in';
-            }, 3000);
+            }, 1500);
             return;
         }
 
@@ -785,10 +784,11 @@ addEventListener("DOMContentLoaded", async (event) => {
     if (path === '/sign-in') {
         if (session) {
             await initAuth(null);
-            if (!isAdmin) {
-                window.location.href = '/';
+            if (isAdmin) {
+                window.location.href = '/admin';
                 return;
             }
+            // If voter is on sign-in page, let them stay to sign in as admin
         }
         loadRecaptcha();
         return;
@@ -901,7 +901,10 @@ window.logoutUser = async function() {
         isSuperAdmin = false;
         currentUser = null;
         currentSession = null;
-        window.location.href = '/';
+        // If on sign-in page, stay there; otherwise go home
+        if (window.location.pathname !== '/sign-in') {
+            window.location.href = '/';
+        }
     } catch (error) {
         console.log("Logout error:", error);
         showToast("Error logging out.");
@@ -1380,7 +1383,8 @@ window.pressCup = async function(option) {
         if (error) throw error;
 
         cupsMyPress = option;
-        cupsMyRank = option === cupsCorrectOption ? (myPress.rank ?? null) : null;
+        // Don't set rank here — let the realtime listener get it from the Cloud Function
+        // The rank is set asynchronously, so we'll get it from the onSnapshot listener below
 
         updateCupsUI();
     } catch (error) {

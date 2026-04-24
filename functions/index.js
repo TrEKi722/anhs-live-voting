@@ -370,14 +370,24 @@ exports.onWallyScoreWrite = onDocumentWritten(
     const roundId = (after || before)?.round_id;
     if (!roundId) return;
 
+    // Keep this trigger independent of composite indexes by reading the round's
+    // scores and sorting in memory. Wally rounds are small enough that this is
+    // a safer tradeoff than relying on round_id + time_ms indexes being deployed.
     const snap = await db.collection('wally_scores')
       .where('round_id', '==', roundId)
-      .orderBy('time_ms', 'asc')
-      .limit(5)
       .get();
-    const top = snap.docs.map(d => ({
-      display_name: d.data().display_name || 'Anonymous',
-      time_ms: d.data().time_ms,
+
+    const rankedDocs = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const timeDiff = (a.time_ms || 0) - (b.time_ms || 0);
+        if (timeDiff !== 0) return timeDiff;
+        return String(a.id).localeCompare(String(b.id));
+      });
+
+    const top = rankedDocs.slice(0, 5).map((d) => ({
+      display_name: d.display_name || 'Anonymous',
+      time_ms: d.time_ms,
     }));
     await db.doc('leaderboards/wally').set({
       round_id: roundId, top,
@@ -386,11 +396,10 @@ exports.onWallyScoreWrite = onDocumentWritten(
 
     // Stamp rank onto the user's doc on first insert
     if (!before && after?.time_ms && after.rank === undefined) {
-      const rankSnap = await db.collection('wally_scores')
-        .where('round_id', '==', roundId)
-        .where('time_ms', '<=', after.time_ms)
-        .get();
-      await event.data.after.ref.update({ rank: rankSnap.size });
+      const rank = rankedDocs.findIndex((d) => d.id === event.data.after.id) + 1;
+      if (rank > 0) {
+        await event.data.after.ref.update({ rank });
+      }
     }
   }
 );
