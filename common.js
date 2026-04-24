@@ -1257,6 +1257,7 @@ async function fetchCupsConfig() {
 
 async function initCups() {
     await fetchCupsConfig();
+    cupsTopScores = await loadCupsLeaderboard(5);
 
     if (currentUser) {
         const { data: press } = await supabaseC
