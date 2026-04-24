@@ -1377,7 +1377,7 @@ window.pressCup = async function(option) {
         const { data: myPress, error } = await supabaseC
             .from('hats_presses')
             .insert({ user_id: currentUser.id, choice: option, timestamp: new Date().toISOString() })
-            .select('choice')
+            .select('timestamp, rank')
             .single();
 
         if (error) throw error;
