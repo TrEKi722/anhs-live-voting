@@ -75,16 +75,18 @@
             }
 
             // Hook into the wall cups UI update
+            let wallCupsWasActive = false;
             const origUpdateWallCupsUI = window.updateWallCupsUI;
             window.updateWallCupsUI = function() {
                 if (origUpdateWallCupsUI) origUpdateWallCupsUI();
 
-                // Show video when round starts
-                if (cupsIsActive && cupsMyPress === null) {
+                // Show video only when round transitions from inactive to active
+                if (cupsIsActive && !wallCupsWasActive) {
                     showVideo();
-                } else {
+                } else if (!cupsIsActive) {
                     hideVideo();
                 }
+                wallCupsWasActive = cupsIsActive;
             };
         </script>
     </body>
