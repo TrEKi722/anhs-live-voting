@@ -1361,6 +1361,11 @@ function updateCupsUI() {
     }
 }
 
+/**
+ * Fetches the top N Cups leaderboard entries from Firestore
+ * @param {number} limit - Maximum number of entries to return (default: 5)
+ * @returns {Promise<Array>} Array of {display_name, timestamp} objects
+ */
 async function loadCupsLeaderboard(limit) {
     const snap = await db.doc(LEADERBOARD_DOCS.hats).get();
     const data = snap.data() || {};

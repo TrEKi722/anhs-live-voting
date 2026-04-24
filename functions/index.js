@@ -266,6 +266,16 @@ exports.onVoteWrite = onDocumentWritten(
   }
 );
 
+/**
+ * Firestore trigger: Updates counters and leaderboard when a user presses a cup
+ *
+ * Performs three tasks:
+ * 1. Keeps counters/hats in sync with vote counts and correct answer count
+ * 2. Rebuilds leaderboards/hats with top 5 correct presses (sorted by timestamp)
+ * 3. Stamps the user's rank onto their hats_presses doc for client display
+ *
+ * Leaderboard ranking: Earliest timestamp wins; ties broken by user ID (alphabetically)
+ */
 exports.onHatsPressWrite = onDocumentWritten(
   { region: REGION, document: 'hats_presses/{uid}' },
   async (event) => {
