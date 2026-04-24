@@ -1377,13 +1377,14 @@ window.pressCup = async function(option) {
         const { data: myPress, error } = await supabaseC
             .from('hats_presses')
             .insert({ user_id: currentUser.id, choice: option, timestamp: new Date().toISOString() })
-            .select('timestamp, rank')
+            .select('choice')
             .single();
 
         if (error) throw error;
 
         cupsMyPress = option;
-        cupsMyRank = option === cupsCorrectOption ? (myPress.rank ?? null) : null;
+        // Don't set rank here — let the realtime listener get it from the Cloud Function
+        // The rank is set asynchronously, so we'll get it from the onSnapshot listener below
 
         updateCupsUI();
     } catch (error) {
