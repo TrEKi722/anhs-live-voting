@@ -411,6 +411,7 @@ let cupsIsActive = false;
 let cupsCorrectOption = null;
 let cupsMyPress = null;
 let cupsMyRank = null; // rank among correct presses (1/2/3/4+), null if wrong or no press
+let cupsTopScores = null; // top 5 correct presses
 
 // Yearbook state
 let ybPhase = 'waiting';       // 'waiting' | 'guessing' | 'reveal'
@@ -1281,6 +1282,8 @@ function updateCupsUI() {
     const pickDiv = document.getElementById('cups-pick');
     const inactiveDiv = document.getElementById('cups-inactive');
     const resultDiv = document.getElementById('cups-result');
+    const lbDiv = document.getElementById('cups-leaderboard');
+    const lbList = document.getElementById('cups-leaderboard-list');
 
     if (!badge) return;
 
@@ -1320,15 +1323,34 @@ function updateCupsUI() {
         if (pickDiv) pickDiv.style.display = 'block';
         if (inactiveDiv) inactiveDiv.style.display = 'none';
         if (resultDiv) resultDiv.style.display = 'none';
+        if (lbDiv) lbDiv.style.display = 'none';
         badge.textContent = 'Round is open — pick a cup!';
         badge.className = 'status-badge status-open';
     } else {
         if (pickDiv) pickDiv.style.display = 'none';
         if (inactiveDiv) inactiveDiv.style.display = 'block';
         if (resultDiv) resultDiv.style.display = 'none';
+        if (lbDiv && cupsTopScores && cupsTopScores.length > 0) {
+            lbDiv.style.display = 'block';
+            if (lbList) {
+                lbList.innerHTML = cupsTopScores.map((score, i) => `
+                    <div style="padding: 0.5rem; background: var(--bg-panel); border-radius: 0.5rem;">
+                        <span style="font-weight: bold;">#${i + 1}</span> ${score.display_name}
+                    </div>
+                `).join('');
+            }
+        } else if (lbDiv) {
+            lbDiv.style.display = 'none';
+        }
         badge.textContent = 'Waiting for round to start...';
         badge.className = 'status-badge status-locked';
     }
+}
+
+async function loadCupsLeaderboard(limit) {
+    const snap = await db.doc(LEADERBOARD_DOCS.hats).get();
+    const data = snap.data() || {};
+    return (data.top || []).slice(0, limit || 5);
 }
 
 function setupCupsRealtime() {
@@ -1338,11 +1360,18 @@ function setupCupsRealtime() {
         if (newCorrectOption === null && cupsCorrectOption !== null) {
             cupsMyPress = null;
             cupsMyRank = null;
+            cupsTopScores = null;
         }
         cupsIsActive = !!payload.new.is_active;
         cupsCorrectOption = newCorrectOption;
         updateCupsUI();
         if (typeof updateCupsAdminUI === 'function') updateCupsAdminUI();
+        if (typeof updateWallCupsUI === 'function') updateWallCupsUI();
+    });
+
+    subscribeToDoc(LEADERBOARD_DOCS.hats, (payload) => {
+        cupsTopScores = (payload.new?.top || []).slice(0, 5);
+        updateCupsUI();
         if (typeof updateWallCupsUI === 'function') updateWallCupsUI();
     });
 
@@ -1642,6 +1671,8 @@ async function updateWallCupsUI() {
     const inactiveDiv = document.getElementById('cups-wall-inactive');
     const activeDiv = document.getElementById('cups-wall-active');
     const countEl = document.getElementById('cups-wall-count');
+    const lbDiv = document.getElementById('cups-wall-leaderboard');
+    const lbList = document.getElementById('cups-wall-leaderboard-list');
 
     if (!badge) return;
 
@@ -1650,6 +1681,7 @@ async function updateWallCupsUI() {
         badge.className = 'status-badge status-open';
         if (inactiveDiv) inactiveDiv.style.display = 'none';
         if (activeDiv) activeDiv.style.display = 'block';
+        if (lbDiv) lbDiv.style.display = 'none';
 
         if (cupsCorrectOption !== null && countEl) {
             const snap = await db.doc(COUNTER_DOCS.hats).get();
@@ -1661,6 +1693,18 @@ async function updateWallCupsUI() {
         badge.className = 'status-badge status-locked';
         if (inactiveDiv) inactiveDiv.style.display = 'block';
         if (activeDiv) activeDiv.style.display = 'none';
+        if (lbDiv && cupsTopScores && cupsTopScores.length > 0) {
+            lbDiv.style.display = 'block';
+            if (lbList) {
+                lbList.innerHTML = cupsTopScores.map((score, i) => `
+                    <div style="padding: 0.5rem; background: var(--bg-panel); border-radius: 0.5rem; font-size: 1.2rem;">
+                        <span style="font-weight: bold;">#${i + 1}</span> ${score.display_name}
+                    </div>
+                `).join('');
+            }
+        } else if (lbDiv) {
+            lbDiv.style.display = 'none';
+        }
     }
 }
 

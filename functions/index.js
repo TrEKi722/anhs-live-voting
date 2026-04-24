@@ -297,28 +297,34 @@ exports.onHatsPressWrite = onDocumentWritten(
       });
     }
 
-    // Write rank back to the doc. Guard: only when rank is not yet set, preventing infinite recursion.
-    // Note: !before removed — if a user presses again in a new round without a reset, Firestore
-    // sees it as an update (before exists), but we still need to rank it.
-    if (after && ac !== null && after.rank === undefined) {
-      let rank = null;
-      if (correct !== null && ac === correct) {
-        // Fetch all correct presses, sort by timestamp, and find this user's rank
-        const snap = await db.collection('hats_presses')
-          .where('choice', '==', correct)
-          .get();
-        const docs = snap.docs
-          .map(d => ({ id: d.id, timestamp: d.data().timestamp }))
-          .sort((a, b) => {
-            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-            if (timeA !== timeB) return timeA - timeB;
-            return String(a.id).localeCompare(String(b.id));
-          });
-        const userIndex = docs.findIndex(d => d.id === event.data.after.id);
-        if (userIndex >= 0) rank = userIndex + 1;
+    // Rebuild leaderboard if a correct guess was made
+    if (correct !== null && ac === correct) {
+      const snap = await db.collection('hats_presses')
+        .where('choice', '==', correct)
+        .get();
+      const rankedDocs = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => {
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          if (timeA !== timeB) return timeA - timeB;
+          return String(a.id).localeCompare(String(b.id));
+        });
+
+      const top = rankedDocs.slice(0, 5).map((d) => ({
+        display_name: d.display_name || 'Anonymous',
+        timestamp: d.timestamp,
+      }));
+      await db.doc('leaderboards/hats').set({
+        top,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Stamp rank onto user's doc on first insert only
+      if (!before && after?.rank === undefined) {
+        const rank = rankedDocs.findIndex((d) => d.id === event.data.after.id) + 1;
+        if (rank > 0) await event.data.after.ref.update({ rank });
       }
-      await event.data.after.ref.update({ rank });
     }
   }
 );
