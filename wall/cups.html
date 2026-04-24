@@ -16,6 +16,9 @@
     </head>
     <body>
 
+        <!-- Fullscreen video player -->
+        <video id="cupsVideo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; background: #000; z-index: 1000;" controls></video>
+
         <div id="full-page" class="page-layout" style="display: none;">
 
             <!-- Header: status + title + domain -->
@@ -46,10 +49,43 @@
 
         <script src="../common.js"></script>
         <script>
+            let cupsVideoUrl = '/media/cups-video.mp4'; // Update with actual video path
+
             addEventListener("DOMContentLoaded", () => {
                 document.getElementById('playNow').textContent = 'Play @ ' + window.location.hostname;
                 document.getElementById('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2F' + window.location.hostname + '%2Fcups&size=500x500&color=000&bgcolor=fff&qzone=1';
+
+                // Setup video player
+                const videoEl = document.getElementById('cupsVideo');
+                videoEl.src = cupsVideoUrl;
+                videoEl.addEventListener('ended', hideVideo);
             });
+
+            function showVideo() {
+                const videoEl = document.getElementById('cupsVideo');
+                videoEl.style.display = 'block';
+                videoEl.currentTime = 0;
+                videoEl.play();
+            }
+
+            function hideVideo() {
+                const videoEl = document.getElementById('cupsVideo');
+                videoEl.style.display = 'none';
+                videoEl.pause();
+            }
+
+            // Hook into the wall cups UI update
+            const origUpdateWallCupsUI = window.updateWallCupsUI;
+            window.updateWallCupsUI = function() {
+                if (origUpdateWallCupsUI) origUpdateWallCupsUI();
+
+                // Show video when round starts
+                if (cupsIsActive && cupsMyPress === null) {
+                    showVideo();
+                } else {
+                    hideVideo();
+                }
+            };
         </script>
     </body>
 </html>
