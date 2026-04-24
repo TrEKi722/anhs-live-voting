@@ -302,12 +302,21 @@ exports.onHatsPressWrite = onDocumentWritten(
     // sees it as an update (before exists), but we still need to rank it.
     if (after && ac !== null && after.rank === undefined) {
       let rank = null;
-      if (correct !== null && ac === correct && after.timestamp) {
+      if (correct !== null && ac === correct) {
+        // Fetch all correct presses, sort by timestamp, and find this user's rank
         const snap = await db.collection('hats_presses')
           .where('choice', '==', correct)
-          .where('timestamp', '<=', after.timestamp)
           .get();
-        rank = snap.size;
+        const docs = snap.docs
+          .map(d => ({ id: d.id, timestamp: d.data().timestamp }))
+          .sort((a, b) => {
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB;
+            return String(a.id).localeCompare(String(b.id));
+          });
+        const userIndex = docs.findIndex(d => d.id === event.data.after.id);
+        if (userIndex >= 0) rank = userIndex + 1;
       }
       await event.data.after.ref.update({ rank });
     }
