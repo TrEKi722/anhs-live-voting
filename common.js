@@ -24,6 +24,7 @@ const COUNTER_DOCS = {
 };
 
 const LEADERBOARD_DOCS = {
+    hats: 'leaderboards/hats',
     name_game: 'leaderboards/name_game',
     yearbook: 'leaderboards/yearbook',
     wally: 'leaderboards/wally'
