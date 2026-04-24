@@ -1383,10 +1383,8 @@ window.pressCup = async function(option) {
         if (error) throw error;
 
         cupsMyPress = option;
-        // Always initialize rank to null here, then let realtime listener update it
-        // For wrong answers: rank stays null
-        // For correct answers: realtime listener will be updated by Cloud Function with actual rank
-        cupsMyRank = null;
+        // Don't set rank here — let the realtime listener get it from the Cloud Function
+        // The rank is set asynchronously, so we'll get it from the onSnapshot listener below
 
         updateCupsUI();
     } catch (error) {
