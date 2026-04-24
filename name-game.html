@@ -67,10 +67,23 @@
                 <div id="ng-done" style="display: none; text-align: center; padding: 2rem 0;">
                     <h2 id="ng-final-score" style="font-size: 2.5rem; margin-bottom: 0.5rem;"></h2>
                     <p style="color: var(--text-muted);">Great effort!</p>
+                    <div id="ng-leaderboard" style="margin-top: 2rem; padding: 1rem 0;">
+                        <h3>Top Scores</h3>
+                        <div id="ng-leaderboard-list" style="margin-top: 1rem;"></div>
+                    </div>
                 </div>
 
             </div>
 
+        </div>
+
+        <!-- Placement Modal (for top 3) -->
+        <div id="ng-placement-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;" id="ng-modal-emoji"></div>
+                <h2 id="ng-modal-place" style="font-size: 2.5rem; margin-bottom: 0.5rem;"></h2>
+                <p style="color: var(--text-muted); font-size: 1.1rem;" id="ng-modal-message"></p>
+            </div>
         </div>
 
         <!-- Custom Toast Message -->

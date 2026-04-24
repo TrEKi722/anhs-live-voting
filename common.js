@@ -1313,6 +1313,19 @@ function updateCupsUI() {
                         <h2>${place}</h2>
                         <p>You picked the right cup!</p>
                     </div>`;
+
+                if (cupsMyRank <= 3) {
+                    const modalEl = document.getElementById('cups-placement-modal');
+                    const emojiEl = document.getElementById('cups-modal-emoji');
+                    const placeEl = document.getElementById('cups-modal-place');
+                    if (modalEl && emojiEl && placeEl) {
+                        const emojis = ['', '🥇', '🥈', '🥉'];
+                        const places = ['', '1st Place!', '2nd Place!', '3rd Place!'];
+                        emojiEl.textContent = emojis[cupsMyRank];
+                        placeEl.textContent = places[cupsMyRank];
+                        modalEl.style.display = 'flex';
+                    }
+                }
             } else {
                 const heading = isCorrect ? "Didn't place" : "Wrong answer";
                 const sub = isCorrect
@@ -1526,6 +1539,7 @@ function updateNameGameUI() {
         if (input) { input.value = ''; input.focus(); }
     } else if (phase === 'done') {
         showNGFinalScore();
+        loadNGLeaderboard();
     }
 }
 
@@ -1592,6 +1606,56 @@ function ngGameOver() {
 function showNGFinalScore() {
     const finalEl = document.getElementById('ng-final-score');
     if (finalEl) finalEl.textContent = `You got ${ngMyScore} right!`;
+}
+
+async function loadNGLeaderboard() {
+    const leaderboardEl = document.getElementById('ng-leaderboard');
+    const listEl = document.getElementById('ng-leaderboard-list');
+    if (!leaderboardEl || !listEl) return;
+
+    try {
+        const { data } = await supabaseC
+            .from('leaderboards')
+            .select('top')
+            .eq('game', 'name_game')
+            .single();
+
+        const scores = data?.top || [];
+        leaderboardEl.style.display = scores.length > 0 ? 'block' : 'none';
+
+        if (scores.length > 0) {
+            const medals = ['🥇', '🥈', '🥉'];
+            listEl.innerHTML = `<table class="yb-leaderboard" style="max-width: 360px; margin: 0 auto;">
+                <tbody>
+                    ${scores.map((row, i) => `
+                        <tr>
+                            <td style="font-size: 1.4rem; padding: 0.6rem;">${medals[i] || (i + 1) + '.'}</td>
+                            <td style="text-align: left; padding: 0.6rem;">${row.display_name || 'Anonymous'}</td>
+                            <td style="font-weight: bold; color: var(--primary); padding: 0.6rem;">${row.score}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`;
+
+            const userRank = scores.findIndex(r => r.user_id === currentUser?.id);
+            if (userRank >= 0 && userRank < 3) {
+                const modalEl = document.getElementById('ng-placement-modal');
+                const emojiEl = document.getElementById('ng-modal-emoji');
+                const placeEl = document.getElementById('ng-modal-place');
+                const msgEl = document.getElementById('ng-modal-message');
+                if (modalEl && emojiEl && placeEl && msgEl) {
+                    const emojis = ['🥇', '🥈', '🥉'];
+                    const places = ['1st Place!', '2nd Place!', '3rd Place!'];
+                    emojiEl.textContent = emojis[userRank];
+                    placeEl.textContent = places[userRank];
+                    msgEl.textContent = `You got ${scores[userRank].score} correct!`;
+                    modalEl.style.display = 'flex';
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[Name Game] Error loading leaderboard:', e);
+    }
 }
 
 function showNGFeedback(type, message) {
@@ -1988,7 +2052,58 @@ async function renderYBReveal() {
             score: ybMyScore
         });
     }
+
+    loadYBLeaderboard();
 }
+
+async function loadYBLeaderboard() {
+    const leaderboardEl = document.getElementById('yb-leaderboard');
+    const listEl = document.getElementById('yb-leaderboard-list');
+    if (!leaderboardEl || !listEl) return;
+
+    try {
+        const { data } = await supabaseC
+            .from('leaderboards')
+            .select('top')
+            .eq('game', 'yearbook')
+            .single();
+
+        const scores = data?.top || [];
+        leaderboardEl.style.display = scores.length > 0 ? 'block' : 'none';
+
+        if (scores.length > 0) {
+            const medals = ['🥇', '🥈', '🥉'];
+            listEl.innerHTML = `<table class="yb-leaderboard" style="max-width: 360px; margin: 0 auto;">
+                <tbody>
+                    ${scores.map((row, i) => `
+                        <tr>
+                            <td style="font-size: 1.4rem; padding: 0.6rem;">${medals[i] || (i + 1) + '.'}</td>
+                            <td style="text-align: left; padding: 0.6rem;">${row.display_name || 'Anonymous'}</td>
+                            <td style="font-weight: bold; color: var(--primary); padding: 0.6rem;">${row.score}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`;
+
+            const userRank = scores.findIndex(r => r.user_id === currentUser?.id);
+            if (userRank >= 0 && userRank < 3) {
+                const modalEl = document.getElementById('yb-placement-modal');
+                const emojiEl = document.getElementById('yb-modal-emoji');
+                const placeEl = document.getElementById('yb-modal-place');
+                const msgEl = document.getElementById('yb-modal-message');
+                if (modalEl && emojiEl && placeEl && msgEl) {
+                    const emojis = ['🥇', '🥈', '🥉'];
+                    const places = ['1st Place!', '2nd Place!', '3rd Place!'];
+                    emojiEl.textContent = emojis[userRank];
+                    placeEl.textContent = places[userRank];
+                    msgEl.textContent = `You have ${scores[userRank].score} points!`;
+                    modalEl.style.display = 'flex';
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[Yearbook] Error loading leaderboard:', e);
+    }
 
 function renderYBVoteBars() {
     const grid = document.getElementById('yb-vote-bars');
@@ -2339,9 +2454,53 @@ function updateWallyUI() {
         }
 
     } else if (wallyRoundEnded) {
-        // Round ended while player was still hunting
-        if (endedEl) endedEl.style.display = 'block';
+        // Round ended — show leaderboard and placement modal if top 3
+        if (activeEl) activeEl.style.display = 'none';
+        if (endedEl) endedEl.style.display = 'none';
+        if (foundEl) foundEl.style.display = 'block';
         if (badge) { badge.className = 'status-badge status-locked'; badge.textContent = 'Round Over'; }
+
+        const timeEl = document.getElementById('wally-your-time');
+        const rankEl = document.getElementById('wally-your-rank');
+        const top3El = document.getElementById('wally-top3');
+
+        if (wallyFoundTime !== null) {
+            if (timeEl) timeEl.textContent = `Your time: ${(wallyFoundTime / 1000).toFixed(3)}s`;
+            if (rankEl) rankEl.textContent = wallyMyRank !== null ? `You placed ${wallyMyRank}${['', 'st', 'nd', 'rd'][wallyMyRank] || 'th'}!` : '';
+        } else {
+            if (timeEl) timeEl.textContent = 'You didn\'t find Wally this round.';
+            if (rankEl) rankEl.textContent = '';
+        }
+
+        if (top3El && wallyTopScores) {
+            const medals = ['🥇', '🥈', '🥉'];
+            top3El.innerHTML = wallyTopScores.length
+                ? `<table class="yb-leaderboard" style="max-width: 360px; margin: 1rem auto;">
+                    <tbody>
+                        ${wallyTopScores.map((row, i) => `
+                            <tr>
+                                <td style="font-size: 1.4rem; padding: 0.6rem;">${medals[i] || (i + 1) + '.'}</td>
+                                <td style="text-align: left; padding: 0.6rem;">${row.display_name || 'Anonymous'}</td>
+                                <td style="font-weight: bold; color: var(--primary); padding: 0.6rem; font-variant-numeric: tabular-nums;">${(row.time_ms / 1000).toFixed(3)}s</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`
+                : '<p style="color: var(--text-muted);">No scores yet.</p>';
+        }
+
+        if (wallyFoundTime !== null && wallyMyRank !== null && wallyMyRank <= 3) {
+            const modalEl = document.getElementById('wally-placement-modal');
+            const emojiEl = document.getElementById('wally-modal-emoji');
+            const placeEl = document.getElementById('wally-modal-place');
+            if (modalEl && emojiEl && placeEl) {
+                const emojis = ['', '🥇', '🥈', '🥉'];
+                const places = ['', '1st Place!', '2nd Place!', '3rd Place!'];
+                emojiEl.textContent = emojis[wallyMyRank];
+                placeEl.textContent = places[wallyMyRank];
+                modalEl.style.display = 'flex';
+            }
+        }
 
     } else if (wallyIsActive) {
         // Hunting state
