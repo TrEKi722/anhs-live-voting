@@ -436,6 +436,7 @@ let wallyIsActive = false;
 let wallySceneId = null;
 let wallyRoundId = null;
 let wallyStartedAt = null;
+let wallyImageLoadTime = null;
 let wallyFoundTime = null;
 let wallyMyRank = null;
 let wallyTopScores = null;
@@ -2370,6 +2371,7 @@ function updateWallyUI() {
                         wallyApplyTransform();
                     }
                     if (loadingEl) loadingEl.style.display = 'none';
+                    wallyImageLoadTime = Date.now();
                     startWallyStopwatch();
                 };
                 img.onerror = () => {
@@ -2403,6 +2405,7 @@ function setupWallyRealtime() {
             wallyMyRank = null;
             wallyTopScores = null;
             wallyRoundEnded = false;
+            wallyImageLoadTime = null;
         }
 
         if (!wallyIsActive && prevActive && wallyFoundTime === null) {
@@ -2433,8 +2436,8 @@ function setupWallyRealtime() {
 function startWallyStopwatch() {
     if (wallyRaf) return;
     function tick() {
-        if (!wallyStartedAt) { wallyRaf = null; return; }
-        const elapsed = Date.now() - new Date(wallyStartedAt).getTime();
+        if (!wallyImageLoadTime) { wallyRaf = null; return; }
+        const elapsed = Date.now() - wallyImageLoadTime;
         const el = document.getElementById('wally-stopwatch');
         if (el) el.textContent = (elapsed / 1000).toFixed(2) + 's';
         wallyRaf = requestAnimationFrame(tick);
@@ -2629,7 +2632,7 @@ function wallyCheckHit(tapXPct, tapYPct) {
     const { x, y, radius } = scene.hitbox;
     const dist = Math.sqrt((tapXPct - x) ** 2 + (tapYPct - y) ** 2);
     if (dist <= radius) {
-        const timeMs = Date.now() - new Date(wallyStartedAt).getTime();
+        const timeMs = Date.now() - wallyImageLoadTime;
         wallySubmitScore(timeMs);
     }
 }
